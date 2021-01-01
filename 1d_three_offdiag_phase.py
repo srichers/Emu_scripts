@@ -186,72 +186,73 @@ def snapshot_plot(ad, axes, t):
     phase_plot(z, np.angle(Fx12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{\mu\tau}$")
 
     
-t=[]
+if __name__ == "__main__":
+    t=[]
 
-fig, axes = plt.subplots(2,3, figsize=(16,6))
-plt.subplots_adjust(hspace=0,wspace=0.05)
+    fig, axes = plt.subplots(2,3, figsize=(16,6))
+    plt.subplots_adjust(hspace=0,wspace=0.05)
 
-for i,d in zip(range(3),directories):
-    print(d)
-    ds = yt.load(d)
-    t.append(ds.current_time)
-    ad = ds.all_data()
+    for i,d in zip(range(3),directories):
+        print(d)
+        ds = yt.load(d)
+        t.append(ds.current_time)
+        ad = ds.all_data()
 
-    snapshot_plot(ad, axes[:,i], t[-1])
+        snapshot_plot(ad, axes[:,i], t[-1])
 
-xmax = 16
-for ax in axes.flatten():
-    ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.xaxis.set_major_locator(MultipleLocator(4))
-    ax.set_xlim(0,xmax*.999)
-for ax in axes[:,2]:
-    ax.set_xlim(0,xmax)
-    
-alpha = 0.9
-for i,ax in zip(range(3),axes[0,:]):
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.set_xticklabels([])
-    ax.set_ylim(-.05,1.05)
-    ax.text(8,.75, "t=%0.2f ns"%(t[i]*1e9), ha="center", va="center",bbox=dict(facecolor='white', alpha=alpha, edgecolor='.75'))
-
-
-ylabel = r"$\phi_{n_{ab}}$"
-axes[0,0].set_ylabel(ylabel)    
-axes[0,0].set_yticklabels(["",0,r"$\pi$"])
-for ax in axes[0,:]:
-    ax.set_ylim(-1,1)
-    ax.yaxis.set_minor_locator(MultipleLocator(.25))
-    ax.set_xticklabels([])
-    ax.set_xlabel(r"$x\,(\mathrm{cm})$")
-
-#ylabel = r"$\phi_{F^{(z)}_{ij}}$"
-#axes[1,0].set_ylabel(ylabel)    
-#for ax in axes[1,:]:
-#    ax.set_ylim(-1,1)
-#    ax.yaxis.set_minor_locator(MultipleLocator(.25))
-#    ax.set_xticklabels([])
-#    ax.set_xlabel(r"$x\,(\mathrm{cm})$")
-
-ylabel = r"$\phi_{\mathbf{f}^{(x)}_{ab}}$"
-axes[1,0].set_ylabel(ylabel)    
-axes[1,0].set_yticklabels([r"$-\pi$",0,r"$\pi$"])
-for ax in axes[1,:]:
-    ax.set_ylim(-1,1)
-    ax.yaxis.set_minor_locator(MultipleLocator(.25))
-    ax.set_xlabel(r"$z\,(\mathrm{cm})$")
-
-for ax in axes[:,1:].flatten():
-    ax.set_yticklabels([])
+    xmax = 16
+    for ax in axes.flatten():
+        ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.xaxis.set_major_locator(MultipleLocator(4))
+        ax.set_xlim(0,xmax*.999)
+    for ax in axes[:,2]:
+        ax.set_xlim(0,xmax)
+        
+    alpha = 0.9
+    for i,ax in zip(range(3),axes[0,:]):
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+        ax.set_xticklabels([])
+        ax.set_ylim(-.05,1.05)
+        ax.text(8,.75, "t=%0.2f ns"%(t[i]*1e9), ha="center", va="center",bbox=dict(facecolor='white', alpha=alpha, edgecolor='.75'))
 
 
-    
-axes[1,0].legend(frameon=True,loc=10,ncol=2,framealpha=alpha)
-#for ax in axes
-#ax.set_xlabel(r"$z$ (cm)")
-#ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
-#ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
+    ylabel = r"$\phi_{n_{ab}}$"
+    axes[0,0].set_ylabel(ylabel)    
+    axes[0,0].set_yticklabels(["",0,r"$\pi$"])
+    for ax in axes[0,:]:
+        ax.set_ylim(-1,1)
+        ax.yaxis.set_minor_locator(MultipleLocator(.25))
+        ax.set_xticklabels([])
+        ax.set_xlabel(r"$x\,(\mathrm{cm})$")
 
-fig.align_xlabels(axes)
-fig.align_ylabels(axes)
-plt.savefig("1d_three_offdiag_phase.pdf",bbox_inches="tight")
+    #ylabel = r"$\phi_{F^{(z)}_{ij}}$"
+    #axes[1,0].set_ylabel(ylabel)    
+    #for ax in axes[1,:]:
+    #    ax.set_ylim(-1,1)
+    #    ax.yaxis.set_minor_locator(MultipleLocator(.25))
+    #    ax.set_xticklabels([])
+    #    ax.set_xlabel(r"$x\,(\mathrm{cm})$")
+
+    ylabel = r"$\phi_{\mathbf{f}^{(x)}_{ab}}$"
+    axes[1,0].set_ylabel(ylabel)    
+    axes[1,0].set_yticklabels([r"$-\pi$",0,r"$\pi$"])
+    for ax in axes[1,:]:
+        ax.set_ylim(-1,1)
+        ax.yaxis.set_minor_locator(MultipleLocator(.25))
+        ax.set_xlabel(r"$z\,(\mathrm{cm})$")
+
+    for ax in axes[:,1:].flatten():
+        ax.set_yticklabels([])
+
+
+        
+    axes[1,0].legend(frameon=True,loc=10,ncol=2,framealpha=alpha)
+    #for ax in axes
+    #ax.set_xlabel(r"$z$ (cm)")
+    #ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
+    #ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
+
+    fig.align_xlabels(axes)
+    fig.align_ylabels(axes)
+    plt.savefig("1d_three_offdiag_phase.pdf",bbox_inches="tight")

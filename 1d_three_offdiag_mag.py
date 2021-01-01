@@ -204,79 +204,79 @@ def snapshot_plot(ad, axes, t):
              color="orange", linestyle="--", label=r"$\bar{\mu\tau}$") 
    
 
-    
-t=[]
+if __name__ == "__main__":
+    t=[]
 
-fig, axes = plt.subplots(2,3, figsize=(16,6))
-plt.subplots_adjust(hspace=0,wspace=0.05)
+    fig, axes = plt.subplots(2,3, figsize=(16,6))
+    plt.subplots_adjust(hspace=0,wspace=0.05)
 
-for i,d in zip(range(3),directories):
-    print(d)
-    ds = yt.load(d)
-    t.append(ds.current_time)
-    ad = ds.all_data()
+    for i,d in zip(range(3),directories):
+        print(d)
+        ds = yt.load(d)
+        t.append(ds.current_time)
+        ad = ds.all_data()
 
-    snapshot_plot(ad, axes[:,i], t[-1])
+        snapshot_plot(ad, axes[:,i], t[-1])
 
-xmax = 16
-for ax in axes.flatten():
-    ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
-    ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.xaxis.set_major_locator(MultipleLocator(4))
-    ax.set_xlim(0,xmax*.999)
-for ax in axes[:,2]:
-    ax.set_xlim(0,xmax)
-    
+    xmax = 16
+    for ax in axes.flatten():
+        ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
+        ax.xaxis.set_minor_locator(AutoMinorLocator())
+        ax.xaxis.set_major_locator(MultipleLocator(4))
+        ax.set_xlim(0,xmax*.999)
+    for ax in axes[:,2]:
+        ax.set_xlim(0,xmax)
+        
 
-for i,ax in zip(range(3),axes[0,:]):
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.set_xticklabels([])
-    ax.set_ylim(-.05,1.05)
-    ax.text(8,.4, "t=%0.2f ns"%(t[i]*1e9), ha="center", va="center")
+    for i,ax in zip(range(3),axes[0,:]):
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
+        ax.set_xticklabels([])
+        ax.set_ylim(-.05,1.05)
+        ax.text(8,.4, "t=%0.2f ns"%(t[i]*1e9), ha="center", va="center")
 
-ylabel = r"$|n_{ab}| /\mathrm{Tr}(n_{ab})$"
-axes[0,0].set_ylabel(ylabel)    
-for ax in axes[0,:]:
-    #ax.set_yscale("log")
-    #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
-    #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
-    ax.set_ylim(0,.5)
-    ax.set_xticklabels([])
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ylabel = r"$|n_{ab}| /\mathrm{Tr}(n_{ab})$"
+    axes[0,0].set_ylabel(ylabel)    
+    for ax in axes[0,:]:
+        #ax.set_yscale("log")
+        #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
+        #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
+        ax.set_ylim(0,.5)
+        ax.set_xticklabels([])
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
 
-#ylabel = r"$|F^{(z)}_{ij}| /\mathrm{Tr}(N)$"
-#axes[1,0].set_ylabel(ylabel)
-#for ax in axes[1,:]:
-    #ax.set_yscale("log")
-    #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
-    #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
-#    ax.set_ylim(0,.25)
-#    ax.set_xticklabels([])
-#    ax.yaxis.set_major_locator(MultipleLocator(.1))
-#    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    #ylabel = r"$|F^{(z)}_{ij}| /\mathrm{Tr}(N)$"
+    #axes[1,0].set_ylabel(ylabel)
+    #for ax in axes[1,:]:
+        #ax.set_yscale("log")
+        #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
+        #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
+    #    ax.set_ylim(0,.25)
+    #    ax.set_xticklabels([])
+    #    ax.yaxis.set_major_locator(MultipleLocator(.1))
+    #    ax.yaxis.set_minor_locator(AutoMinorLocator())
 
-ylabel = r"$10^6\times |\mathbf{f}^{(x)}_{ab}| /\mathrm{Tr}(n_{ab})$"
-axes[1,0].set_ylabel(ylabel)    
-for ax in axes[1,:]:
-    #ax.set_yscale("log")
-    #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
-    #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
-    ax.set_ylim(0,3.99)
-    ax.set_xlabel(r"$z\,(\mathrm{cm})$")
-    ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ylabel = r"$10^6\times |\mathbf{f}^{(x)}_{ab}| /\mathrm{Tr}(n_{ab})$"
+    axes[1,0].set_ylabel(ylabel)    
+    for ax in axes[1,:]:
+        #ax.set_yscale("log")
+        #ax.yaxis.set_major_locator(LogLocator(base=10,numticks=10))
+        #ax.yaxis.set_minor_locator(LogLocator(base=10,subs = np.arange(1,10)*.1,numticks=10))
+        ax.set_ylim(0,3.99)
+        ax.set_xlabel(r"$z\,(\mathrm{cm})$")
+        ax.yaxis.set_minor_locator(AutoMinorLocator())
 
-for ax in axes[:,1:].flatten():
-    ax.set_yticklabels([])
+    for ax in axes[:,1:].flatten():
+        ax.set_yticklabels([])
 
 
-    
-#axes[0,0].legend(frameon=False,loc=10,ncol=2)
-axes[1,0].legend(frameon=False,loc=9,ncol=2)
-#for ax in axes
-#ax.set_xlabel(r"$z$ (cm)")
-#ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
-#ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
+        
+    #axes[0,0].legend(frameon=False,loc=10,ncol=2)
+    axes[1,0].legend(frameon=False,loc=9,ncol=2)
+    #for ax in axes
+    #ax.set_xlabel(r"$z$ (cm)")
+    #ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
+    #ax.set_ylabel(r"$N$ (cm$^{-3 }$)")
 
-fig.align_xlabels(axes)
-fig.align_ylabels(axes)
-plt.savefig("1d_three_offdiag_mag.pdf",bbox_inches="tight")
+    fig.align_xlabels(axes)
+    fig.align_ylabels(axes)
+    plt.savefig("1d_three_offdiag_mag.pdf",bbox_inches="tight")
