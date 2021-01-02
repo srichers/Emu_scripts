@@ -5,9 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator, ScalarFormatter)
 
-cmap=mpl.cm.plasma
+cmap=mpl.cm.jet
 
-f = h5py.File("/global/project/projectdirs/m3018/Emu/PAPER/1D/converge_domain/1D_512cm/reduced_data_fft.h5","r")
+
+
+f = h5py.File("/global/project/projectdirs/m3018/Emu/PAPER/1D/converge_nx/1D_nx4096/reduced_data_fft.h5","r")
+#f = h5py.File("/global/project/projectdirs/m3018/Emu/PAPER/1D/converge_domain/1D_512cm/reduced_data_fft.h5","r")
 t        = np.array(f["t"])       
 kz       = np.array(f["kz"])*2.*np.pi      
 N00_FFT  = np.array(f["N00_FFT"]) 
@@ -52,6 +55,7 @@ def rebin(a):
 
 nblocks = 50
 dt = 0.1e-9 #t[-1]/nblocks
+ibref=9
 def makeplot(ax, Q):
     ax.set_yscale('log')
     for ib in range(nblocks):
@@ -62,16 +66,19 @@ def makeplot(ax, Q):
             Q0 = Q_avg
         #Q_avg_bin = rebin(Q_avg)
         #kz_bin = rebin(kz)
-        ax.plot(kz, Q_avg, color=cmap(ib/nblocks))
-    ax.plot(kz, Q_avg, color="black")
+        else:
+            ax.plot(kz/np.sqrt((ib+1)/ibref), Q_avg, color=cmap(ib/nblocks), linewidth=2) #
+    #ax.plot(kz/np.sqrt((ib+1)/ibref), Q_avg, color="black", linewidth=2) #
     return Q0
-
+print((ibref+1)*dt)
+ib=1
+color="salmon" #cmap(ib/nblocks)
 Q0 = makeplot(axes[0], N00_FFT)
-axes[0].plot(kz,Q0, color="green")
+axes[0].plot(kz/np.sqrt((ib+1)/ibref),Q0, color=color, linewidth=2)
 Q0 = makeplot(axes[1], N01_FFT)
-axes[1].plot(kz,Q0, color="green")
+axes[1].plot(kz/np.sqrt((ib+1)/ibref),Q0, color=color, linewidth=2)
 Q0 = makeplot(axes[2], Fx01_FFT)
-axes[2].plot(kz,Q0, color="green")
+axes[2].plot(kz/np.sqrt((ib+1)/ibref),Q0, color=color, linewidth=2)
 
 ax = fig.add_axes([0,0,0,0])
 a = np.array([[0,5]])
@@ -85,19 +92,19 @@ cax.minorticks_on()
 cax.xaxis.set_ticks_position('top')
 cax.xaxis.set_label_position('top')
 cax.xaxis.set_minor_locator(MultipleLocator(0.1))
-cax.axvspan(0.1,0.2,color="green")
-cax.axvspan(4.9,5.0,color="black")
+cax.axvspan(0.1,0.2,color=color)
+#cax.axvspan(4.9,5.0,color="black")
 
 for ax in axes:
     ax.yaxis.set_tick_params(which='both', direction='in', right=True,top=True)
     ax.xaxis.set_tick_params(which='both', direction='in', bottom=True, top=True)
-    ax.set_xlim(-50,50)
+    ax.set_xlim(-40,40)
     ax.minorticks_on()
     
 for ax in axes[0:2]:
     ax.set_xticklabels([])
     
-axes[2].set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
+axes[2].set_xlabel(r"$k\sqrt{\frac{1\,\mathrm{ns}}{t}}\,(\mathrm{cm}^{-1})$")
     
 axes[0].set_ylim(1.01e20, 1e34)
 axes[1].set_ylim(1e25, 1e34)
@@ -108,9 +115,9 @@ axes[0].set_ylabel(r"$\widetilde{n}_{ee}\,(\mathrm{cm}^{-2})$")
 axes[1].set_ylabel(r"$\widetilde{n}_{e\mu}\,(\mathrm{cm}^{-2})$")
 axes[2].set_ylabel(r"$\widetilde{\mathbf{f}}_{e\mu}^{(x)}\,(\mathrm{cm}^{-2})$")
 
-axes[0].axvline(2.*np.pi/2.20, color="blue", linewidth=2)
-axes[1].axvline(2.*np.pi/2.20, color="blue", linewidth=2)
-axes[2].axvline(2.*np.pi/4.45, color="red", linewidth=2)
+#axes[0].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
+#axes[1].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
+#axes[2].axvline(2.*np.pi/4.45/np.sqrt((1+1)/ibref), color="red", linewidth=2)
 
 plt.savefig("fft_selected_plot.png", bbox_inches='tight',dpi=300)
 
