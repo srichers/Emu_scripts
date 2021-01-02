@@ -16,10 +16,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--basedir", type=str, default="/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial", help="Path to the directory containing the plotfiles.")
 parser.add_argument("-s", "--save_frames", action="store_true", help="Save each frame used for the movie.")
 parser.add_argument("-o", "--output_name", type=str, default="1d_offdiag", help="Name of the output movie file.")
-parser.add_argument("-f", "--frames_per_second", type=int, default=10, help="Number of frames per second for the movie (default: 10).")
+parser.add_argument("-fps", "--frames_per_second", type=int, default=10, help="Number of frames per second for the movie (default: 10).")
 parser.add_argument("-mt", "--max_time", type=float, help="Maximum simulation time for which to make the movie.")
 parser.add_argument("-mz", "--max_zcoord", type=float, help="Maximum value of the z-coordinate to plot.")
 parser.add_argument("-p", "--processes", type=int, default=1, help="Number of processes to use.")
+parser.add_argument("-c", "--components", type=str, nargs="+", help="List of components to plot, can be any subset of ['emu', 'etau', 'mutau', 'emubar', 'etaubar', 'mutaubar'] (default: all).")
 args = parser.parse_args()
 
 # function for making one frame
@@ -42,8 +43,9 @@ def make_frame(dataset, output_name, save_frames):
     fig, axes = plt.subplots(4,1, figsize=(fig_x_size,16))
 
     plt.subplots_adjust(hspace=0,wspace=0.05)
-    plt_1d_offdiag_mag.snapshot_plot(ad, axes[:2], time)
-    plt_1d_offdiag_phase.snapshot_plot(ad, axes[2:], time)
+
+    plt_1d_offdiag_mag.snapshot_plot(ad, axes[:2], time, components=args.components)
+    plt_1d_offdiag_phase.snapshot_plot(ad, axes[2:], time, components=args.components)
 
     xmax = ds_max_x
     for ax in axes.flatten():

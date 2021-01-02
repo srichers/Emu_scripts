@@ -113,7 +113,16 @@ def phase_plot(z, phi, color, linestyle, ax,label=None):
         ax.plot(z[iL:iR], phi[iL:iR], color=color, linestyle=linestyle,label=this_label)
             
 
-def snapshot_plot(ad, axes, t):
+def snapshot_plot(ad, axes, t, components=None):
+    # components can either be None, in which case all off diagonal
+    # components are plotted, or a list containing any subset of the following:
+    # - "emu": plots e-mu neutrino components
+    # - "etau": plots e-tau neutrino components
+    # - "mutau": plots mu-tau neutrino components
+    # - "emubar": plots e-mu anti-neutrino components
+    # - "etaubar": plots e-tau anti-neutrino components
+    # - "mutaubar": plots mu-tau anti-neutrino components
+
     z = ad['index',"z"]    
 
     trace    = ad['boxlib',"N00_Re"   ] + ad['boxlib',"N11_Re"   ] + ad['boxlib',"N22_Re"   ]
@@ -162,12 +171,18 @@ def snapshot_plot(ad, axes, t):
     Fperp12bar = np.sqrt(Fx12bar**2 + Fy12bar**2)
     
     ax = axes[0]
-    phase_plot(z, np.angle(N01   )/np.pi, color="purple", linestyle="-" , ax=ax, label=r"${e\mu}$"         )
-    phase_plot(z, np.angle(N02   )/np.pi, color="green" , linestyle="-" , ax=ax, label=r"${e\tau}$"        )
-    phase_plot(z, np.angle(N12   )/np.pi, color="orange", linestyle="-" , ax=ax, label=r"${\mu\tau}$"      )
-    phase_plot(z, np.angle(N01bar)/np.pi, color="purple", linestyle="--", ax=ax, label=r"$\bar{e\mu}$"   )
-    phase_plot(z, np.angle(N02bar)/np.pi, color="green" , linestyle="--", ax=ax, label=r"$\bar{e\tau}$"  )
-    phase_plot(z, np.angle(N12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{\mu\tau}$")
+    if components is None or "emu" in components:
+        phase_plot(z, np.angle(N01   )/np.pi, color="purple", linestyle="-" , ax=ax, label=r"${e\mu}$"         )
+    if components is None or "etau" in components:
+        phase_plot(z, np.angle(N02   )/np.pi, color="green" , linestyle="-" , ax=ax, label=r"${e\tau}$"        )
+    if components is None or "mutau" in components:
+        phase_plot(z, np.angle(N12   )/np.pi, color="orange", linestyle="-" , ax=ax, label=r"${\mu\tau}$"      )
+    if components is None or "emubar" in components:
+        phase_plot(z, np.angle(N01bar)/np.pi, color="purple", linestyle="--", ax=ax, label=r"$\bar{e\mu}$"   )
+    if components is None or "etaubar" in components:
+        phase_plot(z, np.angle(N02bar)/np.pi, color="green" , linestyle="--", ax=ax, label=r"$\bar{e\tau}$"  )
+    if components is None or "mutaubar" in components:
+        phase_plot(z, np.angle(N12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{\mu\tau}$")
 
     #ax = axes[1]
     #phase_plot(z, np.angle(Fz01   )/np.pi, color="purple", linestyle="-" , ax=ax, label=r"$f_{e\mu}$"         )
@@ -178,12 +193,18 @@ def snapshot_plot(ad, axes, t):
     #phase_plot(z, np.angle(Fz12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{f}_{\mu\tau}$")
 
     ax = axes[1]
-    phase_plot(z, np.angle(Fx01   )/np.pi, color="purple", linestyle="-" , ax=ax, label=r"${e\mu}$"         )
-    phase_plot(z, np.angle(Fx02   )/np.pi, color="green" , linestyle="-" , ax=ax, label=r"${e\tau}$"        )
-    phase_plot(z, np.angle(Fx12   )/np.pi, color="orange", linestyle="-" , ax=ax, label=r"${\mu\tau}$"      )
-    phase_plot(z, np.angle(Fx01bar)/np.pi, color="purple", linestyle="--", ax=ax, label=r"$\bar{e\mu}$"   )
-    phase_plot(z, np.angle(Fx02bar)/np.pi, color="green" , linestyle="--", ax=ax, label=r"$\bar{e\tau}$"  )
-    phase_plot(z, np.angle(Fx12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{\mu\tau}$")
+    if components is None or "emu" in components:
+        phase_plot(z, np.angle(Fx01   )/np.pi, color="purple", linestyle="-" , ax=ax, label=r"${e\mu}$"         )
+    if components is None or "etau" in components:
+        phase_plot(z, np.angle(Fx02   )/np.pi, color="green" , linestyle="-" , ax=ax, label=r"${e\tau}$"        )
+    if components is None or "mutau" in components:
+        phase_plot(z, np.angle(Fx12   )/np.pi, color="orange", linestyle="-" , ax=ax, label=r"${\mu\tau}$"      )
+    if components is None or "emubar" in components:
+        phase_plot(z, np.angle(Fx01bar)/np.pi, color="purple", linestyle="--", ax=ax, label=r"$\bar{e\mu}$"   )
+    if components is None or "etaubar" in components:
+        phase_plot(z, np.angle(Fx02bar)/np.pi, color="green" , linestyle="--", ax=ax, label=r"$\bar{e\tau}$"  )
+    if components is None or "mutaubar" in components:
+        phase_plot(z, np.angle(Fx12bar)/np.pi, color="orange", linestyle="--", ax=ax, label=r"$\bar{\mu\tau}$")
 
     
 if __name__ == "__main__":

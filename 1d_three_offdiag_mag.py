@@ -109,11 +109,34 @@ def phase_plot(z, phi, color, linestyle, ax):
         ax.plot(z[iL:iR], phi[iL:iR], color=color, linestyle=linestyle)
             
 
-def snapshot_plot(ad, axes, t):
+def snapshot_plot(ad, axes, t, components=None):
+    # components can either be None, in which case all off diagonal
+    # components are plotted, or a list containing any subset of the following:
+    # - "emu": plots e-mu neutrino components
+    # - "etau": plots e-tau neutrino components
+    # - "mutau": plots mu-tau neutrino components
+    # - "emubar": plots e-mu anti-neutrino components
+    # - "etaubar": plots e-tau anti-neutrino components
+    # - "mutaubar": plots mu-tau anti-neutrino components
+
     z = ad['index',"z"]    
 
     trace    = ad['boxlib',"N00_Re"   ] + ad['boxlib',"N11_Re"   ] + ad['boxlib',"N22_Re"   ]
     tracebar = ad['boxlib',"N00_Rebar"] + ad['boxlib',"N11_Rebar"] + ad['boxlib',"N22_Rebar"]
+
+    N00 = ad['boxlib',"N00_Re"]
+    N11 = ad['boxlib',"N11_Re"]
+    N22 = ad['boxlib',"N22_Re"]
+    N00bar = ad['boxlib',"N00_Rebar"]
+    N11bar = ad['boxlib',"N11_Rebar"]
+    N22bar = ad['boxlib',"N22_Rebar"]
+
+    Fx00 = ad['boxlib',"Fx00_Re"]
+    Fx11 = ad['boxlib',"Fx11_Re"]
+    Fx22 = ad['boxlib',"Fx22_Re"]
+    Fx00bar = ad['boxlib',"Fx00_Rebar"]
+    Fx11bar = ad['boxlib',"Fx11_Rebar"]
+    Fx22bar = ad['boxlib',"Fx22_Rebar"]
 
     N01 = ad['boxlib',"N01_Re"] + 1j*ad['boxlib',"N01_Im"]
     N02 = ad['boxlib',"N02_Re"] + 1j*ad['boxlib',"N02_Im"]
@@ -160,18 +183,67 @@ def snapshot_plot(ad, axes, t):
 
     
     ax = axes[0]
-    ax.plot(z, np.abs(N01)/trace,
-            color="purple", label=r"${e\mu}$")
-    ax.plot(z, np.abs(N02)/trace,
-            color="green", label=r"${e\tau}$")
-    ax.plot(z, np.abs(N12)/trace,
-            color="orange", label=r"${\mu\tau}$")
-    ax.plot(z, np.abs(N01bar)/tracebar,
-            color="purple", linestyle="--", label=r"$\bar{e\mu}$")
-    ax.plot(z, np.abs(N02bar)/tracebar,
-            color="green", linestyle="--", label=r"$\bar{e\tau}$")
-    ax.plot(z, np.abs(N12bar)/tracebar,
-            color="orange", linestyle="--", label=r"$\bar{\mu\tau}$")
+
+    if "ee" in components:
+        ax.plot(z, np.abs(N00)/trace,
+                color="blue", label=r"${ee}$")
+    if "mumu" in components:
+        ax.plot(z, np.abs(N11)/trace,
+                color="red", label=r"${\mu\mu}$")
+    if "tautau" in components:
+        ax.plot(z, np.abs(N22)/trace,
+                color="black", label=r"${\tau\tau}$")
+    if "eebar" in components:
+        ax.plot(z, np.abs(N00bar)/tracebar,
+                color="blue", linestyle="--", label=r"$\bar{ee}$")
+    if "mumubar" in components:
+        ax.plot(z, np.abs(N11bar)/tracebar,
+                color="red", linestyle="--", label=r"$\bar{\mu\mu}$")
+    if "tautaubar" in components:
+        ax.plot(z, np.abs(N22bar)/tracebar,
+                color="black", linestyle="--", label=r"$\bar{\tau\tau}$")
+
+    if "d_emu" in components:
+        ax.plot(z, np.abs(N00 - N11) * np.abs(N01 - N01bar) / (trace * trace),
+                color="cyan", label=r"${(ee-\mu\mu) (e\mu - \bar{e\mu})}$")
+    if "d_etau" in components:
+        ax.plot(z, np.abs(N00 - N22) * np.abs(N02 - N02bar) / (trace * trace),
+                color="magenta", label=r"${(ee-\tau\tau) (e\tau - \bar{e\tau})}$")
+    if "d_mutau" in components:
+        ax.plot(z, np.abs(N11 - N22) * np.abs(N12 - N12bar) / (trace * trace),
+                color="brown", label=r"${(\mu\mu-\tau\tau) (\mu\tau - \bar{\mu\tau})}$")
+    if "m_mutau" in components:
+        ax.plot(z, np.minimum(N11, N22) / trace,
+                color="#d6b4fc", label=r"${min(\mu\mu,\tau\tau)}$") # light violet
+
+    if "d_emubar" in components:
+        ax.plot(z, np.abs(N00bar - N11bar) * np.abs(N01bar) / (tracebar * tracebar),
+                color="cyan", linestyle="--", label=r"$(\bar{ee}-\bar{\mu\mu}) \bar{e\mu}$")
+    if "d_etaubar" in components:
+        ax.plot(z, np.abs(N00bar - N22bar) * np.abs(N02bar) / (tracebar * tracebar),
+                color="magenta", linestyle="--", label=r"$(\bar{ee}-\bar{\tau\tau}) \bar{e\tau}$")
+    if "d_mutaubar" in components:
+        ax.plot(z, np.abs(N11bar - N22bar) * np.abs(N12bar) / (tracebar * tracebar),
+                color="brown", linestyle="--", label=r"$(\bar{\mu\mu}-\bar{\tau\tau}) \bar{\mu\tau}$")
+
+    if components is None or "emu" in components:
+        ax.plot(z, np.abs(N01)/trace,
+                color="purple", label=r"${e\mu}$")
+    if components is None or "etau" in components:
+        ax.plot(z, np.abs(N02)/trace,
+                color="green", label=r"${e\tau}$")
+    if components is None or "mutau" in components:
+        ax.plot(z, np.abs(N12)/trace,
+                color="orange", label=r"${\mu\tau}$")
+    if components is None or "emubar" in components:
+        ax.plot(z, np.abs(N01bar)/tracebar,
+                color="purple", linestyle="--", label=r"$\bar{e\mu}$")
+    if components is None or "etaubar" in components:
+        ax.plot(z, np.abs(N02bar)/tracebar,
+                color="green", linestyle="--", label=r"$\bar{e\tau}$")
+    if components is None or "mutaubar" in components:
+        ax.plot(z, np.abs(N12bar)/tracebar,
+                color="orange", linestyle="--", label=r"$\bar{\mu\tau}$")
 
     #ax = axes[1]
     #ax.plot(z, np.abs(Fz01)/trace,
@@ -190,18 +262,44 @@ def snapshot_plot(ad, axes, t):
 
     ax = axes[1]
     fac=1e6
-    ax.plot(z, fac*np.abs(Fx01)/trace,
-             color="purple", label=r"${e\mu}$")
-    ax.plot(z, fac*np.abs(Fx02)/trace,
-             color="green", label=r"${e\tau}$")
-    ax.plot(z, fac*np.abs(Fx12)/trace,
-             color="orange", label=r"${\mu\tau}$")
-    ax.plot(z, fac*np.abs(Fx01bar)/tracebar,
-            color="purple", linestyle="--", label=r"$\bar{e\mu}$")
-    ax.plot(z, fac*np.abs(Fx02bar)/tracebar,
-             color="green", linestyle="--", label=r"$\bar{e\tau}$")
-    ax.plot(z, fac*np.abs(Fx12bar)/tracebar,
-             color="orange", linestyle="--", label=r"$\bar{\mu\tau}$") 
+
+    if "ee" in components:
+        ax.plot(z, fac*np.abs(Fx00)/trace,
+                color="blue", label=r"${ee}$")
+    if "mumu" in components:
+        ax.plot(z, fac*np.abs(Fx11)/trace,
+                color="red", label=r"${\mu\mu}$")
+    if "tautau" in components:
+        ax.plot(z, fac*np.abs(Fx22)/trace,
+                color="black", label=r"${\tau\tau}$")
+    if "eebar" in components:
+        ax.plot(z, fac*np.abs(Fx00bar)/tracebar,
+                color="blue", linestyle="--", label=r"$\bar{ee}$")
+    if "mumubar" in components:
+        ax.plot(z, fac*np.abs(Fx11bar)/tracebar,
+                color="red", linestyle="--", label=r"$\bar{\mu\mu}$")
+    if "tautaubar" in components:
+        ax.plot(z, fac*np.abs(Fx22bar)/tracebar,
+                color="black", linestyle="--", label=r"$\bar{\tau\tau}$")
+
+    if components is None or "emu" in components:
+        ax.plot(z, fac*np.abs(Fx01)/trace,
+                color="purple", label=r"${e\mu}$")
+    if components is None or "etau" in components:
+        ax.plot(z, fac*np.abs(Fx02)/trace,
+                color="green", label=r"${e\tau}$")
+    if components is None or "mutau" in components:
+        ax.plot(z, fac*np.abs(Fx12)/trace,
+                color="orange", label=r"${\mu\tau}$")
+    if components is None or "emubar" in components:
+        ax.plot(z, fac*np.abs(Fx01bar)/tracebar,
+                color="purple", linestyle="--", label=r"$\bar{e\mu}$")
+    if components is None or "etaubar" in components:
+        ax.plot(z, fac*np.abs(Fx02bar)/tracebar,
+                color="green", linestyle="--", label=r"$\bar{e\tau}$")
+    if components is None or "mutaubar" in components:
+        ax.plot(z, fac*np.abs(Fx12bar)/tracebar,
+                color="orange", linestyle="--", label=r"$\bar{\mu\tau}$") 
    
 
 if __name__ == "__main__":
