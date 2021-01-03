@@ -111,9 +111,9 @@ axes[1].set_ylim(1e25, 1e34)
 axes[2].set_ylim(1e25, 3e28)
 
 
-axes[0].set_ylabel(r"$\widetilde{n}_{ee}\,(\mathrm{cm}^{-2})$")
-axes[1].set_ylabel(r"$\widetilde{n}_{e\mu}\,(\mathrm{cm}^{-2})$")
-axes[2].set_ylabel(r"$\widetilde{\mathbf{f}}_{e\mu}^{(x)}\,(\mathrm{cm}^{-2})$")
+axes[0].set_ylabel(r"$|\widetilde{n}_{ee}|\,(\mathrm{cm}^{-2})$")
+axes[1].set_ylabel(r"$|\widetilde{n}_{e\mu}|\,(\mathrm{cm}^{-2})$")
+axes[2].set_ylabel(r"$|\widetilde{\mathbf{f}}_{e\mu}^{(x)}|\,(\mathrm{cm}^{-2})$")
 
 #axes[0].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
 #axes[1].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
