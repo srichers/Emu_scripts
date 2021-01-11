@@ -114,9 +114,8 @@ dir_list = [basedir+"1D_nx4",
             basedir+"1D_nx256",
             basedir+"1D_nx512",
             basedir+"1D_nx1024",
-            basedir+"1D_nx2048",
-            basedir+"1D_nx4096"]
-x_list = [4,8,16,32,64,128,256,512,1024,2048,4096]
+            basedir+"1D_nx2048"]
+x_list = [4,8,16,32,64,128,256,512,1024,2048]
 xlabel = "Grid Zones"
 avg_list, growth_rate_list, Fgrowth_rate_list = get_metrics(dir_list)
 plot_column(x_list, avg_list, growth_rate_list, Fgrowth_rate_list, axes[:,0], xlabel)
@@ -142,7 +141,7 @@ dir_list = [basedir+"1D_1cm",
             basedir+"1D_256cm",
             basedir+"1D_512cm"]#,
             #basedir+"1D_1024cm"]
-x_list = [1,2,4,8,16,32,64,128,256]#,512,1024]
+x_list = [1,2,4,8,16,32,64,128,256,512]#,512,1024]
 xlabel = "Domain Size (cm)"
 avg_list, growth_rate_list, Fgrowth_rate_list = get_metrics(dir_list)
 plot_column(x_list, avg_list, growth_rate_list, Fgrowth_rate_list, axes[:,1], xlabel)
@@ -209,12 +208,14 @@ for ax in axes.flatten():
 ###############
 # annotations #
 ###############
-axes[0,0].text(32,.6,"64 cm",fontsize=18)
-axes[0,0].text(32,.53,"16 eq. directions",fontsize=18)
-axes[0,1].text(4,.6,"16 zones/cm",fontsize=18)
-axes[0,1].text(4,.53,"16 eq. directions",fontsize=18)
-axes[0,2].text(4,.6,"16 zones/cm",fontsize=18)
-axes[0,2].text(4,.53,"64 cm",fontsize=18)
+y1 = .7
+y2 = .63
+axes[0,0].text(32,y1,"64 cm",fontsize=18)
+axes[0,0].text(32,y2,"16 eq. directions",fontsize=18)
+axes[0,1].text(3,y1,"16 zones/cm",fontsize=18)
+axes[0,1].text(3,y2,"16 eq. directions",fontsize=18)
+axes[0,2].text(20,y1,"16 zones/cm",fontsize=18)
+axes[0,2].text(20,y2,"64 cm",fontsize=18)
 for ax in axes[0,:]:
     ax.axhline(1./3., color="gray", alpha=0.5, linewidth=2)
 for ax in axes[1,:]:

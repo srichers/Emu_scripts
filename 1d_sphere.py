@@ -1,6 +1,5 @@
 # Generate the 3x3 plots of 1d flavor-diagonal values.
 # run from the directory you want the pdf to be saved
-import cartopy.crs as ccrs
 import os
 import sys
 sys.path.append("/global/homes/s/srichers/Emu/Scripts/visualization")

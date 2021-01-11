@@ -54,7 +54,7 @@ mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
 def scale_nubar(n,nbar):
-    return (n-nbar)/(nbar)
+    return 0 #(n-nbar)/(nbar) # <-- this will make the curves line up.
 
 ax = plt.gca()
 basedir="/global/project/projectdirs/m3018/Emu/PAPER/1D"
@@ -74,15 +74,15 @@ dir_list = [
 x_list = np.array([0, 0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0])
 avg_list, avgbar_list = get_metrics(dir_list)
 avgbar_list[0] = 1.0
-ax.plot(x_list, avg_list[:,0,0], color="black", marker="o", label=r"$n_{ee}$")
+ax.plot(x_list, avg_list[:,0,0], color="black", marker="D", label=r"$n_{ee}$")
 n=1.
-ax.plot(x_list, avgbar_list[:,0,0]+(1-avg_list[:,0,0])*scale_nubar(n,x_list), color="red", marker="o", linestyle="--", label=r"$\bar{n}_{ee}$")
-ax.plot(x_list[-1], avgbar_list[-1,0,0], color="red", marker="o", linestyle="--",markersize=10)
+ax.plot(x_list, avgbar_list[:,0,0]+(1-avg_list[:,0,0])*scale_nubar(n,x_list), color="black", marker="o", linestyle="--", label=r"$\bar{n}_{ee}$")
+ax.plot(x_list[-1], avgbar_list[-1,0,0], color="darkmagenta", marker="o", linestyle="--",markersize=10)
 ax.legend(frameon=False, loc="lower left")
 
 #ax.scatter([1.0],avg_list[-1,0,0],marker="*",color="red",s=400)
 ax.axhline(1./3., color="green")
-ax.text(.78, .34, "Fiducial", color="red", rotation=0, fontsize=16)
+ax.text(.78, .34, "Fiducial", color="darkmagenta", rotation=0, fontsize=16)
 ax.text(.38, .6, r"$\mathbf{f}=n/3 \hat{z}$", fontsize=16)
 ax.text(.38, .55, r"$\bar{\mathbf{f}}=-\bar{n}/3 \hat{z}$", fontsize=16)
 
@@ -110,8 +110,8 @@ n=1.
 nbar=2./3.
 avg_list, avgbar_list = get_metrics(dir_list)
 avgbar_list[0] = 1.0
-ax2.plot(x_list, avg_list[:,0,0], color="blue", marker="o")
-ax2.plot(x_list, avgbar_list[:,0,0]+(1-avg_list[:,0,0])*scale_nubar(n,nbar), color="red", marker="o", linestyle="--")
+ax2.plot(x_list, avg_list[:,0,0], color="blue", marker="D")
+ax2.plot(x_list, avgbar_list[:,0,0]+(1-avg_list[:,0,0])*scale_nubar(n,nbar), color="blue", marker="o", linestyle="--")
 ax2.set_xticklabels([])
 ax2.spines['top'].set_color('blue')
 ax2.xaxis.label.set_color('blue')

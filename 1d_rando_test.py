@@ -64,8 +64,9 @@ dirlist = [
     basedir+"/0.7_thirds",
     basedir+"/0.8_thirds",
     basedir+"/0.9_thirds",
+    basedir+"/1.0_thirds",
 ]
-value_list = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9]
+value_list = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0]
 
 for value,dirname in zip(value_list,dirlist):
     t,N,Nbar = plotdata(dirname+"/reduced_data.h5")
@@ -79,10 +80,10 @@ for value,dirname in zip(value_list,dirlist):
 ax.axhline(1./3., color="green")
 ax.set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
 ax.set_ylabel(r"$\langle N_{ee}\rangle /\mathrm{Tr}(N)$")
-ax.set_xlim(.1,5)
+#ax.set_xlim(.1,5)
 #ax.set_xscale("log")
 ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
-#ax.xaxis.set_minor_locator(AutoMinorLocator())
+ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 
 # colorbar

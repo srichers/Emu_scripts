@@ -4,6 +4,20 @@ import scipy.fft as fft
 from yt import derived_field
 import yt.units.dimensions as dimensions
 
+class FourierData(object):
+    def __init__(self, time, kx, ky, kz, FT_magnitude, FT_phase):
+        # Dataset time
+        self.time = time
+
+        # Wavenumbers
+        self.kx = kx
+        self.ky = ky
+        self.kz = kz
+
+        # Fourier transform magnitude & phase
+        self.magnitude = FT_magnitude
+        self.phase = FT_phase
+
 class EmuDataset(object):
     def __init__(self, filename):
         self.ds = yt.load(filename)
@@ -121,12 +135,17 @@ class EmuDataset(object):
         else:
             FT = np.squeeze(self.cg[field_Re][:,:,:].d)
 
-        # get the absolute value of the fft
         # use fftn to do an N-dimensional FFT on an N-dimensional numpy array
-        FT = np.abs(fft.fftn(FT))
+        FT = fft.fftn(FT)
 
         # we're shifting the sampling frequencies next, so we have to shift the FFT values
         FT = fft.fftshift(FT)
+
+        # get the absolute value of the fft
+        FT_mag = np.abs(FT)
+
+        # get the phase of the fft
+        FT_phi = np.angle(FT)
 
         if self.Nx > 1:
             # find the sampling frequencies in X & shift them
@@ -149,4 +168,4 @@ class EmuDataset(object):
         else:
             kz = None
 
-        return (kx, ky, kz), FT
+        return FourierData(self.ds.current_time, kx, ky, kz, FT_mag, FT_phi)

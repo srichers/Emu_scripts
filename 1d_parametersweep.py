@@ -65,14 +65,14 @@ value_list = [0,.2,.4,.6,.8,1.0]
 
 for value,dirname in zip(value_list,dirlist):
     t,N,Nbar = plotdata(dirname+"/reduced_data.h5")
-    axes[0].plot(t, N,color=cmap(value))
-    axes[0].plot(t, Nbar,color=cmap(value), linestyle="--")
+    axes[3].plot(t, N,color=cmap(value))
+    axes[3].plot(t, Nbar,color=cmap(value), linestyle="--")
 
 ax = fig.add_axes([0,0,0,0])
 a = np.array([[0,value_list[-1]]])
 img = plt.imshow(a,cmap=cmap, vmax=value_list[-1])
 plt.gca().set_visible(False)
-cax = fig.add_axes([.95, .7, .06, cbar_height])
+cax = fig.add_axes([.95, .12, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
 cbar.set_label(r"$\bar{n}/n$")
@@ -81,7 +81,7 @@ cbar.set_label(r"$\bar{n}/n$")
 # plot fluxfac #
 ################
 dirlist = [
-#    "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.00",
+    "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.00",
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.05",
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.10",
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.15",
@@ -89,7 +89,7 @@ dirlist = [
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.25",
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_fluxfac/0.30",
     "/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial"]
-value_list = np.array([.05, .1, .15, .2, .25, .3, 0.33])
+value_list = np.array([0, .05, .1, .15, .2, .25, .3, 0.33])
 
 for value,dirname in zip(value_list*3,dirlist):
     t,N,Nbar = plotdata(dirname+"/reduced_data.h5")
@@ -153,14 +153,14 @@ vmax = 10
 for value,dirname in zip(value_list,dirlist):
     t,N,Nbar = plotdata(dirname+"/reduced_data.h5")
     cval = np.log10(max(vmin,value)/vmin) / np.log10(vmax/vmin)
-    axes[3].plot(t, N,color=cmap(cval))
-    axes[3].plot(t, Nbar,color=cmap(cval), linestyle="--")
+    axes[0].plot(t, N,color=cmap(cval))
+    axes[0].plot(t, Nbar,color=cmap(cval), linestyle="--")
     
 ax = fig.add_axes([0,0,0,3])
 a = np.array([[value_list[0],value_list[-1]]])
 img = plt.imshow(a,cmap=cmap, norm=mpl.colors.LogNorm(vmin=vmin, vmax=vmax))
 plt.gca().set_visible(False)
-cax = fig.add_axes([.95, .12, .06, cbar_height])
+cax = fig.add_axes([.95, .7, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
 cbar.set_label(r"$n_e / n$")

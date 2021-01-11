@@ -82,8 +82,8 @@ if args.antineutrinos:
     ax.plot(t,    Nbar[:,1,2],color="orange",label=r"$\bar{n}_{\mu\tau}$")
     ax.plot(t,  Fbar[:,0,1,2],color="orange",label=r"$\mathbf{\bar{f}}^{(x)}_{\mu\tau}$",linestyle="--")
     if args.include_mumu:
-        ax.plot(t,    Nbar[:,1,1],color="black",label=r"$\bar{n}_{\mu\mu}$")
-        ax.plot(t,  Fbar[:,0,1,1],color="black",label=r"$\mathbf{\bar{f}}^{(x)}_{\mu\mu}$",linestyle="--")
+        ax.plot(t,    Nbar[:,1,1],color="brown",label=r"$\bar{n}_{\mu\mu}$")
+        ax.plot(t,  Fbar[:,0,1,1],color="brown",label=r"$\mathbf{\bar{f}}^{(x)}_{\mu\mu}$",linestyle="--")
     if args.include_tautau:
         ax.plot(t,    Nbar[:,2,2],color="salmon",label=r"$\bar{n}_{\tau\tau}$")
         ax.plot(t,  Fbar[:,0,2,2],color="salmon",label=r"$\mathbf{\bar{f}}^{(x)}_{\tau\tau}$",linestyle="--")
@@ -95,8 +95,8 @@ else:
     ax.plot(t,    N[:,1,2],color="orange",label=r"$n_{\mu\tau}$")
     ax.plot(t,  F[:,0,1,2],color="orange",label=r"$\mathbf{f}^{(x)}_{\mu\tau}$",linestyle="--")
     if args.include_mumu:
-        ax.plot(t,    N[:,1,1],color="black",label=r"$n_{\mu\mu}$")
-        ax.plot(t,  F[:,0,1,1],color="black",label=r"$\mathbf{f}^{(x)}_{\mu\mu}$",linestyle="--")
+        ax.plot(t,    N[:,1,1],color="brown",label=r"$n_{\mu\mu}$")
+        ax.plot(t,  F[:,0,1,1],color="brown",label=r"$\mathbf{f}^{(x)}_{\mu\mu}$",linestyle="--")
     if args.include_tautau:
         ax.plot(t,    N[:,2,2],color="salmon",label=r"$n_{\tau\tau}$")
         ax.plot(t,  F[:,0,2,2],color="salmon",label=r"$\mathbf{f}^{(x)}_{\tau\tau}$",linestyle="--")
