@@ -75,7 +75,7 @@ plt.gca().set_visible(False)
 cax = fig.add_axes([.95, .12, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
-cbar.set_label(r"$\bar{n}/n$")
+cbar.set_label(r"$\bar{n}_\mathrm{input}/n_\mathrm{input}$")
 
 ################
 # plot fluxfac #
@@ -103,7 +103,7 @@ plt.gca().set_visible(False)
 cax = fig.add_axes([.95, .51, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
-cbar.set_label(r"$|\bar{\mathbf{f}}|/\bar{n}$")
+cbar.set_label(r"$|\bar{\mathbf{f}}_\mathrm{input}|/\bar{n}_\mathrm{input}$")
 
 
 ##################
@@ -131,7 +131,7 @@ plt.gca().set_visible(False)
 cax = fig.add_axes([.95, .31, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
-cbar.set_label(r"$\cos^{-1}(\hat{\mathbf{f}}\cdot\hat{\bar{\mathbf{f}}})$ (degrees)")
+cbar.set_label(r"$\cos^{-1}(\hat{\mathbf{f}}_\mathrm{input}\cdot\hat{\bar{\mathbf{f}}}_\mathrm{input})$ (degrees)")
 
 
 ###############
@@ -163,7 +163,7 @@ plt.gca().set_visible(False)
 cax = fig.add_axes([.95, .7, .06, cbar_height])
 cax.tick_params(axis='both', which='both', direction='in')
 cbar = plt.colorbar(cax=cax,ticks=value_list)
-cbar.set_label(r"$n_e / n$")
+cbar.set_label(r"$n_e / n_\mathrm{input}$")
 
 ##############
 # formatting #
