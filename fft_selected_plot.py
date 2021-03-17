@@ -115,6 +115,15 @@ axes[1].plot(kz/np.sqrt((ib+1)/ibref),Q0, color=color, linewidth=2)
 Q0 = makeplot(axes[2], Fx01_FFT)
 axes[2].plot(kz/np.sqrt((ib+1)/ibref),Q0, color=color, linewidth=2)
 
+# time labels
+axes[0].text(-39,3e21,r"$\mathbf{0-0.1\,\mathrm{ns}}$",color="blue",fontsize=12)
+axes[0].text(-39,7e23,r"$\mathbf{0.1-0.2\,\mathrm{ns}}$",color="salmon",fontsize=12)
+axes[0].text(-30,3e25,r"$\mathbf{0.2-0.3\,\mathrm{ns}}$",color="blue",fontsize=12,rotation=35)
+axes[1].text(2,1e26,r"$\mathbf{0-0.1\,\mathrm{ns}}$",color="blue",fontsize=12)
+axes[1].text(-4,1e27,r"$\mathbf{0.1-0.2\,\mathrm{ns}}$",color="salmon",fontsize=12, rotation=80)
+axes[1].text(-18,1e27,r"$\mathbf{0.2-0.3\,\mathrm{ns}}$",color="blue",fontsize=12,rotation=55)
+
+
 ax = fig.add_axes([0,0,0,0])
 a = np.array([[0,5]])
 img = plt.imshow(a,cmap=cmap, vmin=0, vmax=5)
@@ -213,6 +222,8 @@ if args.phase:
     #axes[0].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
     #axes[1].axvline(2.*np.pi/2.20/np.sqrt((1+1)/ibref), color="blue", linewidth=2)
     #axes[2].axvline(2.*np.pi/4.45/np.sqrt((1+1)/ibref), color="red", linewidth=2)
+
+    axes[0].text(-40,1e22,"$t=0-0.1\,\mathrm{ns}$",color="blue")
 
     plt.savefig("{}_phase.png".format(args.output), bbox_inches='tight',dpi=300)
     plt.savefig("{}_phase.pdf".format(args.output), bbox_inches='tight',dpi=300)
