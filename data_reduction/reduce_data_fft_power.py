@@ -68,11 +68,11 @@ def fft_power(fft,axis):
     # compute the magnitude of the wavevector for every point
     kmag = 0
     if fft.kx is not None:
-        kmag += fft.kx[:,np.newaxis,np.newaxis]**2
+        kmag = kmag + fft.kx[:,np.newaxis,np.newaxis]**2
     if fft.ky is not None:
-        kmag += fft.ky[np.newaxis,:,np.newaxis]**2
+        kmag = kmag + fft.ky[np.newaxis,:,np.newaxis]**2
     if fft.kz is not None:
-        kmag += fft.kz[np.newaxis,np.newaxis,:]**2
+        kmag = kmag + fft.kz[np.newaxis,np.newaxis,:]**2
     kmag = np.sqrt(kmag)
     kmag[np.where(kmag>kmid[-1])] = kmid[-1]
     
