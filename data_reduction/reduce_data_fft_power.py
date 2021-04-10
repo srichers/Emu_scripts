@@ -8,8 +8,6 @@ import glob
 import scipy
 import argparse
 
-k_axis_template = 'z'
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-o", "--output", type=str, default="reduced_data_fft_power.h5", help="Name of the output file (default: reduced_data_fft.h5)")
 args = parser.parse_args()
@@ -47,21 +45,19 @@ Fz12_FFT = []
 Fz22_FFT = []
 
 
-# use one of the axes as a template for the power spectrum
-def ktemplate(fft, axis):
-    if(axis=='x'):
+def get_kmid(fft):
+    if fft.kx is not None:
         kmid = fft.kx[np.where(fft.kx>=0)]
-    if(axis=='y'):
+    if fft.ky is not None:
         kmid = fft.ky[np.where(fft.ky>=0)]
-    if(axis=='z'):
+    if fft.kz is not None:
         kmid = fft.kz[np.where(fft.kz>=0)]
     return kmid
-
-def fft_power(fft,axis):
-    kmid = ktemplate(fft,axis)
     
+def fft_power(fft):
     # add another point to the end of the k grid for interpolation
     # MAKES POWER SPECTRUM HAVE SIZE ONE LARGER THAN KTEMPLATE
+    kmid = get_kmid(fft)
     dk = kmid[1]-kmid[0]
     kmid = np.append(kmid, kmid[-1]+dk)
     
@@ -73,13 +69,14 @@ def fft_power(fft,axis):
         kmag = kmag + fft.ky[np.newaxis,:,np.newaxis]**2
     if fft.kz is not None:
         kmag = kmag + fft.kz[np.newaxis,np.newaxis,:]**2
-    kmag = np.sqrt(kmag)
-    kmag[np.where(kmag>kmid[-1])] = kmid[-1]
+    kmag = np.sqrt(np.squeeze(kmag))
+    kmag[np.where(kmag>=kmid[-1])] = kmid[-1]
     
+ 
     # compute left index for interpolation
     ileft = (kmag/dk).astype(int)
     iright = ileft+1
-    iright[np.where(iright>len(kmid)-1)] = len(kmid)-1
+    iright[np.where(iright>=len(kmid)-1)] = len(kmid)-1
 
     # compute the fraction of the power that goes toward the left and right k point
     cleft = (kmid[iright]-kmag)/dk
@@ -98,6 +95,7 @@ def fft_power(fft,axis):
 
     return spectrum
 
+
 ################################
 # read data and calculate FFTs #
 ################################
@@ -107,56 +105,58 @@ for d in directories:
     t.append(eds.ds.current_time)
 
     fft = eds.fourier("N00_Re")
-    N00_FFT.append(fft_power(fft,k_axis_template))    
+    N00_FFT.append(fft_power(fft))    
     fft = eds.fourier("N11_Re")
-    N11_FFT.append(fft_power(fft,k_axis_template))
+    N11_FFT.append(fft_power(fft))
     fft = eds.fourier("N22_Re")
-    N22_FFT.append(fft_power(fft,k_axis_template))
+    N22_FFT.append(fft_power(fft))
     fft = eds.fourier("N01_Re","N01_Im")
-    N01_FFT.append(fft_power(fft,k_axis_template))
+    N01_FFT.append(fft_power(fft))
     fft = eds.fourier("N02_Re","N02_Im")
-    N02_FFT.append(fft_power(fft,k_axis_template))
+    N02_FFT.append(fft_power(fft))
     fft = eds.fourier("N12_Re","N12_Im")
-    N12_FFT.append(fft_power(fft,k_axis_template))
+    N12_FFT.append(fft_power(fft))
     
     fft = eds.fourier("Fx00_Re")
-    Fx00_FFT.append(fft_power(fft,k_axis_template))
+    Fx00_FFT.append(fft_power(fft))
     fft = eds.fourier("Fx11_Re")
-    Fx11_FFT.append(fft_power(fft,k_axis_template))
+    Fx11_FFT.append(fft_power(fft))
     fft = eds.fourier("Fx22_Re")
-    Fx22_FFT.append(fft_power(fft,k_axis_template))
+    Fx22_FFT.append(fft_power(fft))
     fft = eds.fourier("Fx01_Re","Fx01_Im")
-    Fx01_FFT.append(fft_power(fft,k_axis_template))
+    Fx01_FFT.append(fft_power(fft))
     fft = eds.fourier("Fx02_Re","Fx02_Im")
-    Fx02_FFT.append(fft_power(fft,k_axis_template))
+    Fx02_FFT.append(fft_power(fft))
     fft = eds.fourier("Fx12_Re","Fx12_Im")
-    Fx12_FFT.append(fft_power(fft,k_axis_template))
+    Fx12_FFT.append(fft_power(fft))
     
     fft = eds.fourier("Fy00_Re")
-    Fy00_FFT.append(fft_power(fft,k_axis_template))
+    Fy00_FFT.append(fft_power(fft))
     fft = eds.fourier("Fy11_Re")
-    Fy11_FFT.append(fft_power(fft,k_axis_template))
+    Fy11_FFT.append(fft_power(fft))
     fft = eds.fourier("Fy22_Re")
-    Fy22_FFT.append(fft_power(fft,k_axis_template))
+    Fy22_FFT.append(fft_power(fft))
     fft = eds.fourier("Fy01_Re","Fy01_Im")
-    Fy01_FFT.append(fft_power(fft,k_axis_template))
+    Fy01_FFT.append(fft_power(fft))
     fft = eds.fourier("Fy02_Re","Fy02_Im")
-    Fy02_FFT.append(fft_power(fft,k_axis_template))
+    Fy02_FFT.append(fft_power(fft))
     fft = eds.fourier("Fy12_Re","Fy12_Im")
-    Fy12_FFT.append(fft_power(fft,k_axis_template))
+    Fy12_FFT.append(fft_power(fft))
     
     fft = eds.fourier("Fz00_Re")
-    Fz00_FFT.append(fft_power(fft,k_axis_template))
+    Fz00_FFT.append(fft_power(fft))
     fft = eds.fourier("Fz11_Re")
-    Fz11_FFT.append(fft_power(fft,k_axis_template))
+    Fz11_FFT.append(fft_power(fft))
     fft = eds.fourier("Fz22_Re")
-    Fz22_FFT.append(fft_power(fft,k_axis_template))
+    Fz22_FFT.append(fft_power(fft))
     fft = eds.fourier("Fz01_Re","Fz01_Im")
-    Fz01_FFT.append(fft_power(fft,k_axis_template))
+    Fz01_FFT.append(fft_power(fft))
     fft = eds.fourier("Fz02_Re","Fz02_Im")
-    Fz02_FFT.append(fft_power(fft,k_axis_template))
+    Fz02_FFT.append(fft_power(fft))
     fft = eds.fourier("Fz12_Re","Fz12_Im")
-    Fz12_FFT.append(fft_power(fft,k_axis_template))
+    Fz12_FFT.append(fft_power(fft))
+
+    kmid = get_kmid(fft)
 
 ##################
 # write the file #
@@ -164,7 +164,7 @@ for d in directories:
 f = h5py.File(args.output,"w")
 
 f["t"] = np.array(t)
-f["k"] = ktemplate(fft,k_axis_template)
+f["k"] = kmid
 
 f["N00_FFT"] = np.array(N00_FFT)
 f["N11_FFT"] = np.array(N11_FFT)
