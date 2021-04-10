@@ -53,6 +53,8 @@ def makeplot(v,f,data):
     # axis labels
     ax.set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
     ax.set_ylabel(r"$|\widetilde{f}|^2\,(\mathrm{cm}^{-2})$")
+    ax.minorticks_on()
+    ax.grid(which='both')
     
     plt.savefig(v+f+"_FFT_power.pdf", bbox_inches='tight')
 

@@ -62,6 +62,8 @@ ax.set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
 ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
+ax.minorticks_on()
+ax.grid(which='both')
 
 #############
 # plot data #
