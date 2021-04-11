@@ -17,6 +17,8 @@ import glob
 
 print("imported all packages!")
 
+slice_direction = 'z'
+
 #3 flavor neutrino derived fields: Number Density
 #normalize by the trace
 @derived_field(name="Norm", units="dimensionless", sampling_type="cell",force_override=True)
@@ -95,12 +97,27 @@ filenames = sorted(glob.glob("plt*"))
 for filename in filenames:
     print(filename)
     ds = yt.load(filename)
-    slc = ds.slice('x', 0.)
+    slc = ds.slice(slice_direction, 0.)
     #use fixed resolution buffer to extract 2D slice data object information
-    frb = slc.to_frb(width = (ds.domain_right_edge[1].value - ds.domain_left_edge[1].value, 'cm'), height = (ds.domain_right_edge[2].value - ds.domain_left_edge[2].value, 'cm'), resolution = (ds.domain_dimensions[1], ds.domain_dimensions[2]))
+    if slice_direction == 'x':
+        i1=1
+        i2=2
+    if slice_direction == 'y':
+        i1 = 0
+        i2 = 2
+    if slice_direction == 'z':
+        i1 = 0
+        i2 = 1
+    frb = slc.to_frb(width = (ds.domain_right_edge[i1].value - ds.domain_left_edge[i1].value, 'cm'),
+                     height = (ds.domain_right_edge[i2].value - ds.domain_left_edge[i2].value, 'cm'),
+                     resolution = (ds.domain_dimensions[i1], ds.domain_dimensions[i2]))
     #list of fields to plot ordered by row and then column
-    fields = [['N00_Mag','N01_Mag','N02_Mag'],['N01_Phase','N11_Mag','N12_Mag'],['N02_Phase','N12_Phase','N22_Mag']]
-    labels = [[r'$N_{ee}$',r'$N_{e\mu}$',r'$N_{e\tau}$'],[r'$\phi_{e\mu}$',r'$N_{\mu\mu}$',r'$N_{\mu\tau}$'],[r'$\phi_{e\tau}$',r'$\phi_{\mu\tau}$',r'$N_{\tau\tau}$']]
+    fields = [['N00_Mag','N01_Mag','N02_Mag'],
+              ['N01_Phase','N11_Mag','N12_Mag'],
+              ['N02_Phase','N12_Phase','N22_Mag']]
+    labels = [[r'$N_{ee}$',r'$N_{e\mu}$',r'$N_{e\tau}$'],
+              [r'$\phi_{e\mu}$',r'$N_{\mu\mu}$',r'$N_{\mu\tau}$'],
+              [r'$\phi_{e\tau}$',r'$\phi_{\mu\tau}$',r'$N_{\tau\tau}$']]
     
     # Set up a 3x3 figure
     fig, axes = plt.subplots(nrows=3, ncols=3, figsize=(15,15), sharex=True, sharey=True)
@@ -149,8 +166,9 @@ for filename in filenames:
                 im = ax.imshow(frb[fields[i][j]].d,origin='lower',extent=[ds.domain_left_edge[1].value,ds.domain_right_edge[1].value,ds.domain_left_edge[2].value,ds.domain_right_edge[2].value], vmin=0., vmax=0.6, cmap='viridis')
                 #setting colorbar limits
                 im.set_clim(0.,0.6)
-    for a in axes[-1,:]: a.set_xlabel('y (cm)')
-    for a in axes[:,0]: a.set_ylabel('z (cm)')
+    label_arr = ["x","y","z"]
+    for a in axes[-1,:]: a.set_xlabel(label_arr[i1]+' (cm)')
+    for a in axes[:,0]: a.set_ylabel(label_arr[i2]+' (cm)')
 
     #plt.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     #increases the spacing between subplots so axis labels don't overlap
