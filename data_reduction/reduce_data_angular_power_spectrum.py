@@ -5,7 +5,8 @@ import glob
 import multiprocessing as mp
 import h5py
 import sys
-sys.path.append("/jet/home/saricher/software/Emu/Scripts/visualization")
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import amrex_plot_tools as amrex
 import scipy.special
 from multiprocessing import Pool
