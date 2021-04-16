@@ -19,9 +19,26 @@ class FourierData(object):
         self.phase = FT_phase
 
 class EmuDataset(object):
-    def __init__(self, filename):
-        self.ds = yt.load(filename)
+    def __init__(self, plotfile=None):
+        # initialize from a supplied plotfile, otherwise just make an empty dataset object
+        # and initialize it later with init_from_data()
+        if plotfile:
+            self.setup_dataset(yt.load(plotfile))
+        else:
+            self.ds = None
+
+    def init_from_data(self, data, left_edge=None, right_edge=None, dimensions=None,
+                       length_unit=(1.0, "cm"), periodicity=(True, True, True), nprocs=1):
+        # initialize the dataset using a dictionary of numpy arrays in data, keyed by field name
+        domain_bounds = np.array([[left_edge[0], right_edge[0]],
+                                  [left_edge[1], right_edge[1]],
+                                  [left_edge[2], right_edge[2]]])
         
+        self.setup_dataset(yt.load_uniform_grid(data, dimensions, length_unit=length_unit,
+                                                bbox=domain_bounds, periodicity=periodicity, nprocs=nprocs))
+
+    def setup_dataset(self, yt_dataset):
+        self.ds = yt_dataset
         self.construct_covering_grid()
         self.add_emu_fields()
         
@@ -102,7 +119,8 @@ class EmuDataset(object):
     def add_emu_fields(self):
         # first, define the trace
         def _make_trace(ds):
-            if ('boxlib', 'N22_Re') in ds.field_list:
+            just_the_fields = [f for ftype, f in ds.field_list]
+            if 'N22_Re' in just_the_fields:
                 def _trace(field, data):
                     return data["N00_Re"] + data["N11_Re"] + data["N22_Re"]
                 return _trace
@@ -169,3 +187,116 @@ class EmuDataset(object):
             kz = None
 
         return FourierData(self.ds.current_time, kx, ky, kz, FT_mag, FT_phi)
+
+    def get_data(self):
+        # gets a dictionary of numpy arrays with the raw data in this dataset, keyed by field
+        cg = self.ds.covering_grid(left_edge=self.ds.domain_left_edge, dims=self.ds.domain_dimensions, level=0)
+
+        data = {}
+
+        # Note: we have to throw away the field type, e.g. 'boxlib' because YT's uniform data loader
+        # gives its fields a 'stream' type. If we were to keep the field type here, we would be unable
+        # to call to_3D() on a dataset returned by to_2D() since the field types would not match.
+        for ftype, f in self.ds.field_list:
+            data[f] = (cg[f][:,:,:].d, "")
+
+        return data
+
+    def to_2D(self, extend_dims=None):
+        # transform this 1D dataset into a 2D AMReXArrayData object
+
+        # first, assert this dataset is 1D along z
+        assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[1] == 1 and self.ds.domain_dimensions[2] > 1)
+
+        # get the 1D data
+        data = self.get_data()
+
+        data_2D = {}
+
+        # by default extend y to match z unless extend_dims is passed
+        length_z = self.ds.domain_dimensions[2]
+        length_y = length_z
+        if extend_dims:
+            length_y = extend_dims
+
+        for f in data.keys():
+            df, df_units = data[f]
+            data_2D[f] = (np.tile(df, (1, length_y, 1)), df_units)
+
+        left_edge = self.ds.domain_left_edge
+        left_edge[1] = left_edge[2]
+        right_edge = self.ds.domain_right_edge
+        right_edge[1] = right_edge[2]
+        dimensions = self.ds.domain_dimensions
+        dimensions[1] = length_y
+
+        # return a new EmuDataset object
+        new_dataset = EmuDataset()
+        new_dataset.init_from_data(data_2D, left_edge=left_edge, right_edge=right_edge,
+                                   dimensions=dimensions, length_unit=self.ds.length_unit,
+                                   periodicity=self.ds.periodicity, nprocs=1)
+        return new_dataset
+
+    def to_3D(self, extend_dims=None):
+        # transform this 1D or 2D dataset into a 3D AMReXArrayData object
+
+        # check if this dataset is 1D or 2D and extended along z
+        assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[2] > 1)
+
+        # get the current data
+        data = self.get_data()
+
+        data_3D = {}
+        left_edge = None
+        right_edge = None
+        dimensions = None
+
+        if self.ds.domain_dimensions[1] == 1:
+            # we are 1D, extended along z
+            # by default extend x, y to match z unless extend_dims is passed
+            length_z = self.ds.domain_dimensions[2]
+            length_y = length_z
+            length_x = length_z
+            if extend_dims:
+                length_x, length_y = extend_dims
+
+            for f in data.keys():
+                df, df_units = data[f]
+                data_3D[f] = (np.tile(df, (length_x, length_y, 1)), df_units)
+
+            left_edge = self.ds.domain_left_edge
+            left_edge[0] = left_edge[2]
+            left_edge[1] = left_edge[2]
+            right_edge = self.ds.domain_right_edge
+            right_edge[0] = right_edge[2]
+            right_edge[1] = right_edge[2]
+            dimensions = self.ds.domain_dimensions
+            dimensions[0] = length_x
+            dimensions[1] = length_y
+
+        else:
+            # we are 2D, extended along y and z
+            # by default extend x to match y unless extend_dims is passed
+            length_y = self.ds.domain_dimensions[1]
+            length_x = length_y
+            if extend_dims:
+                length_x = extend_dims
+
+            for f in data.keys():
+                df, df_units = data[f]
+                data_3D[f] = (np.tile(df, (length_x, 1, 1)), df_units)
+
+            left_edge = self.ds.domain_left_edge
+            left_edge[0] = left_edge[1]
+            right_edge = self.ds.domain_right_edge
+            right_edge[0] = right_edge[1]
+            dimensions = self.ds.domain_dimensions
+            dimensions[0] = length_x
+
+        # return a new EmuDataset object
+        new_dataset = EmuDataset()
+        new_dataset.init_from_data(data_3D, left_edge=left_edge, right_edge=right_edge,
+                                   dimensions=dimensions, length_unit=self.ds.length_unit,
+                                   periodicity=self.ds.periodicity, nprocs=1)
+        return new_dataset
+
