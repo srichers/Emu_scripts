@@ -129,14 +129,14 @@ class EmuDataset(object):
                 _norm_derived_f = _make_derived_field(f)
                 self.ds.add_field(("gas", fname_norm), function=_norm_derived_f, units="auto", dimensions=dimensions.dimensionless)
 
-    def fourier(self, field_Re, field_Im=None):
+    def fourier(self, field_Re, field_Im=None, nproc=None):
         if field_Im:
             FT = np.squeeze(self.cg[field_Re][:,:,:].d + 1j * self.cg[field_Im][:,:,:].d)
         else:
             FT = np.squeeze(self.cg[field_Re][:,:,:].d)
 
         # use fftn to do an N-dimensional FFT on an N-dimensional numpy array
-        FT = fft.fftn(FT)
+        FT = fft.fftn(FT,workers=nproc)
 
         # we're shifting the sampling frequencies next, so we have to shift the FFT values
         FT = fft.fftshift(FT)
