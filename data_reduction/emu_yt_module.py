@@ -203,7 +203,7 @@ class EmuDataset(object):
         return data
 
     def to_2D(self, extend_dims=None):
-        # transform this 1D dataset into a 2D AMReXArrayData object
+        # transform this 1D dataset into a 2D EmuDataset object
 
         # first, assert this dataset is 1D along z
         assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[1] == 1 and self.ds.domain_dimensions[2] > 1)
@@ -238,7 +238,7 @@ class EmuDataset(object):
         return new_dataset
 
     def to_3D(self, extend_dims=None):
-        # transform this 1D or 2D dataset into a 3D AMReXArrayData object
+        # transform this 1D or 2D dataset into a 3D EmuDataset object
 
         # check if this dataset is 1D or 2D and extended along z
         assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[2] > 1)
