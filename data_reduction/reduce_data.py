@@ -19,14 +19,15 @@ import amrex_plot_tools as amrex
 import emu_yt_module as emu
 from multiprocessing import Pool
 import scipy.special
+import numexpr as ne
 
 
 ##########
 # INPUTS #
 ##########
-nproc = 1
-do_average = False
-do_fft     = False
+nproc = 64
+do_average = True
+do_fft     = True
 do_angular = True
 
 directories = sorted(glob.glob("plt*"))
@@ -71,8 +72,8 @@ def get_kmid(fft):
     if fft.kz is not None:
         kmid = fft.kz[np.where(fft.kz>=0)]
     return kmid
-    
-def fft_power(fft):
+
+def fft_coefficients(fft):
     # add another point to the end of the k grid for interpolation
     # MAKES POWER SPECTRUM HAVE SIZE ONE LARGER THAN KTEMPLATE
     kmid = get_kmid(fft)
@@ -100,16 +101,19 @@ def fft_power(fft):
     cleft = (kmid[iright]-kmag)/dk
     cright = 1.0-cleft
 
+    return cleft, cright, ileft, iright, kmid
+
+def fft_power(fft, cleft, cright, ileft, iright, kmid):
+
     # compute power contributions to left and right indices
     power = fft.magnitude**2
     powerLeft = power*cleft
     powerRight = power*cright
 
     # accumulate onto spectrum
-    spectrum = np.zeros(len(kmid))
-    for i in range(len(kmid)):
-        spectrum[i] += np.sum( powerLeft[np.where( ileft==i)])
-        spectrum[i] += np.sum(powerRight[np.where(iright==i)])
+    spectrum = np.array( [ 
+        np.sum( powerLeft*(ileft ==i) + powerRight*(iright==i) )
+        for i in range(len(kmid))] )
 
     return spectrum
 
@@ -181,18 +185,6 @@ t=[]
 #########################
 # angular preliminaries #
 #########################
-rkey, ikey = amrex.get_3flavor_particle_keys()
-
-# get the max useful number of modes
-paramfile = open("inputs","r")
-for line in paramfile:
-    line_without_comments = line.split("#")[0]
-    if "nphi_equator" in line_without_comments:
-        nl = int(line_without_comments.split("=")[1]) // 2
-paramfile.close()
-nl += 1
-print("Computing up to l =",nl-1)
-
 class GridData(object):
     def __init__(self, ad):
         x = ad['index','x'].d
@@ -294,6 +286,7 @@ def spherical_harmonic_power_spectrum(input_data):
 # loop over directories #
 #########################
 pool = Pool(nproc)
+ne.set_num_threads(nproc)
 for d in directories:
     print(d)
     eds = emu.EmuDataset(d)
@@ -333,17 +326,18 @@ for d in directories:
     ############
     if do_fft:
         fft = eds.fourier("N00_Re",nproc=nproc)
-        N00_FFT.append(fft_power(fft))    
+        cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
+        N00_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         fft = eds.fourier("N11_Re",nproc=nproc)
-        N11_FFT.append(fft_power(fft))
+        N11_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         fft = eds.fourier("N22_Re",nproc=nproc)
-        N22_FFT.append(fft_power(fft))
+        N22_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         fft = eds.fourier("N01_Re","N01_Im",nproc=nproc)
-        N01_FFT.append(fft_power(fft))
+        N01_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         fft = eds.fourier("N02_Re","N02_Im",nproc=nproc)
-        N02_FFT.append(fft_power(fft))
+        N02_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         fft = eds.fourier("N12_Re","N12_Im",nproc=nproc)
-        N12_FFT.append(fft_power(fft))
+        N12_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
         
         #fft = eds.fourier("Fx00_Re")
         #Fx00_FFT.append(fft_power(fft))
@@ -389,7 +383,19 @@ for d in directories:
     ################
     # angular work #
     ################
-    if do_angular:
+    if do_angular and len(glob.glob(d+"neutrinos"))>0:
+        rkey, ikey = amrex.get_3flavor_particle_keys()
+
+        # get the max useful number of modes
+        paramfile = open("inputs","r")
+        for line in paramfile:
+            line_without_comments = line.split("#")[0]
+            if "nphi_equator" in line_without_comments:
+                nl = int(line_without_comments.split("=")[1]) // 2
+        paramfile.close()
+        nl += 1
+        print("Computing up to l =",nl-1)
+
         header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
         grid_data = GridData(ad)
         nlevels = len(header.grids)
