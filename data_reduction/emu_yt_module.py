@@ -4,6 +4,25 @@ import scipy.fft as fft
 from yt import derived_field
 import yt.units.dimensions as dimensions
 
+class Dim3(object):
+    def __init__(self, x=0, y=0, z=0):
+        if type(x) == np.ndarray:
+            self.x = x[0]
+            self.y = x[1]
+            self.z = x[2]
+        else:
+            self.x = x
+            self.y = y
+            self.z = z
+
+    @staticmethod
+    def dimensions(lo, hi):
+        # return the number of elements (lo, hi)
+        # contain along each dimension
+        return [hi.x - lo.x + 1,
+                hi.y - lo.y + 1,
+                hi.z - lo.z + 1]
+
 class FourierData(object):
     def __init__(self, time, kx, ky, kz, FT_magnitude, FT_phase):
         # Dataset time
@@ -188,19 +207,68 @@ class EmuDataset(object):
 
         return FourierData(self.ds.current_time, kx, ky, kz, FT_mag, FT_phi)
 
-    def get_data(self):
+    def get_rectangle(self, left_edge, right_edge):
+        # returns an EmuDataset containing only the rectangular region
+        # defined by [left_edge, right_edge] in the current dataset
+        #
+        # by default the returned dataset is at the same resolution as
+        # the current dataset, although its dimensionality can be passed
+        # with the dimensions argument
+
+        data, data_dimensions = self.get_data(bounds=(left_edge, right_edge))
+
+        # return a new EmuDataset object
+        new_dataset = EmuDataset()
+        new_dataset.init_from_data(data, left_edge=left_edge, right_edge=right_edge,
+                                   dimensions=data_dimensions, length_unit=self.ds.length_unit,
+                                   periodicity=(False, False, False), nprocs=1)
+        return new_dataset
+
+    def get_data(self, bounds=None):
         # gets a dictionary of numpy arrays with the raw data in this dataset, keyed by field
+        # if bounds = None, returns the entire domain, otherwise interpret bounds = (left_edge, right_edge)
+        # where left_edge and right_edge are each numpy arrays with the physical positions of the selection edges
+        # and return the subdomain inside those bounds at the same resolution as the original dataset
         cg = self.ds.covering_grid(left_edge=self.ds.domain_left_edge, dims=self.ds.domain_dimensions, level=0)
 
+        ddim = self.ds.domain_dimensions
+
+        # lo, hi Dim3's are defined in the AMReX style where they are inclusive indices
+        # defined for Fortran-style array slicing (not Python)
+        lo = Dim3(0,0,0)
+        hi = Dim3(ddim - 1)
+
+        if bounds:
+            left_edge, right_edge = bounds
+            dleft = self.ds.domain_left_edge
+            dright = self.ds.domain_right_edge
+            delta = [self.dx, self.dy, self.dz]
+
+            # initialize lo to the first indices in the domain
+            lo = np.array([0,0,0])
+            # initialize hi to the last indices in the domain
+            hi = ddim - 1
+
+            for i in range(3):
+                if ddim[i] > 1:
+                    # set lo[i] to the first cell-centered index to the right of left_edge
+                    lo[i] = round((left_edge[i].d - dleft[i].d) / delta[i].d)
+                    # set hi[i] to the last cell-centered index to the left of right_edge
+                    hi[i] = hi[i] - round((dright[i].d - right_edge[i].d) / delta[i].d)
+
+            lo = Dim3(lo)
+            hi = Dim3(hi)
+
         data = {}
+        data_dimensions = Dim3.dimensions(lo, hi)
 
         # Note: we have to throw away the field type, e.g. 'boxlib' because YT's uniform data loader
         # gives its fields a 'stream' type. If we were to keep the field type here, we would be unable
         # to call to_3D() on a dataset returned by to_2D() since the field types would not match.
         for ftype, f in self.ds.field_list:
-            data[f] = (cg[f][:,:,:].d, "")
+            data[f] = (cg[f][lo.x:hi.x+1, lo.y:hi.y+1, lo.z:hi.z+1].d, "")
 
-        return data
+        return data, data_dimensions
 
     def to_2D(self, extend_dims=None):
         # transform this 1D dataset into a 2D EmuDataset object
@@ -209,7 +277,7 @@ class EmuDataset(object):
         assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[1] == 1 and self.ds.domain_dimensions[2] > 1)
 
         # get the 1D data
-        data = self.get_data()
+        data, _ = self.get_data()
 
         data_2D = {}
 
@@ -244,7 +312,7 @@ class EmuDataset(object):
         assert(self.ds.domain_dimensions[0] == 1 and self.ds.domain_dimensions[2] > 1)
 
         # get the current data
-        data = self.get_data()
+        data, _ = self.get_data()
 
         data_3D = {}
         left_edge = None
