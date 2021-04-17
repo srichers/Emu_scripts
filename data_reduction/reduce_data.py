@@ -20,16 +20,22 @@ import emu_yt_module as emu
 from multiprocessing import Pool
 import scipy.special
 import numexpr as ne
+from mpi4py import MPI
 
 
 ##########
 # INPUTS #
 ##########
-nproc = 64
-do_average = True
+nproc = 4
+do_average = False
 do_fft     = True
-do_angular = True
+do_angular = False
 
+# read some info
+comm = MPI.COMM_WORLD
+mpi_rank = comm.Get_rank()
+mpi_size = comm.Get_size()
+print(mpi_rank,mpi_size)
 directories = sorted(glob.glob("plt*"))
 
 #####################
@@ -185,6 +191,15 @@ t=[]
 #########################
 # angular preliminaries #
 #########################
+rkey, ikey = amrex.get_3flavor_particle_keys()
+paramfile = open("inputs","r")
+for line in paramfile:
+    line_without_comments = line.split("#")[0]
+    if "nphi_equator" in line_without_comments:
+        nl = int(line_without_comments.split("=")[1]) // 2
+paramfile.close()
+nl += 1
+
 class GridData(object):
     def __init__(self, ad):
         x = ad['index','x'].d
@@ -383,17 +398,8 @@ for d in directories:
     ################
     # angular work #
     ################
-    if do_angular and len(glob.glob(d+"neutrinos"))>0:
-        rkey, ikey = amrex.get_3flavor_particle_keys()
+    if do_angular and len(glob.glob(d+"/neutrinos"))>0:
 
-        # get the max useful number of modes
-        paramfile = open("inputs","r")
-        for line in paramfile:
-            line_without_comments = line.split("#")[0]
-            if "nphi_equator" in line_without_comments:
-                nl = int(line_without_comments.split("=")[1]) // 2
-        paramfile.close()
-        nl += 1
         print("Computing up to l =",nl-1)
 
         header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
@@ -435,12 +441,11 @@ for d in directories:
             total_ncells += ncells
             
         spectrum /= total_ncells*ad['index',"cell_volume"][0]
-        spectrum_output.append(spectrum)
         
         # write averaged data
-        outputfilename = "reduced_data_angular_power_spectrum_"+directory[-5:]+".h5"
+        outputfilename = "reduced_data_angular_power_spectrum_"+d[-5:]+".h5"
         avgData = h5py.File(outputfilename,"w")
-        avgData["angular_spectrum"] = spectrum_output
+        avgData["angular_spectrum"] = spectrum
         avgData["t"] = t
         avgData.close()
 
