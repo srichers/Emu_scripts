@@ -26,50 +26,14 @@ from mpi4py import MPI
 ##########
 # INPUTS #
 ##########
-nproc = 4
+nproc = 64
 do_average = False
-do_fft     = True
-do_angular = False
-
-# read some info
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_size = comm.Get_size()
-print(mpi_rank,mpi_size)
-directories = sorted(glob.glob("plt*"))
+do_fft     = False
+do_angular = True
 
 #####################
 # FFT preliminaries #
 #####################
-N00_FFT = []
-N01_FFT = []
-N02_FFT = []
-N11_FFT = []
-N12_FFT = []
-N22_FFT = []
-
-Fx00_FFT = []
-Fx01_FFT = []
-Fx02_FFT = []
-Fx11_FFT = []
-Fx12_FFT = []
-Fx22_FFT = []
-
-Fy00_FFT = []
-Fy01_FFT = []
-Fy02_FFT = []
-Fy11_FFT = []
-Fy12_FFT = []
-Fy22_FFT = []
-
-Fz00_FFT = []
-Fz01_FFT = []
-Fz02_FFT = []
-Fz11_FFT = []
-Fz12_FFT = []
-Fz22_FFT = []
-
-
 def get_kmid(fft):
     if fft.kx is not None:
         kmid = fft.kx[np.where(fft.kx>=0)]
@@ -178,14 +142,6 @@ def offdiagMag(f):
                    f[:,0,2,R]**2 + f[:,0,2,I]**2 +
                    f[:,1,2,R]**2 + f[:,1,2,I]**2)
 
-
-trace = []
-N=[]
-F=[]
-tracebar = []
-Nbar=[]
-Fbar=[]
-t=[]
 
 
 #########################
@@ -302,57 +258,77 @@ def spherical_harmonic_power_spectrum(input_data):
 #########################
 pool = Pool(nproc)
 ne.set_num_threads(nproc)
-for d in directories:
-    print(d)
+comm = MPI.COMM_WORLD
+mpi_rank = comm.Get_rank()
+mpi_size = comm.Get_size()
+directories = sorted(glob.glob("plt*"))
+if( (not do_average) and (not do_fft)):
+    directories = []
+for d in directories[mpi_rank::mpi_size]:
+    print("# rank",mpi_rank,"is working on", d)
     eds = emu.EmuDataset(d)
-    t.append(eds.ds.current_time)
+    t = eds.ds.current_time
     ad = eds.ds.all_data()
 
     ################
     # average work #
     ################
-    if do_average:
+    # write averaged data
+    outputfilename = d+"/reduced_data.h5"
+    already_done = len(glob.glob(outputfilename))>0
+    if do_average and not already_done:
         thisN, thisNI = get_matrix("N",""   )
         sumtrace = sumtrace_N(thisN)
-        trace.append(sumtrace)
-        N.append(   averaged_N(thisN,thisNI,sumtrace))
+        trace = sumtrace
+        N = averaged_N(thisN,thisNI,sumtrace)
 
         thisN, thisNI = get_matrix("N","bar")
         sumtrace = sumtrace_N(thisN)
-        tracebar.append(sumtrace)
-        Nbar.append(averaged_N(thisN,thisNI,sumtrace))
+        tracebar = sumtrace
+        Nbar = averaged_N(thisN,thisNI,sumtrace)
 
         thisFx, thisFxI = get_matrix("Fx","")
         thisFy, thisFyI = get_matrix("Fy","")
         thisFz, thisFzI = get_matrix("Fz","")
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        F.append(averaged_F(Ftmp, FtmpI,sumtrace))
+        F = averaged_F(Ftmp, FtmpI,sumtrace)
     
         thisFx, thisFxI = get_matrix("Fx","bar") 
         thisFy, thisFyI = get_matrix("Fy","bar") 
         thisFz, thisFzI = get_matrix("Fz","bar") 
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        Fbar.append(averaged_F(Ftmp, FtmpI,sumtrace))
+        Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
+
+        print("# rank",mpi_rank,"writing",outputfilename)
+        avgData = h5py.File(outputfilename,"w")
+        avgData["N_avg_mag"] = [N,]
+        avgData["Nbar_avg_mag"] = [Nbar,]
+        avgData["F_avg_mag"] = [F,]
+        avgData["Fbar_avg_mag"] = [Fbar,]
+        avgData["t"] = [t,]
+        avgData.close()
 
     ############
     # FFT work #
     ############
-    if do_fft:
+    outputfilename = d+"/reduced_data_fft_power.h5"
+    already_done = len(glob.glob(outputfilename))>0
+    if do_fft and not already_done:
         fft = eds.fourier("N00_Re",nproc=nproc)
         cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
-        N00_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N11_Re",nproc=nproc)
-        N11_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N22_Re",nproc=nproc)
-        N22_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N22_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N01_Re","N01_Im",nproc=nproc)
-        N01_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N02_Re","N02_Im",nproc=nproc)
-        N02_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N02_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N12_Re","N12_Im",nproc=nproc)
-        N12_FFT.append(fft_power(fft, cleft, cright, ileft, iright, kmid))
+        N12_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         
         #fft = eds.fourier("Fx00_Re")
         #Fx00_FFT.append(fft_power(fft))
@@ -395,10 +371,53 @@ for d in directories:
 
         kmid = get_kmid(fft)
 
+        print("# rank",mpi_rank,"writing",outputfilename)
+        fout = h5py.File(outputfilename,"w")
+        fout["t"] = [np.array(t),]
+        fout["k"] = kmid
+        fout["N00_FFT"] = [np.array(N00_FFT),]
+        fout["N11_FFT"] = [np.array(N11_FFT),]
+        fout["N22_FFT"] = [np.array(N22_FFT),]
+        fout["N01_FFT"] = [np.array(N01_FFT),]
+        fout["N02_FFT"] = [np.array(N02_FFT),]
+        fout["N12_FFT"] = [np.array(N12_FFT),]
+        #fout["Fx00_FFT"] = [np.array(Fx00_FFT),]
+        #fout["Fx11_FFT"] = [np.array(Fx11_FFT),]
+        #fout["Fx22_FFT"] = [np.array(Fx22_FFT),]
+        #fout["Fx01_FFT"] = [np.array(Fx01_FFT),]
+        #fout["Fx02_FFT"] = [np.array(Fx02_FFT),]
+        #fout["Fx12_FFT"] = [np.array(Fx12_FFT),]
+        #fout["Fy00_FFT"] = [np.array(Fy00_FFT),]
+        #fout["Fy11_FFT"] = [np.array(Fy11_FFT),]
+        #fout["Fy22_FFT"] = [np.array(Fy22_FFT),]
+        #fout["Fy01_FFT"] = [np.array(Fy01_FFT),]
+        #fout["Fy02_FFT"] = [np.array(Fy02_FFT),]
+        #fout["Fy12_FFT"] = [np.array(Fy12_FFT),]
+        #fout["Fz00_FFT"] = [np.array(Fz00_FFT),]
+        #fout["Fz11_FFT"] = [np.array(Fz11_FFT),]
+        #fout["Fz22_FFT"] = [np.array(Fz22_FFT),]
+        #fout["Fz01_FFT"] = [np.array(Fz01_FFT),]
+        #fout["Fz02_FFT"] = [np.array(Fz02_FFT),]
+        #fout["Fz12_FFT"] = [np.array(Fz12_FFT),]
+        fout.close()
+
+# separate loop for angular spectra so there is no aliasing and better load balancing
+directories = sorted(glob.glob("plt*/neutrinos"))
+print(directories)
+directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
+print(directories)
+for d in directories[mpi_rank::mpi_size]:
+    print("# rank",mpi_rank,"is working on", d)
+    eds = emu.EmuDataset(d)
+    t = eds.ds.current_time
+    ad = eds.ds.all_data()
+
     ################
     # angular work #
     ################
-    if do_angular and len(glob.glob(d+"/neutrinos"))>0:
+    outputfilename = d+"/reduced_data_angular_power_spectrum.h5"
+    already_done = len(glob.glob(outputfilename))>0
+    if do_angular and not already_done:
 
         print("Computing up to l =",nl-1)
 
@@ -414,7 +433,7 @@ for d in directories:
         spectrum = np.zeros((nl,2,6))
         total_ncells = 0
         for gridID in range(ngrids):
-            print("    grid",gridID+1,"/",ngrids)
+            print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
             
             # read particle data on a single grid
             idata, rdata = amrex.read_particle_data(d, ptype="neutrinos", level_gridID=(level,gridID))
@@ -443,67 +462,10 @@ for d in directories:
         spectrum /= total_ncells*ad['index',"cell_volume"][0]
         
         # write averaged data
-        outputfilename = "reduced_data_angular_power_spectrum_"+d[-5:]+".h5"
+        print("# rank",mpi_rank,"writing",outputfilename)
         avgData = h5py.File(outputfilename,"w")
-        avgData["angular_spectrum"] = spectrum
-        avgData["t"] = t
+        avgData["angular_spectrum"] = [spectrum,]
+        avgData["t"] = [t,]
         avgData.close()
 
-    
-##############
-# average IO #
-##############
-if do_average:
-    trace = np.array(trace)
-    N = np.array(N)
-    F = np.array(F)
-    tracebar = np.array(tracebar)
-    Nbar = np.array(Nbar)
-    Fbar = np.array(Fbar)
-
-    # write averaged data
-    outputfilename = "reduced_data.h5"
-    print("Writing "+outputfilename)
-    avgData = h5py.File(outputfilename,"w")
-    avgData["N_avg_mag"] = N
-    avgData["Nbar_avg_mag"] = Nbar
-    avgData["F_avg_mag"] = F
-    avgData["Fbar_avg_mag"] = Fbar
-    avgData["t"] = t
-    avgData.close()
-
-##########
-# FFT IO #
-##########
-if do_fft:
-    outputfilename = "reduced_data_fft_power.h5"
-    print("Writing "+outputfilename)
-    f = h5py.File(outputfilename,"w")
-    f["t"] = np.array(t)
-    f["k"] = kmid
-    f["N00_FFT"] = np.array(N00_FFT)
-    f["N11_FFT"] = np.array(N11_FFT)
-    f["N22_FFT"] = np.array(N22_FFT)
-    f["N01_FFT"] = np.array(N01_FFT)
-    f["N02_FFT"] = np.array(N02_FFT)
-    f["N12_FFT"] = np.array(N12_FFT)
-    f["Fx00_FFT"] = np.array(Fx00_FFT)
-    f["Fx11_FFT"] = np.array(Fx11_FFT)
-    f["Fx22_FFT"] = np.array(Fx22_FFT)
-    f["Fx01_FFT"] = np.array(Fx01_FFT)
-    f["Fx02_FFT"] = np.array(Fx02_FFT)
-    f["Fx12_FFT"] = np.array(Fx12_FFT)
-    f["Fy00_FFT"] = np.array(Fy00_FFT)
-    f["Fy11_FFT"] = np.array(Fy11_FFT)
-    f["Fy22_FFT"] = np.array(Fy22_FFT)
-    f["Fy01_FFT"] = np.array(Fy01_FFT)
-    f["Fy02_FFT"] = np.array(Fy02_FFT)
-    f["Fy12_FFT"] = np.array(Fy12_FFT)
-    f["Fz00_FFT"] = np.array(Fz00_FFT)
-    f["Fz11_FFT"] = np.array(Fz11_FFT)
-    f["Fz22_FFT"] = np.array(Fz22_FFT)
-    f["Fz01_FFT"] = np.array(Fz01_FFT)
-    f["Fz02_FFT"] = np.array(Fz02_FFT)
-    f["Fz12_FFT"] = np.array(Fz12_FFT)
-    f.close()
     
