@@ -46,7 +46,7 @@ class EmuDataset(object):
         else:
             self.ds = None
 
-    def init_from_data(self, data, left_edge=None, right_edge=None, sim_time=0.0, dimensions=None,
+    def init_from_data(self, data, left_edge=None, right_edge=None, sim_time=(0.0, "s"), dimensions=None,
                        length_unit=(1.0, "cm"), periodicity=(True, True, True), nprocs=1):
 
         assert(left_edge is not None and right_edge is not None)
@@ -218,7 +218,7 @@ class EmuDataset(object):
 
         # return a new EmuDataset object
         new_dataset = EmuDataset()
-        new_dataset.init_from_data(data, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time,
+        new_dataset.init_from_data(data, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time.in_units("s"),
                                    dimensions=data_dimensions, length_unit=self.ds.length_unit,
                                    periodicity=(False, False, False), nprocs=1)
         return new_dataset
@@ -299,7 +299,7 @@ class EmuDataset(object):
 
         # return a new EmuDataset object
         new_dataset = EmuDataset()
-        new_dataset.init_from_data(data_2D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time,
+        new_dataset.init_from_data(data_2D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time.in_units("s"),
                                    dimensions=dimensions, length_unit=self.ds.length_unit,
                                    periodicity=self.ds.periodicity, nprocs=1)
         return new_dataset
@@ -362,7 +362,7 @@ class EmuDataset(object):
 
         # return a new EmuDataset object
         new_dataset = EmuDataset()
-        new_dataset.init_from_data(data_3D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time,
+        new_dataset.init_from_data(data_3D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time.in_units("s"),
                                    dimensions=dimensions, length_unit=self.ds.length_unit,
                                    periodicity=self.ds.periodicity, nprocs=1)
         return new_dataset
