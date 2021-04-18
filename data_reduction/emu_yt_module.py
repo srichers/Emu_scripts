@@ -299,7 +299,7 @@ class EmuDataset(object):
 
         # return a new EmuDataset object
         new_dataset = EmuDataset()
-        new_dataset.init_from_data(data_3D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time,
+        new_dataset.init_from_data(data_2D, left_edge=left_edge, right_edge=right_edge, sim_time=self.ds.current_time,
                                    dimensions=dimensions, length_unit=self.ds.length_unit,
                                    periodicity=self.ds.periodicity, nprocs=1)
         return new_dataset
