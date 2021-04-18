@@ -138,11 +138,19 @@ class EmuDataset(object):
             #print("dz, DZ = ", dz, DZ)
             assert self.dz == DZ
 
+    def get_num_flavors(self):
+        just_the_fields = [f for ftype, f in ds.field_list]
+        if "N33_Re" in just_the_fields:
+            raise NotImplementedError("Analysis script currently only supports 2 and 3 flavor simulations")
+        elif "N22_Re" in just_the_fields:
+            return 3
+        else:
+            return 2
+
     def add_emu_fields(self):
         # first, define the trace
         def _make_trace(ds):
-            just_the_fields = [f for ftype, f in ds.field_list]
-            if 'N22_Re' in just_the_fields:
+            if self.get_num_flavors() == 3:
                 def _trace(field, data):
                     return data["N00_Re"] + data["N11_Re"] + data["N22_Re"]
                 return _trace
