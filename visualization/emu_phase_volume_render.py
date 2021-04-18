@@ -75,7 +75,6 @@ def get_output_dir(args):
 def get_output_file(args, suffix):
     # construct a filename to write
     file = os.path.join(get_output_dir(args), f"{os.path.basename(args.plotfile)}_{suffix}")
-    print(f"saving {file}")
     return file
 
 def get_3D_selection(args, emu_ND_dataset):
@@ -178,13 +177,9 @@ if __name__ == "__main__":
 
     # do the volume rendering for all the phase fields in this plotfile
     if args.fields == ['all']:
-        print('fields is all')
         fields = [f for _, f in emu_3D.ds.derived_field_list if "Phase" in f]
-        print(emu_3D.ds.derived_field_list)
     else:
         fields = args.fields
-
-    print(f"fields = {fields}")
 
     for field in fields:
         do_phase_volume_render(args, emu_3D, field)
