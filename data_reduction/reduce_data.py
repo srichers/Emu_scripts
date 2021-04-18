@@ -6,30 +6,31 @@
 # This data is used for the growth plot.
 # Note - also tried a version using maxima rather than averages, and it did not make the growth plot look any better.
 
+import os
+os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import matplotlib.pyplot as plt
 import yt
 import glob
 import multiprocessing as mp
 import h5py
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import amrex_plot_tools as amrex
 import emu_yt_module as emu
 from multiprocessing import Pool
 import scipy.special
 import numexpr as ne
-from mpi4py import MPI
-
 
 ##########
 # INPUTS #
 ##########
-nproc = 64
-do_average = False
-do_fft     = False
+nproc = 8
+do_average = True
+do_fft     = True
 do_angular = True
+
+do_MPI = True
 
 #####################
 # FFT preliminaries #
@@ -258,9 +259,14 @@ def spherical_harmonic_power_spectrum(input_data):
 #########################
 pool = Pool(nproc)
 ne.set_num_threads(nproc)
-comm = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_size = comm.Get_size()
+if do_MPI:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    mpi_rank = comm.Get_rank()
+    mpi_size = comm.Get_size()
+else:
+    mpi_rank = 0
+    mpi_size = 1
 directories = sorted(glob.glob("plt*"))
 if( (not do_average) and (not do_fft)):
     directories = []
@@ -403,9 +409,7 @@ for d in directories[mpi_rank::mpi_size]:
 
 # separate loop for angular spectra so there is no aliasing and better load balancing
 directories = sorted(glob.glob("plt*/neutrinos"))
-print(directories)
 directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
-print(directories)
 for d in directories[mpi_rank::mpi_size]:
     print("# rank",mpi_rank,"is working on", d)
     eds = emu.EmuDataset(d)
@@ -455,7 +459,7 @@ for d in directories[mpi_rank::mpi_size]:
             input_data = zip(range(ncells), idlist, rdata)
             
             # accumulate a spectrum from each cell
-            spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data)
+            spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
             spectrum += np.sum(spectrum_each_cell, axis=0)
             total_ncells += ncells
             
