@@ -52,7 +52,7 @@ class EmuDataset(object):
         domain_bounds = np.array([[left_edge[0], right_edge[0]],
                                   [left_edge[1], right_edge[1]],
                                   [left_edge[2], right_edge[2]]])
-        
+
         self.setup_dataset(yt.load_uniform_grid(data, dimensions, length_unit=length_unit,
                                                 bbox=domain_bounds, periodicity=periodicity, nprocs=nprocs))
 
@@ -60,7 +60,7 @@ class EmuDataset(object):
         self.ds = yt_dataset
         self.construct_covering_grid()
         self.add_emu_fields()
-        
+
     def construct_covering_grid(self):
         self.cg = self.ds.covering_grid(level=0, left_edge=self.ds.domain_left_edge,
                                         dims=self.ds.domain_dimensions)
@@ -134,7 +134,7 @@ class EmuDataset(object):
             # using our edge-to-cell-center offset and the number of samples
             #print("dz, DZ = ", dz, DZ)
             assert self.dz == DZ
-    
+
     def add_emu_fields(self):
         # first, define the trace
         def _make_trace(ds):
