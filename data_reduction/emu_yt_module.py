@@ -46,7 +46,7 @@ class EmuDataset(object):
         else:
             self.ds = None
 
-    def init_from_data(self, data, left_edge=None, right_edge=None, sim_time=(0.0, "s"), dimensions=None,
+    def init_from_data(self, data, left_edge=None, right_edge=None, sim_time=0.0, dimensions=None,
                        length_unit=(1.0, "cm"), periodicity=(True, True, True), nprocs=1):
 
         assert(left_edge is not None and right_edge is not None)
