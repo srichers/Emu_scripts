@@ -210,10 +210,6 @@ class EmuDataset(object):
     def get_rectangle(self, left_edge, right_edge):
         # returns an EmuDataset containing only the rectangular region
         # defined by [left_edge, right_edge] in the current dataset
-        #
-        # by default the returned dataset is at the same resolution as
-        # the current dataset, although its dimensionality can be passed
-        # with the dimensions argument
 
         data, data_dimensions = self.get_data(bounds=(left_edge, right_edge))
 
