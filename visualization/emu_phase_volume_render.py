@@ -77,14 +77,22 @@ def get_output_file(args, suffix):
     file = os.path.join(get_output_dir(args), f"{os.path.basename(args.plotfile)}_{suffix}")
     return file
 
-def get_3D_selection(args, emu_ND_dataset):
+def get_3D_selection(args, emu_ND):
     # by default, select the entire domain
     left_edge = emu_ND.ds.domain_left_edge
     right_edge = emu_ND.ds.domain_right_edge
+    dim = emu_ND.get_num_dimensions()
+
+    # check if the user selected edges are already the same as the domain edges
+    # and if so, skip selecting a rectangular region for efficiency
+    if (dim == 3 and
+        np.max(np.abs(np.array(args.lo_edge) - left_edge)) <= np.finfo(float).eps and
+        np.max(np.abs(np.array(args.hi_edge) - right_edge)) <= np.finfo(float).eps):
+        # the dataset already matches our selection
+        return emu_ND
 
     # the emu yt interface assumes 1D datasets are extended along z
     # and 2D datasets are extended along y, z
-    dim = emu_ND.get_num_dimensions()
     extended_dims = [0,1,2][-dim:]
 
     # apply any user-supplied lo, hi edge selections
