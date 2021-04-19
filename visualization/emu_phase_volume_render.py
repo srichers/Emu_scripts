@@ -79,8 +79,8 @@ def get_output_file(args, suffix):
 
 def get_3D_selection(args, emu_ND):
     # by default, select the entire domain
-    left_edge = emu_ND.ds.domain_left_edge
-    right_edge = emu_ND.ds.domain_right_edge
+    left_edge = emu_ND.ds.domain_left_edge.d
+    right_edge = emu_ND.ds.domain_right_edge.d
     dim = emu_ND.get_num_dimensions()
 
     # check if the user selected edges are already the same as the domain edges
