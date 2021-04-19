@@ -100,8 +100,10 @@ def get_3D_selection(args, emu_ND_dataset):
     emu_ND_selection = emu_ND.get_rectangle(left_edge, right_edge)
     
     # convert the selection to a 3D dataset
-    emu_3D = emu_ND_selection.to_3D()
-    return emu_3D
+    if emu_ND_selection.get_num_dimensions() < 3:
+        return emu_ND_selection.to_3D()
+    else:
+        return emu_ND_selection
 
 def do_phase_volume_render(args, emu_3D, field):
     # volume render a phase field in the dataset
