@@ -10,6 +10,7 @@ from yt.visualization.volume_rendering.render_source import VolumeSource
 from yt.units import cm
 from emu_yt_module import EmuDataset
 import argparse
+import textwrap
 
 #3 flavor neutrino derived fields: Number Density
 #normalize by the trace
@@ -162,17 +163,27 @@ def do_phase_volume_render(args, emu_3D, field):
 
 if __name__ == "__main__":
     # parse command line arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     epilog=textwrap.dedent('''\
+        example:
+            python3 emu_phase_volume_render.py plt00000 -lo 0 0 0 -hi 8 8 8 -f all -o $(pwd)/volume_rendering
+
+            [plt00000]: the name of a plotfile in the current working directory
+            [-lo 0 0 0]: low edge of domain to volume render (units of cm)
+            [-hi 8 8 8]: high edge of domain to volume render (units of cm)
+            [-f all]: volume render all Phase fields
+            [-o $(pwd)/volume_rendering]: save the output images in a local volume_rendering directory (must exist)
+        '''))
     parser.add_argument("plotfile", type=str,
                         help="Name of the plotfile to process.")
     parser.add_argument("-lo", "--lo_edge", type=float, nargs=3,
-                        help="Low edge of the domain to volume-render (default: use full domain)")
+                        help="Low edge of the 3D domain to volume-render in centimeters (default: use full domain)")
     parser.add_argument("-hi", "--hi_edge", type=float, nargs=3,
-                        help="High edge of the domain to volume-render (default: use full domain)")
+                        help="High edge of the 3D domain to volume-render in centimeters (default: use full domain)")
     parser.add_argument("-f", "--fields", type=str, nargs="+", default=["all"],
-                        help="List of phase field names to volume-render. (Default: all phase fields).")
+                        help="List of phase field names to volume-render. (default: all phase fields).")
     parser.add_argument("-o", "--output_dir", type=str,
-                        help="Absolute path to directory where to save the output files (default: use the current working directory)")
+                        help="Absolute path to existing directory where to save the output files (default: use the current working directory)")
     args = parser.parse_args()
 
     # configure matplotlib
