@@ -20,7 +20,6 @@ import amrex_plot_tools as amrex
 import emu_yt_module as emu
 from multiprocessing import Pool
 import scipy.special
-import numexpr as ne
 
 ##########
 # INPUTS #
@@ -258,7 +257,6 @@ def spherical_harmonic_power_spectrum(input_data):
 # loop over directories #
 #########################
 pool = Pool(nproc)
-ne.set_num_threads(nproc)
 if do_MPI:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
