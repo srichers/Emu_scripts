@@ -409,7 +409,8 @@ for d in directories[mpi_rank::mpi_size]:
 directories = sorted(glob.glob("plt*/neutrinos"))
 directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
 for d in directories:
-    print("# working on", d)
+    if mpi_rank==0:
+        print("# working on", d)
     eds = emu.EmuDataset(d)
     t = eds.ds.current_time
     ad = eds.ds.all_data()
@@ -467,10 +468,10 @@ for d in directories:
             spectrum     = comm.reduce(spectrum    , op=MPI.SUM, root=0)
             total_ncells = comm.reduce(total_ncells, op=MPI.SUM, root=0)
             
-        spectrum /= total_ncells*ad['index',"cell_volume"][0]
-        
         # write averaged data
         if mpi_rank==0:
+            spectrum /= total_ncells*ad['index',"cell_volume"][0]
+
             print("# writing",outputfilename)
             avgData = h5py.File(outputfilename,"w")
             avgData["angular_spectrum"] = [spectrum,]
