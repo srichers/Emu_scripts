@@ -25,8 +25,8 @@ import scipy.special
 # INPUTS #
 ##########
 nproc = 8
-do_average = True
-do_fft     = True
+do_average = False
+do_fft     = False
 do_angular = True
 
 do_MPI = True
@@ -408,8 +408,8 @@ for d in directories[mpi_rank::mpi_size]:
 # separate loop for angular spectra so there is no aliasing and better load balancing
 directories = sorted(glob.glob("plt*/neutrinos"))
 directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
-for d in directories[mpi_rank::mpi_size]:
-    print("# rank",mpi_rank,"is working on", d)
+for d in directories:
+    print("# working on", d)
     eds = emu.EmuDataset(d)
     t = eds.ds.current_time
     ad = eds.ds.all_data()
@@ -421,7 +421,8 @@ for d in directories[mpi_rank::mpi_size]:
     already_done = len(glob.glob(outputfilename))>0
     if do_angular and not already_done:
 
-        print("Computing up to l =",nl-1)
+        if mpi_rank==0:
+            print("Computing up to l =",nl-1)
 
         header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
         grid_data = GridData(ad)
@@ -434,7 +435,7 @@ for d in directories[mpi_rank::mpi_size]:
         # loop over all cells within each grid
         spectrum = np.zeros((nl,2,6))
         total_ncells = 0
-        for gridID in range(ngrids):
+        for gridID in range(mpi_rank,ngrids,mpi_size):
             print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
             
             # read particle data on a single grid
@@ -460,14 +461,20 @@ for d in directories[mpi_rank::mpi_size]:
             spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
             spectrum += np.sum(spectrum_each_cell, axis=0)
             total_ncells += ncells
+
+        if do_MPI:
+            comm.Barrier()
+            spectrum     = comm.reduce(spectrum    , op=MPI.SUM, root=0)
+            total_ncells = comm.reduce(total_ncells, op=MPI.SUM, root=0)
             
         spectrum /= total_ncells*ad['index',"cell_volume"][0]
         
         # write averaged data
-        print("# rank",mpi_rank,"writing",outputfilename)
-        avgData = h5py.File(outputfilename,"w")
-        avgData["angular_spectrum"] = [spectrum,]
-        avgData["t"] = [t,]
-        avgData.close()
+        if mpi_rank==0:
+            print("# writing",outputfilename)
+            avgData = h5py.File(outputfilename,"w")
+            avgData["angular_spectrum"] = [spectrum,]
+            avgData["t"] = [t,]
+            avgData.close()
 
     
