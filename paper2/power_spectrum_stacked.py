@@ -33,7 +33,7 @@ mpl.rcParams['ytick.minor.size'] = 4
 mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
-fig, axes = plt.subplots(2,3, figsize=(16,6), sharex = True, sharey = True)
+fig, axes = plt.subplots(3,3, figsize=(16,10), sharex = True, sharey = True)
 plt.subplots_adjust(hspace=0,wspace=0.08)
 
 ##############
@@ -53,6 +53,7 @@ for ax in axes.flat:
 #axes[0].set_xticklabels([])
 axes[0,0].text(.05,.85,"Fiducial", transform=axes[0,0].transAxes)
 axes[1,0].text(.05,.85,"90 Degree",transform=axes[1,0].transAxes)
+axes[2,0].text(.05,.85,"2/3",transform=axes[2,0].transAxes)
 for i in range(len(snapshots)):
     axes[0,i].text(.6,.85,"t=%0.1f ns"%(snapshots[i]*1e9), transform=axes[0,i].transAxes)
 
@@ -72,36 +73,32 @@ def plotdata(v,f,ax,t,c,l,lab,filename):
     
     data.close()
 
-def manual_legend(lab,col,line,ax,pos):
-    #create manual entries for legend, with 2 columns, one indicating simulation (color) and the other timestep (linestyle)
-    lines=[]
-    for r in range(len(lab)):
-        if r < 3:
-            lines.append(Line2D([0], [0], color=col[r], linestyle=line[0], lw=4))
-        if r >= 3:
-            lines.append(Line2D([0], [0], color=col[1], linestyle=line[r-3]))
-    #print(lines)
-    ax.legend(lines,lab,frameon=False,ncol=2,fontsize=12, loc=pos)
-
 #############
 # plot data #
 #############
-dirlist    = ["m3018/Emu/PAPER/1D/converge_direction/1D_dir64","m3018/Emu/2D/manydirections64","m3761/3D/128r64d_128n800s16mpi"]
-colors     = ["gray"          ,"black"         ,"blue"          ]
-labels     = ["1D","2D","3D"]
-for i in range(len(dirlist)):
-    filename = "/global/project/projectdirs/"+dirlist[i]+"/reduced_data_fft_power.h5"
+dirlist    = [["gray" ,"1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/converge_direction/1D_dir64"],
+              ["black","2D", "ocean/projects/phy200048p/shared/2D/manydirections64"],
+              ["blue" ,"3D", "global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi"]]
+for inputs in dirlist:
+    filename = inputs[2]+"/reduced_data_fft_power.h5"
     for ind,val in enumerate(snapshots):
-        plotdata(variable,flavor,axes[0,ind],val,colors[i],'-',labels[i],filename)
+        plotdata(variable,flavor,axes[0,ind],val,inputs[0],'-',inputs[1],filename)
 
-dirlist    = ["m3018/Emu/PAPER/1D/fbar_direction/90","m3018/Emu/2D/90deg_inplane","m3018/Emu/2D/90deg_outofplane"]
-linestyles = ["-"       ,"-"               ,"--"                 ]
-colors     = ["gray"    ,"black"           ,"black"              ]
-labels     = ["1D","2D (in plane)","2D (out of plane)"]
-for i in range(len(dirlist)):
-    filename = "/global/project/projectdirs/"+dirlist[i]+"/reduced_data_fft_power.h5"
+dirlist    = [["gray" ,"-" ,"1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_direction/90"],
+              ["black","-" ,"2D (in plane)", "ocean/projects/phy200048p/shared/2D/90deg_inplane/fft"],
+              ["black","--","2D (out of plane)", "ocean/projects/phy200048p/shared/2D/90deg_outofplane/fft"],
+              ["blue","-","3D","global/project/projectdirs/m3761/3D/90degree_64d"]]
+for inputs in dirlist:
+    filename = inputs[3]+"/reduced_data_fft_power.h5"
     for ind,val in enumerate(snapshots):
-        plotdata(variable,flavor,axes[1,ind],val,colors[i],linestyles[i],labels[i],filename)
+        plotdata(variable,flavor,axes[1,ind],val,inputs[0],inputs[1],inputs[2],filename)
+
+dirlist    = [["gray", "1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/rando_test/1.0_thirds"],
+              ["blue", "3D", "global/project/projectdirs/m3761/3D/two_thirds"]]
+for inputs in dirlist:
+    filename = inputs[2]+"/reduced_data_fft_power.h5"
+    for ind,val in enumerate(snapshots):
+        plotdata(variable,flavor,axes[2,ind],val,inputs[0],'-',inputs[1],filename)
 
 #Create custom legend
 axes[0,0].legend(frameon=False,fontsize=13, loc=(.6,.45))
