@@ -1,3 +1,5 @@
+# ffmpeg -framerate 10 -pattern_type glob -i '*.png' video.mp4
+
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
