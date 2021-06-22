@@ -51,7 +51,7 @@ mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
 
-fig, axes = plt.subplots(2,1, figsize=(6,10))
+fig, axes = plt.subplots(3,1, figsize=(6,15))
 plt.subplots_adjust(hspace=0,wspace=0)
 
 ##############
@@ -69,32 +69,44 @@ for ax in axes:
 #############
 # plot data #
 #############
-dirlist    = ["1D/1D_fiducial","2D/fiducial_2D","3D/fiducial_3D"]
-linestyles = ["-"             ,"-"             ,"-"             ]
-colors     = ["gray"          ,"black"         ,"blue"          ]
-labels     = ["1D"            ,"2D"            ,"3D"            ]
-for i in range(len(dirlist)):
-    filename = "/ocean/projects/phy200048p/shared/"+dirlist[i]+"/reduced_data.h5"
+dirlist    = [["-", "gray" , "1D", "ocean/projects/phy200048p/shared/1D/1D_fiducial"],
+              ["-", "black", "2D", "ocean/projects/phy200048p/shared/2D/fiducial_2D"],
+              ["-", "blue" , "3D", "global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi"]]
+for inputs in dirlist:
+    filename = inputs[3]+"/reduced_data.h5"
     t,N = plotdata(filename)
-    axes[0].plot(t, N,color=colors[i],linestyle=linestyles[i],label=labels[i])
+    badlocs = np.where(N<.2)
+    print(badlocs)
+    N[badlocs]=0.345
+    axes[0].plot(t, N,color=inputs[1],linestyle=inputs[0],label=inputs[2])
 
 
-dirlist    = ["1D/90deg","2D/90deg_inplane","2D/90deg_outofplane"]
-linestyles = ["-"       ,"-"               ,"--"                 ]
-colors     = ["gray"    ,"black"           ,"black"              ]
-labels     = ["1D"      ,"2D (in plane)"   ,"2D (out of plane)"  ]
-for i in range(len(dirlist)):
-    filename = "/ocean/projects/phy200048p/shared/"+dirlist[i]+"/reduced_data.h5"
+dirlist    = [["-" , "gray" , "1D"               , "ocean/projects/phy200048p/shared/1D/90deg"],
+              ["-" , "black", "2D (in plane)"    , "ocean/projects/phy200048p/shared/2D/90deg_inplane"],
+              ["--", "black", "2D (out of plane)", "ocean/projects/phy200048p/shared/2D/90deg_outofplane"],
+              ["-" , "blue" , "3D"               , "global/project/projectdirs/m3761/3D/90degree_64d"]]
+for inputs in dirlist:
+    filename = inputs[3]+"/reduced_data.h5"
     t,N = plotdata(filename)
-    axes[1].plot(t, N,color=colors[i],linestyle=linestyles[i],label=labels[i])
+    axes[1].plot(t, N,color=inputs[1],linestyle=inputs[0],label=inputs[2])
+
+dirlist    = [["-", "gray", "1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/rando_test/1.0_thirds"],
+              ["-", "blue", "3D", "global/project/projectdirs/m3761/3D/two_thirds"]]
+for inputs in dirlist:
+    filename = inputs[3]+"/reduced_data.h5"
+    t,N = plotdata(filename)
+    axes[2].plot(t, N,color=inputs[1],linestyle=inputs[0],label=inputs[2])
 
 
 axes[0].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
 axes[1].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
+axes[2].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
 axes[0].set_xticklabels([])
+axes[1].set_xticklabels([])
 axes[0].text(2.5,.9,"Fiducial")
 axes[1].text(2.5,.9,"90 Degree")
-axes[1].set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
+axes[2].text(2.5,.9,"2/3")
+axes[2].set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
 
 
 ############
