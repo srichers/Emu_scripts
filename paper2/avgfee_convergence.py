@@ -57,14 +57,31 @@ plt.subplots_adjust(hspace=0,wspace=0)
 #############
 # plot data #
 #############
-dirlist = ["fiducial_2D","bigdomain","highres","manydirections"]
-linestyles=["-","--",":","-."]
-labels=["Fiducial",r"$L_x=L_y=L_z=16\,\mathrm{cm}$",r"$N_x=N_y=N_z=256$",r"$N_\mathrm{dir}=1506$"]
+plotinfo = [
+    ["fiducial_2D", "-", "L8 dx1/16 eq32","black"],
+    ["bigdomain", "--","L16 dx1/16 eq32","black"],
+    ["highres", ":","L8 dx1/32 eq32","black"],
+    ["manydirections64", "-.","L8 dx1/16 eq64","black"],
+    ["manydirections128", "-","L8 dx1/16 eq128","blue"],    
+    ["manydirections256", "--","L8 dx1/16 eq256","red"],    
+]
 
-for dirname,linestyle,label in zip(dirlist,linestyles,labels):
-    filename = "/ocean/projects/phy200048p/shared/2D/"+dirname+"/reduced_data.h5"
+for dirname,linestyle,label,color in plotinfo:
+    filename = "ocean/projects/phy200048p/shared/2D/"+dirname+"/reduced_data.h5"
     t,N = plotdata(filename)
-    axes[0].plot(t, N,color="black",linestyle=linestyle,label=label)
+    axes[0].plot(t, N,color=color,linestyle=linestyle,label=label)
+
+plotinfo = [
+    ["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns", "-", "L10 dx1/12.8 eq4","black"],
+    ["global/project/projectdirs/m3761/128r64d_128n800s16mpi", "-","L8 dx1/16 eq64","blue"],
+    ["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns_v2", "-", "L64 dx1/4 eq4","red"],
+    ["ocean/projects/phy200048p/shared/3D/fiducial_3D/1", "-", "L8 dx1/16 eq32","green"],
+]
+
+for dirname,linestyle,label,color in plotinfo:
+    filename = dirname+"/reduced_data.h5"
+    t,N = plotdata(filename)
+    axes[1].plot(t, N,color=color,linestyle=linestyle,label=label)
 
 ##############
 # formatting #
@@ -77,8 +94,11 @@ for ax in axes:
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
+    ax.grid(which='both')
+    ax.minorticks_on()
 
 axes[0].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
+axes[1].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
 axes[0].set_xticklabels([])
 axes[0].text(2.5,.9,"2D")
 axes[1].text(2.5,.9,"3D")
