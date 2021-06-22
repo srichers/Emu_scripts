@@ -26,18 +26,13 @@ mpl.rcParams['axes.linewidth'] = 2
 
 component_list = ["00","01","02","11","12","22"]
 
-file_list = sorted(glob.glob("reduced_data_angular_power_spectrum*.h5"))
-spectra = []
-t = []
-for filename in file_list:
-    f = h5py.File(filename,"r")
-    t.append(np.array(f["t"])[0])
-    spectra.append(np.array(f["angular_spectrum"])[0,:,:,:])
-    f.close()
-    
-t = np.array(t)
-spectra = np.array(spectra)
+f = h5py.File("reduced_data_angular_power_spectrum.h5","r")
+t = np.array(f["t"])
+spectra = np.array(f["angular_spectrum"])
+f.close()
 
+tnorm = t[-1]
+    
 def makeplot(icomponent,t, spectra):
     plt.close('all')
     fig, ax = plt.subplots(1,1, figsize=(8,6))
@@ -47,13 +42,15 @@ def makeplot(icomponent,t, spectra):
     nl = np.shape(this_spectra)[1]
     l = np.array(range(nl))
     for it in range(len(t)):
+        print(it,t)
         total_power = np.sum(this_spectra[it])
-        ax.semilogy(l, this_spectra[it,:]/total_power, color=cmap(t[it]/t[-1]))
-    
+        ax.semilogy(l, this_spectra[it,:], color=cmap(t[it]/tnorm))
+    ax.grid()
+        
     # colorbar
     cax = fig.add_axes([0.125, .89, .775, 0.02])
     cax.tick_params(axis='both', which='both', direction='in', labeltop='on')
-    norm = mpl.colors.Normalize(vmin=0, vmax=t[-1]*1e9)
+    norm = mpl.colors.Normalize(vmin=0, vmax=tnorm)
     cbar = plt.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap=cmap),cax=cax,orientation='horizontal')
     cbar.set_label(r"$t\,(10^{-9}\,\mathrm{s})$",labelpad=10)
     cax.minorticks_on()
@@ -63,7 +60,8 @@ def makeplot(icomponent,t, spectra):
 
     # axis labels
     ax.set_xlabel(r"$l$")
-    ax.set_ylabel(r"$|f_l|^2 / \sum_l|f_l|^2$")
+    ax.set_ylabel(r"$|f_l|^2$")
+    ax.set_ylim(1e50, 1e61)
     
     plt.savefig("angular_power"+component_list[icomponent]+".pdf", bbox_inches='tight')
 
