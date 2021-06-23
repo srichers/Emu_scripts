@@ -232,16 +232,14 @@ def sort_rdata_chunk(p):
     
 # use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
 # np.arctan2(y,x)
-def spherical_harmonic_power_spectrum_singlel(l, phi, theta, Nrho):
+def spherical_harmonic_power_spectrum_singlel(l, Nrho, Ylm_star):
     nm = 2*l+1
-    mlist = np.array(range(nm))-l
-    Ylm_star = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
     Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(nm)])
     Nrholm = np.sum(Nrholm_integrand, axis=3)
     result = np.sum(np.abs(Nrholm)**2, axis=0)
     return result
 
-def spherical_harmonic_power_spectrum(input_data):
+def spherical_harmonic_power_spectrum(input_data, Ylm_star):
     icell = input_data[0]
     idlist = input_data[1]
     p = input_data[2]
@@ -249,19 +247,8 @@ def spherical_harmonic_power_spectrum(input_data):
     # cut out only the bits that we need for this cell
     assert(all(idlist == icell))
 
-    # get direction coordinates
-    pupx = p[:,rkey["pupx"]]
-    pupy = p[:,rkey["pupy"]]
-    pupz = p[:,rkey["pupz"]]
-    pupt = p[:,rkey["pupt"]]
-    xhat = pupx/pupt
-    yhat = pupy/pupt
-    zhat = pupz/pupt            
-    theta = np.arccos(zhat)
-    phi = np.arctan2(yhat,xhat)
-
     # build Nrho complex values
-    nparticles = len(phi)
+    nparticles = len(p)
     Nrho = np.zeros((2,6,nparticles))*1j
     Nrho[0,0,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f00_Re"   ]] + 1j*0                      )
     Nrho[0,1,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f01_Re"   ]] + 1j*p[:,rkey["f01_Im"   ]] )
@@ -277,7 +264,7 @@ def spherical_harmonic_power_spectrum(input_data):
     Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
     
     #spectrum = np.zeros((2, 6, nl))
-    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, phi, theta, Nrho) for l in range(nl)])
+    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, Nrho, Ylm_star[l]) for l in range(nl)])
     return spectrum
 
 #########################
@@ -486,12 +473,35 @@ for d in directories:
             input_data = zip(range(ncells), idlist, rdata)
 
             # sort particles in each chunk
-            for i in range(len(rdata)):
-                rdata[i] = sort_rdata_chunk(rdata[i])
+            rdata = pool.map(sort_rdata_chunk, rdata)
+            #for i in range(len(rdata)):
+            #    rdata[i] = sort_rdata_chunk(rdata[i])
+
+            # get direction coordinates
+            pupx = rdata[0][:,rkey["pupx"]]
+            pupy = rdata[0][:,rkey["pupy"]]
+            pupz = rdata[0][:,rkey["pupz"]]
+            pupt = rdata[0][:,rkey["pupt"]]
+            xhat = pupx/pupt
+            yhat = pupy/pupt
+            zhat = pupz/pupt            
+            theta = np.arccos(zhat)
+            phi = np.arctan2(yhat,xhat)
+                
+            # evaluate spherical harmonic amplitudes
+            Ylm_star = []
+            for l in range(nl):
+                nm = 2*l+1
+                mlist = np.array(range(nm))-l
+                Ylm_star_thisl = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
+                Ylm_star.append( Ylm_star_thisl )
             
             # accumulate a spectrum from each cell
-            spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
-            spectrum += np.sum(spectrum_each_cell, axis=0)
+            #spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
+            for cellID in range(ncells):
+                print(cellID)
+                spectrum += spherical_harmonic_power_spectrum([cellID, idlist[cellID], rdata[cellID]], Ylm_star)
+            #spectrum += np.sum(spectrum_each_cell, axis=0)
             total_ncells += ncells
 
         if do_MPI:
