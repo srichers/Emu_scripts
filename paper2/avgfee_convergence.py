@@ -73,8 +73,8 @@ for dirname,linestyle,label,color in plotinfo:
 
 plotinfo = [
     ["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns", "-", "L10 dx1/12.8 eq4","black"],
-    ["global/project/projectdirs/m3761/128r64d_128n800s16mpi", "-","L8 dx1/16 eq64","blue"],
-    ["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns_v2", "-", "L64 dx1/4 eq4","red"],
+    ["global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi", "-","L8 dx1/16 eq64","blue"],
+    #["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns_v2", "-", "L64 dx1/4 eq4","red"],
     ["ocean/projects/phy200048p/shared/3D/fiducial_3D/1", "-", "L8 dx1/16 eq32","green"],
 ]
 
