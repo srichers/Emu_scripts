@@ -229,12 +229,16 @@ def sort_rdata_chunk(p):
     # return the sorted array
     return p
 
+def Ylm_indices(l):
+    start = l**2
+    stop = (l+1)**2
+    return start,stop
     
 # use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
 # np.arctan2(y,x)
 def spherical_harmonic_power_spectrum_singlel(l, Nrho, Ylm_star):
-    nm = 2*l+1
-    Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(nm)])
+    start, stop = Ylm_indices(l)
+    Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(start,stop)])
     Nrholm = np.sum(Nrholm_integrand, axis=3)
     result = np.sum(np.abs(Nrholm)**2, axis=0)
     return result
@@ -264,7 +268,7 @@ def spherical_harmonic_power_spectrum(input_data, Ylm_star):
     Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
     
     #spectrum = np.zeros((2, 6, nl))
-    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, Nrho, Ylm_star[l]) for l in range(nl)])
+    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, Nrho, Ylm_star) for l in range(nl)])
     return spectrum
 
 #########################
@@ -489,12 +493,14 @@ for d in directories:
             phi = np.arctan2(yhat,xhat)
                 
             # evaluate spherical harmonic amplitudes
-            Ylm_star = []
+            nparticles = len(rdata[0])
+            Ylm_star = np.zeros( ( (nl+1)**2, nparticles) )
             for l in range(nl):
-                nm = 2*l+1
+                start,stop = Ylm_indices(l)
+                nm = stop-start
                 mlist = np.array(range(nm))-l
                 Ylm_star_thisl = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
-                Ylm_star.append( Ylm_star_thisl )
+                Ylm_star[start:stop] = Ylm_star_thisl
             
             # accumulate a spectrum from each cell
             #spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
