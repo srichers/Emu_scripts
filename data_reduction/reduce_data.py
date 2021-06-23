@@ -481,26 +481,27 @@ for d in directories:
             #for i in range(len(rdata)):
             #    rdata[i] = sort_rdata_chunk(rdata[i])
 
-            # get direction coordinates
-            pupx = rdata[0][:,rkey["pupx"]]
-            pupy = rdata[0][:,rkey["pupy"]]
-            pupz = rdata[0][:,rkey["pupz"]]
-            pupt = rdata[0][:,rkey["pupt"]]
-            xhat = pupx/pupt
-            yhat = pupy/pupt
-            zhat = pupz/pupt            
-            theta = np.arccos(zhat)
-            phi = np.arctan2(yhat,xhat)
+            if gridID == mpi_rank:
+                # get direction coordinates
+                pupx = rdata[0][:,rkey["pupx"]]
+                pupy = rdata[0][:,rkey["pupy"]]
+                pupz = rdata[0][:,rkey["pupz"]]
+                pupt = rdata[0][:,rkey["pupt"]]
+                xhat = pupx/pupt
+                yhat = pupy/pupt
+                zhat = pupz/pupt            
+                theta = np.arccos(zhat)
+                phi = np.arctan2(yhat,xhat)
                 
-            # evaluate spherical harmonic amplitudes
-            nparticles = len(rdata[0])
-            Ylm_star = np.zeros( ( (nl+1)**2, nparticles) )
-            for l in range(nl):
-                start,stop = Ylm_indices(l)
-                nm = stop-start
-                mlist = np.array(range(nm))-l
-                Ylm_star_thisl = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
-                Ylm_star[start:stop] = Ylm_star_thisl
+                # evaluate spherical harmonic amplitudes
+                nparticles = len(rdata[0])
+                Ylm_star = np.zeros( ( (nl+1)**2, nparticles) )
+                for l in range(nl):
+                    start,stop = Ylm_indices(l)
+                    nm = stop-start
+                    mlist = np.array(range(nm))-l
+                    Ylm_star_thisl = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
+                    Ylm_star[start:stop] = Ylm_star_thisl
             
             # accumulate a spectrum from each cell
             #spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
