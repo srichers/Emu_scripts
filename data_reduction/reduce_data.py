@@ -29,7 +29,7 @@ do_average = False
 do_fft     = False
 do_angular = True
 
-do_MPI = True
+do_MPI = False
 
 #####################
 # FFT preliminaries #
@@ -203,6 +203,33 @@ class GridData(object):
 
         return idlist
 
+# input list of particle data separated into grid cells
+# output the same array, but sorted by zenith angle, then azimuthal angle
+# also output the grid of directions in each cell (assumed to be the same)
+def sort_rdata_chunk(p):
+    # sort first in theta
+    sorted_indices = p[:,rkey["pupz"]].argsort()
+    p = p[sorted_indices,:]
+
+    # loop over unique values of theta
+    costheta = p[:,rkey["pupz"]] / p[:,rkey["pupt"]]
+    for unique_costheta in np.unique(costheta):
+        # get the array of particles with the same costheta
+        costheta_locs = np.where(costheta == unique_costheta)[0]
+        p_theta = p[costheta_locs,:]
+        
+        # sort these particles by the azimuthal angle
+        phi = np.arctan2(p_theta[:,rkey["pupy"]] , p_theta[:,rkey["pupx"]] )
+        sorted_indices = phi.argsort()
+        p_theta = p_theta[sorted_indices,:]
+        
+        # put the sorted data back into p
+        p[costheta_locs,:] = p_theta
+        
+    # return the sorted array
+    return p
+
+    
 # use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
 # np.arctan2(y,x)
 def spherical_harmonic_power_spectrum_singlel(l, phi, theta, Nrho):
@@ -457,6 +484,10 @@ for d in directories:
             idlist = [idlist[icell*nppc:(icell+1)*nppc  ] for icell in range(ncells)]
             icell_list = [icell for icell in range(ncells)]
             input_data = zip(range(ncells), idlist, rdata)
+
+            # sort particles in each chunk
+            for i in range(len(rdata)):
+                rdata[i] = sort_rdata_chunk(rdata[i])
             
             # accumulate a spectrum from each cell
             spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
