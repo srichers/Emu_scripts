@@ -289,14 +289,7 @@ def spherical_harmonic_power_spectrum_singlel(l, Nrho):
     result = np.sum(np.abs(Nrholm)**2, axis=0)
     return result
 
-def spherical_harmonic_power_spectrum(input_data):
-    icell = input_data[0]
-    idlist = input_data[1]
-    p = input_data[2]
-    
-    # cut out only the bits that we need for this cell
-    assert(all(idlist == icell))
-
+def get_Nrho(p):
     # build Nrho complex values
     nparticles = len(p)
     Nrho = np.zeros((2,6,nparticles))*1j
@@ -312,11 +305,11 @@ def spherical_harmonic_power_spectrum(input_data):
     Nrho[1,3,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f11_Rebar"]] + 1j*0                      )
     Nrho[1,4,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f12_Rebar"]] + 1j*p[:,rkey["f12_Imbar"]] )
     Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
-    
-    #spectrum = np.zeros((2, 6, nl))
+    return Nrho
+
+def spherical_harmonic_power_spectrum(Nrho):
     spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, Nrho) for l in range(nl)])
     return spectrum
-    
 
 #########################
 # loop over directories #
@@ -510,6 +503,7 @@ if __name__ == '__main__':
             # average the angular power spectrum over many cells
             # loop over all cells within each grid
             spectrum = np.zeros((nl,2,6))
+            Nrho_avg = np.zeros((2,6,nppc))*1j
             total_ncells = 0
             for gridID in range(mpi_rank,ngrids,mpi_size):
                 print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
@@ -529,38 +523,46 @@ if __name__ == '__main__':
                 ncells = np.max(idlist)+1
                 nppc = len(idlist) // ncells
                 rdata  = [ rdata[icell*nppc:(icell+1)*nppc,:] for icell in range(ncells)]
-                idlist = [idlist[icell*nppc:(icell+1)*nppc  ] for icell in range(ncells)]
-                icell_list = [icell for icell in range(ncells)]
-                input_data = zip(range(ncells), idlist, rdata)
+                chunksize = ncells//nproc
+                if ncells % nproc != 0:
+                    chunksize += 1
+                print(chunksize)
                 
                 # sort particles in each chunk
-                rdata = pool.map(sort_rdata_chunk, rdata)
-                #for i in range(len(rdata)):
-                #    rdata[i] = sort_rdata_chunk(rdata[i])
+                rdata = pool.map(sort_rdata_chunk, rdata, chunksize=chunksize)
                 
+                # create the spherical harmonic grid
                 if gridID == mpi_rank:
                     create_shared_Ylm_star(rdata[0])
+                    phat = rdata[0][:,rkey["pupx"]:rkey["pupz"]] / rdata[0][:,rkey["pupt"]][:,np.newaxis]
+
+                # accumulate the spatial average of the angular distribution
+                Nrho = pool.map(get_Nrho,rdata, chunksize=chunksize)
+                Nrho_avg += np.sum(Nrho, axis=0)
                 
                 # accumulate a spectrum from each cell
-                spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data)#, chunksize=(ncells//nproc)+1)
+                spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, Nrho, chunksize=chunksize)
                 spectrum += np.sum(spectrum_each_cell, axis=0)
-                #for cellID in range(ncells):
-                #    print(cellID)
-                #    spectrum += spherical_harmonic_power_spectrum([cellID, idlist[cellID], rdata[cellID]])
+
+                # count the total number of cells
                 total_ncells += ncells
             
             if do_MPI:
                 comm.Barrier()
                 spectrum     = comm.reduce(spectrum    , op=MPI.SUM, root=0)
+                Nrho_avg     = comm.reduce(Nrho_avg    , op=MPI.SUM, root=0)
                 total_ncells = comm.reduce(total_ncells, op=MPI.SUM, root=0)
 
             # write averaged data
             if mpi_rank==0:
                 spectrum /= total_ncells*ad['index',"cell_volume"][0]
+                Nrho_avg /= total_ncells*ad['index',"cell_volume"][0]
             
                 print("# writing",outputfilename)
                 avgData = h5py.File(outputfilename,"w")
                 avgData["angular_spectrum"] = [spectrum,]
+                avgData["Nrho (1|ccm)"] = [Nrho_avg,]
+                avgData["phat"] = phat
                 avgData["t"] = [t,]
                 avgData.close()
 
