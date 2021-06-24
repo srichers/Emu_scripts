@@ -36,7 +36,7 @@ print()
 print("Outputting datasets to "+base_filename)
 f = h5py.File(base_filename,"w")
 for i, key in enumerate(keylist):
-    if key=="k":
+    if key=="k" or key=="phat":
         datasets[i] = datasets[i][0]
     else:
         datasets[i] = np.concatenate(datasets[i], axis=0)
