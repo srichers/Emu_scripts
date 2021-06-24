@@ -235,6 +235,16 @@ def Ylm_indices(l):
     return start,stop
 
 def create_shared_Ylm_star(rdata):
+    nparticles = len(rdata)
+
+    # create shared object
+    # double the size for real+imaginary parts
+    global Ylm_star_shared
+    Ylm_star_shared = mp.RawArray('d', 2 * (nl+1)**2 * nparticles)
+
+    # create local arrays that use this memory for easy modification
+    Ylm_star = np.frombuffer(Ylm_star_shared, dtype='complex').reshape( ( (nl+1)**2, nparticles) )
+    
     # get direction coordinates
     pupx = rdata[:,rkey["pupx"]]
     pupy = rdata[:,rkey["pupy"]]
@@ -247,25 +257,24 @@ def create_shared_Ylm_star(rdata):
     phi = np.arctan2(yhat,xhat)
                 
     # evaluate spherical harmonic amplitudes
-    nparticles = len(rdata)
-    global Ylm_star_shared
-    Ylm_star_shared = np.zeros( ( (nl+1)**2, nparticles), dtype=complex)
     for l in range(nl):
         start,stop = Ylm_indices(l)
         nm = stop-start
         mlist = np.array(range(nm))-l
-        Ylm_star_thisl = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
-        Ylm_star_shared[start:stop] = Ylm_star_thisl
+        Ylm_star_thisl = [np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist]
+        Ylm_star[start:stop] = np.array( Ylm_star_thisl )
 
-
-def get_shared_Ylm_star(l):
+    
+def get_shared_Ylm_star(l,nparticles):
     start, stop = Ylm_indices(l)
-    return Ylm_star_shared[start:stop,:]
+    Ylm_star = np.frombuffer(Ylm_star_shared, dtype='complex').reshape( ( (nl+1)**2, nparticles) )
+    return Ylm_star[start:stop]
 
 # use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
 # np.arctan2(y,x)
 def spherical_harmonic_power_spectrum_singlel(l, Nrho):
-    Ylm_star = get_shared_Ylm_star(l)
+    nparticles = np.shape(Nrho)[2]
+    Ylm_star = get_shared_Ylm_star(l,nparticles)
     Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(len(Ylm_star))])
     Nrholm = np.sum(Nrholm_integrand, axis=3)
     result = np.sum(np.abs(Nrholm)**2, axis=0)
@@ -514,10 +523,10 @@ for d in directories:
             
             # accumulate a spectrum from each cell
             #spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
+            #spectrum += np.sum(spectrum_each_cell, axis=0)
             for cellID in range(ncells):
                 print(cellID)
                 spectrum += spherical_harmonic_power_spectrum([cellID, idlist[cellID], rdata[cellID]])
-            #spectrum += np.sum(spectrum_each_cell, axis=0)
             total_ncells += ncells
 
         if do_MPI:
