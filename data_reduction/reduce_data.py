@@ -534,7 +534,7 @@ if __name__ == '__main__':
                 # create the spherical harmonic grid
                 if gridID == mpi_rank:
                     create_shared_Ylm_star(rdata[0])
-                    phat = rdata[0][:,rkey["pupx"]:rkey["pupz"]] / rdata[0][:,rkey["pupt"]][:,np.newaxis]
+                    phat = rdata[0][:,rkey["pupx"]:rkey["pupz"]+1] / rdata[0][:,rkey["pupt"]][:,np.newaxis]
 
                 # accumulate the spatial average of the angular distribution
                 Nrho = pool.map(get_Nrho,rdata, chunksize=chunksize)
