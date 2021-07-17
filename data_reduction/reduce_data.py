@@ -29,7 +29,7 @@ do_average = False
 do_fft     = False
 do_angular = True
 
-do_MPI = True
+do_MPI = False
 
 #####################
 # FFT preliminaries #
@@ -203,38 +203,95 @@ class GridData(object):
 
         return idlist
 
-# use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
-# np.arctan2(y,x)
-def spherical_harmonic_power_spectrum_singlel(l, phi, theta, Nrho):
-    nm = 2*l+1
-    mlist = np.array(range(nm))-l
-    Ylm_star = np.array([np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist])
-    Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(nm)])
-    Nrholm = np.sum(Nrholm_integrand, axis=3)
-    result = np.sum(np.abs(Nrholm)**2, axis=0)
-    return result
+# get the number of particles per cell
+def get_nppc(d):
+    eds = emu.EmuDataset(d)
+    t = eds.ds.current_time
+    ad = eds.ds.all_data()
+    grid_data = GridData(ad)
+    level = 0
+    gridID = 0
+    idata, rdata = amrex.read_particle_data(d, ptype="neutrinos", level_gridID=(level,gridID))
+    idlist = grid_data.get_particle_cell_ids(rdata)
+    ncells = np.max(idlist)+1
+    nppc = len(idlist) // ncells
+    return nppc
 
-def spherical_harmonic_power_spectrum(input_data):
-    icell = input_data[0]
-    idlist = input_data[1]
-    p = input_data[2]
     
-    # cut out only the bits that we need for this cell
-    assert(all(idlist == icell))
+# input list of particle data separated into grid cells
+# output the same array, but sorted by zenith angle, then azimuthal angle
+# also output the grid of directions in each cell (assumed to be the same)
+def sort_rdata_chunk(p):
+    # sort first in theta
+    sorted_indices = p[:,rkey["pupz"]].argsort()
+    p = p[sorted_indices,:]
 
+    # loop over unique values of theta
+    costheta = p[:,rkey["pupz"]] / p[:,rkey["pupt"]]
+    for unique_costheta in np.unique(costheta):
+        # get the array of particles with the same costheta
+        costheta_locs = np.where(costheta == unique_costheta)[0]
+        p_theta = p[costheta_locs,:]
+        
+        # sort these particles by the azimuthal angle
+        phi = np.arctan2(p_theta[:,rkey["pupy"]] , p_theta[:,rkey["pupx"]] )
+        sorted_indices = phi.argsort()
+        p_theta = p_theta[sorted_indices,:]
+        
+        # put the sorted data back into p
+        p[costheta_locs,:] = p_theta
+        
+    # return the sorted array
+    return p
+
+def Ylm_indices(l):
+    start = l**2
+    stop = (l+1)**2
+    return start,stop
+
+def create_shared_Ylm_star(rdata):
+    nparticles = len(rdata)
+
+    # create local arrays that use this memory for easy modification
+    Ylm_star = np.frombuffer(Ylm_star_shared, dtype='complex').reshape( ( (nl+1)**2, nparticles) )
+    
     # get direction coordinates
-    pupx = p[:,rkey["pupx"]]
-    pupy = p[:,rkey["pupy"]]
-    pupz = p[:,rkey["pupz"]]
-    pupt = p[:,rkey["pupt"]]
+    pupx = rdata[:,rkey["pupx"]]
+    pupy = rdata[:,rkey["pupy"]]
+    pupz = rdata[:,rkey["pupz"]]
+    pupt = rdata[:,rkey["pupt"]]
     xhat = pupx/pupt
     yhat = pupy/pupt
     zhat = pupz/pupt            
     theta = np.arccos(zhat)
     phi = np.arctan2(yhat,xhat)
+                
+    # evaluate spherical harmonic amplitudes
+    for l in range(nl):
+        start,stop = Ylm_indices(l)
+        nm = stop-start
+        mlist = np.array(range(nm))-l
+        Ylm_star_thisl = [np.conj(scipy.special.sph_harm(m, l, phi, theta)) for m in mlist]
+        Ylm_star[start:stop] = np.array( Ylm_star_thisl )
 
+def get_shared_Ylm_star(l,nparticles):
+    start, stop = Ylm_indices(l)
+    Ylm_star = np.frombuffer(Ylm_star_shared, dtype='complex').reshape( ( (nl+1)**2, nparticles) )
+    return Ylm_star[start:stop]
+
+# use scipy.special.sph_harm(m, l, azimuthal_angle, polar_angle)
+# np.arctan2(y,x)
+def spherical_harmonic_power_spectrum_singlel(l, Nrho):
+    nparticles = np.shape(Nrho)[2]
+    Ylm_star = get_shared_Ylm_star(l,nparticles)
+    Nrholm_integrand = np.array([Nrho*Ylm_star[im,:] for im in range(len(Ylm_star))])
+    Nrholm = np.sum(Nrholm_integrand, axis=3)
+    result = np.sum(np.abs(Nrholm)**2, axis=0)
+    return result
+
+def get_Nrho(p):
     # build Nrho complex values
-    nparticles = len(phi)
+    nparticles = len(p)
     Nrho = np.zeros((2,6,nparticles))*1j
     Nrho[0,0,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f00_Re"   ]] + 1j*0                      )
     Nrho[0,1,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f01_Re"   ]] + 1j*p[:,rkey["f01_Im"   ]] )
@@ -248,15 +305,15 @@ def spherical_harmonic_power_spectrum(input_data):
     Nrho[1,3,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f11_Rebar"]] + 1j*0                      )
     Nrho[1,4,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f12_Rebar"]] + 1j*p[:,rkey["f12_Imbar"]] )
     Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
-    
-    #spectrum = np.zeros((2, 6, nl))
-    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, phi, theta, Nrho) for l in range(nl)])
+    return Nrho
+
+def spherical_harmonic_power_spectrum(Nrho):
+    spectrum = np.array([spherical_harmonic_power_spectrum_singlel(l, Nrho) for l in range(nl)])
     return spectrum
 
 #########################
 # loop over directories #
 #########################
-pool = Pool(nproc)
 if do_MPI:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
@@ -408,74 +465,105 @@ for d in directories[mpi_rank::mpi_size]:
 # separate loop for angular spectra so there is no aliasing and better load balancing
 directories = sorted(glob.glob("plt*/neutrinos"))
 directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
-for d in directories:
-    if mpi_rank==0:
-        print("# working on", d)
-    eds = emu.EmuDataset(d)
-    t = eds.ds.current_time
-    ad = eds.ds.all_data()
 
-    ################
-    # angular work #
-    ################
-    outputfilename = d+"/reduced_data_angular_power_spectrum.h5"
-    already_done = len(glob.glob(outputfilename))>0
-    if do_angular and not already_done:
+# get number of particles to be able to construct 
+nppc = get_nppc(directories[-1])
 
+# create shared object
+# double the size for real+imaginary parts
+Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
+
+
+if __name__ == '__main__':
+    pool = Pool(nproc)
+    for d in directories:
         if mpi_rank==0:
-            print("Computing up to l =",nl-1)
+            print("# working on", d)
+        eds = emu.EmuDataset(d)
+        t = eds.ds.current_time
+        ad = eds.ds.all_data()
 
-        header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
-        grid_data = GridData(ad)
-        nlevels = len(header.grids)
-        assert nlevels==1
-        level = 0
-        ngrids = len(header.grids[level])
+        ################
+        # angular work #
+        ################
+        outputfilename = d+"/reduced_data_angular_power_spectrum.h5"
+        already_done = len(glob.glob(outputfilename))>0
+        if do_angular and not already_done:
+
+            if mpi_rank==0:
+                print("Computing up to l =",nl-1)
+
+            header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
+            grid_data = GridData(ad)
+            nlevels = len(header.grids)
+            assert nlevels==1
+            level = 0
+            ngrids = len(header.grids[level])
         
-        # average the angular power spectrum over many cells
-        # loop over all cells within each grid
-        spectrum = np.zeros((nl,2,6))
-        total_ncells = 0
-        for gridID in range(mpi_rank,ngrids,mpi_size):
-            print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
+            # average the angular power spectrum over many cells
+            # loop over all cells within each grid
+            spectrum = np.zeros((nl,2,6))
+            Nrho_avg = np.zeros((2,6,nppc))*1j
+            total_ncells = 0
+            for gridID in range(mpi_rank,ngrids,mpi_size):
+                print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
             
-            # read particle data on a single grid
-            idata, rdata = amrex.read_particle_data(d, ptype="neutrinos", level_gridID=(level,gridID))
-            
-            # get list of cell ids
-            idlist = grid_data.get_particle_cell_ids(rdata)
-            
-            # sort rdata based on id list
-            sorted_indices = idlist.argsort()
-            rdata = rdata[sorted_indices]
-            idlist = idlist[sorted_indices]
-            
-            # split up the data into cell chunks
-            ncells = np.max(idlist)+1
-            nppc = len(idlist) // ncells
-            rdata  = [ rdata[icell*nppc:(icell+1)*nppc,:] for icell in range(ncells)]
-            idlist = [idlist[icell*nppc:(icell+1)*nppc  ] for icell in range(ncells)]
-            icell_list = [icell for icell in range(ncells)]
-            input_data = zip(range(ncells), idlist, rdata)
-            
-            # accumulate a spectrum from each cell
-            spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, input_data, chunksize=(ncells//nproc)+1)
-            spectrum += np.sum(spectrum_each_cell, axis=0)
-            total_ncells += ncells
+                # read particle data on a single grid
+                idata, rdata = amrex.read_particle_data(d, ptype="neutrinos", level_gridID=(level,gridID))
+                
+                # get list of cell ids
+                idlist = grid_data.get_particle_cell_ids(rdata)
+                
+                # sort rdata based on id list
+                sorted_indices = idlist.argsort()
+                rdata = rdata[sorted_indices]
+                idlist = idlist[sorted_indices]
+                
+                # split up the data into cell chunks
+                ncells = np.max(idlist)+1
+                nppc = len(idlist) // ncells
+                rdata  = [ rdata[icell*nppc:(icell+1)*nppc,:] for icell in range(ncells)]
+                chunksize = ncells//nproc
+                if ncells % nproc != 0:
+                    chunksize += 1
+                print(chunksize)
+                
+                # sort particles in each chunk
+                rdata = pool.map(sort_rdata_chunk, rdata, chunksize=chunksize)
+                
+                # create the spherical harmonic grid
+                if gridID == mpi_rank:
+                    create_shared_Ylm_star(rdata[0])
+                    phat = rdata[0][:,rkey["pupx"]:rkey["pupz"]+1] / rdata[0][:,rkey["pupt"]][:,np.newaxis]
 
-        if do_MPI:
-            comm.Barrier()
-            spectrum     = comm.reduce(spectrum    , op=MPI.SUM, root=0)
-            total_ncells = comm.reduce(total_ncells, op=MPI.SUM, root=0)
-            
-        # write averaged data
-        if mpi_rank==0:
-            spectrum /= total_ncells*ad['index',"cell_volume"][0]
+                # accumulate the spatial average of the angular distribution
+                Nrho = pool.map(get_Nrho,rdata, chunksize=chunksize)
+                Nrho_avg += np.sum(Nrho, axis=0)
+                
+                # accumulate a spectrum from each cell
+                spectrum_each_cell = pool.map(spherical_harmonic_power_spectrum, Nrho, chunksize=chunksize)
+                spectrum += np.sum(spectrum_each_cell, axis=0)
 
-            print("# writing",outputfilename)
-            avgData = h5py.File(outputfilename,"w")
-            avgData["angular_spectrum"] = [spectrum,]
-            avgData["t"] = [t,]
-            avgData.close()
+                # count the total number of cells
+                total_ncells += ncells
+            
+            if do_MPI:
+                comm.Barrier()
+                spectrum     = comm.reduce(spectrum    , op=MPI.SUM, root=0)
+                Nrho_avg     = comm.reduce(Nrho_avg    , op=MPI.SUM, root=0)
+                total_ncells = comm.reduce(total_ncells, op=MPI.SUM, root=0)
+
+            # write averaged data
+            if mpi_rank==0:
+                spectrum /= total_ncells*ad['index',"cell_volume"][0]
+                Nrho_avg /= total_ncells*ad['index',"cell_volume"][0]
+            
+                print("# writing",outputfilename)
+                avgData = h5py.File(outputfilename,"w")
+                avgData["angular_spectrum"] = [spectrum,]
+                avgData["Nrho (1|ccm)"] = [Nrho_avg,]
+                avgData["phat"] = phat
+                avgData["t"] = [t,]
+                avgData.close()
 
     
