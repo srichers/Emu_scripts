@@ -165,7 +165,7 @@ class EmuDataset(object):
 
         _trace = _make_trace(self.ds)
 
-        self.ds.add_field(("gas", "trace"), function=_trace, units="auto", dimensions=dimensions.dimensionless)
+        self.ds.add_field(("gas", "trace"), function=_trace, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
 
         # now, define normalized fields
         for f in self.ds.field_list:
@@ -179,7 +179,7 @@ class EmuDataset(object):
                     return _derived_field
 
                 _norm_derived_f = _make_derived_field(f)
-                self.ds.add_field(("gas", fname_norm), function=_norm_derived_f, units="auto", dimensions=dimensions.dimensionless)
+                self.ds.add_field(("gas", fname_norm), function=_norm_derived_f, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
 
     def fourier(self, field_Re, field_Im=None, nproc=None):
         if field_Im:
