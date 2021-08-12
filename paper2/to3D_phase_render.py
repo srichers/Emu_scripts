@@ -5,6 +5,8 @@ from yt import derived_field
 from yt.visualization.volume_rendering.transfer_function_helper import TransferFunctionHelper
 from yt.visualization.volume_rendering.render_source import VolumeSource
 from yt.units import cm
+import sys
+sys.path.append("/global/homes/s/srichers/emu_scripts/data_reduction")
 from emu_yt_module import EmuDataset
 
 #3 flavor neutrino derived fields: Number Density
@@ -64,24 +66,18 @@ rc = {"font.family" : "serif",'font.size':15}
 plt.rcParams.update(rc)
 
 #alternate volume renderings with color determined by the off-diagonal phase
-base_dir_1D = "/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial/"
-#base_dir_2D = "/global/project/projectdirs/m3761/2D/2D_fiducial/2/"
-
-base_dir_3D = "/global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi/"
 #snapshots closest to 2.2ns
-file_1D = "plt02180"
-file_2D = "plt01500"
-file_3D = "plt02200"
-
-output_dir = "./Emu_vis/to3D/"
-
-files = [file_1D,file_2D]
-base_dirs = [base_dir_1D,base_dir_2D]
-
+files = ["/global/project/projectdirs/m3761/PAPER2/Fiducial_2D/2/plt00325", # 0.29ns
+    "/global/project/projectdirs/m3761/PAPER2/Fiducial_2D/2/plt00700", # 0.77ns
+    "/global/project/projectdirs/m3761/PAPER2/Fiducial_2D/2/plt01500", # 2.2ns
+    "/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial/plt00320", # 0.29ns
+    "/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial/plt00780", # 0.77ns
+    "/global/project/projectdirs/m3018/Emu/PAPER/1D/1D_fiducial/plt02160", # 2.2ns
+]
 field='N01_Phase'
 
-for i,f in enumerate(files):
-    emu_lD = EmuDataset(base_dirs[i]+f)
+for f in files:
+    emu_lD = EmuDataset(f)
     #double check it's 1D or 2D oriented along z or y-z:
     if emu_lD.ds.domain_dimensions[0] == 1 and emu_lD.ds.domain_dimensions[2] > 1:   
         left_edge = emu_lD.ds.domain_left_edge
@@ -115,16 +111,16 @@ for i,f in enumerate(files):
         tf = yt.ColorTransferFunction((v_min,v_max))
 
         #Manually adding gaussians to the transfer function, grabbing colors from twilight colormap
-        layers = [-180, -90, 0, 90, 180]
+        layers = [-120, 0, 120]
         for l in layers:
-            tf.sample_colormap(l, 0.2*(v_max - v_min)/5, alpha = 50, colormap = 'twilight_shifted')
+            tf.sample_colormap(l, 0.1*(v_max - v_min), alpha = 10, colormap = 'twilight_shifted')
 
         #If you wanted to add several evenly spaced gaussians, use this instead:
         #L = 5 #number of layers to add
         #tf.add_layers(L, w=0.2*(v_max - v_min)/L, alpha=[50,50,50,50,50], colormap = 'twilight_shifted')
 
         source.tfh.tf = tf
-
+        
         #camera parameters
         sc.camera.focus = emu_3D.ds.domain_center
         sc.camera.resolution = 1024
@@ -132,13 +128,14 @@ for i,f in enumerate(files):
         sc.camera.zoom(0.9)
 
         #plot the transfer function
-        source.tfh.plot(output_dir+'{0}_{1}_transfer_function.png'.format(f,field))
+        source.tfh.plot('{0}/{1}_transfer_function.png'.format(f,field))
 
         #format the timestamp
-        text_string = "t = {:.4f} ns".format(float(emu_3D.ds.current_time.to('ns')))
+        text_string = "t = {:.2f} ns".format(float(emu_3D.ds.current_time.to('ns')))
 
         #save with transfer function also displayed on rendering image
-        sc.save_annotated(output_dir+'{0}_{1}_rendering.png'.format(f,field), sigma_clip=6, text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]], label_fmt='%d')
+        #sc.save_annotated('{0}/{1}_rendering.png'.format(f,field), sigma_clip=6, text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]], label_fmt='%d')
+        sc.save('{0}/{1}_rendering.png'.format(f,field), sigma_clip=2.5)
             
     else:
         print("input file is not 1D or 2D and oriented along z")

@@ -63,12 +63,13 @@ rc = {"font.family" : "serif",'font.size':15}
 plt.rcParams.update(rc)
 
 #alternate volume renderings with color determined by the off-diagonal phase
-base_dir = "/global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi/"
-#five representative snapshots
-files = ["run1/plt00100","run1/plt00250","run1/plt00400","run1/plt00800","run3/plt02200"]
+files = ["/global/project/projectdirs/m3761/PAPER2/Fiducial_3D/run1/plt00325", # 0.29ns
+    "/global/project/projectdirs/m3761/PAPER2/Fiducial_3D/run1/plt00800", # 0.77ns
+    "/global/project/projectdirs/m3761/PAPER2/Fiducial_3D/run3/plt02200", # 2.2ns
+]
 
 for f in files:
-    ds = yt.load(base_dir+f)
+    ds = yt.load(f)
     field='N01_Phase'
     #initializing the scene to be rendered
     sc = yt.create_scene(ds, field)
@@ -87,9 +88,9 @@ for f in files:
     tf = yt.ColorTransferFunction((v_min,v_max))
     
     #Manually adding gaussians to the transfer function, grabbing colors from twilight colormap
-    layers = [-180, -90, 0, 90, 180]
+    layers = [-120, 0, 120]#[-135, -45, 45, 135]
     for l in layers:
-        tf.sample_colormap(l, 0.2*(v_max - v_min)/5, alpha = 50, colormap = 'twilight_shifted')
+        tf.sample_colormap(l, 0.1*(v_max - v_min), alpha = 10, colormap = 'twilight_shifted')
     
     #If you wanted to add several evenly spaced gaussians, use this instead:
     #L = 5 #number of layers to add
@@ -104,10 +105,11 @@ for f in files:
     sc.camera.zoom(0.9)
 
     #plot the transfer function
-    source.tfh.plot(base_dir+'{0}_{1}_transfer_function.png'.format(ds,field))
+    source.tfh.plot('{0}/{1}_transfer_function.png'.format(f,field))
 
     #format the timestamp
     text_string = "t = {:.4f} ns".format(float(ds.current_time.to('ns')))
 
     #save with transfer function also displayed on rendering image
-    sc.save_annotated(base_dir+'{0}_{1}_rendering.png'.format(ds,field), sigma_clip=6, text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]], label_fmt='%d')
+    #sc.save_annotated('{0}_{1}_rendering.png'.format(ds,field), sigma_clip=6, text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]], label_fmt='%d')
+    sc.save('{0}/{1}_rendering.png'.format(f,field), sigma_clip=2.5)
