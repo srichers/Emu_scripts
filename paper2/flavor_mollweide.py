@@ -22,26 +22,41 @@ vmin = 0
 vmax = 1
 norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
 
+filename_list = [(6,"/global/project/projectdirs/m3761/PAPER2/90Degree_1D/reduced_data_angular_power_spectrum.h5"),
+                 (6,"/global/project/projectdirs/m3761/PAPER2/90Degree_2D_outplane/reduced_data_angular_power_spectrum.h5"),
+                 (6,"/global/project/projectdirs/m3761/PAPER2/90Degree_3D/run1/reduced_data_angular_power_spectrum.h5")]
+
+def ELN(longitude,latitude):
+    angle_from_z = np.pi/2. - latitude
+    z = np.cos(angle_from_z)
+    x = np.sin(angle_from_z) * np.cos(longitude)
+    y = np.sin(angle_from_z) * np.sin(longitude)
+    ne = 1+z
+    nebar = 1+x
+    result = ne-nebar
+    return result
+    
 def makeplot():
-    f = h5py.File("reduced_data_angular_power_spectrum.h5","r")
-    phat = f["phat"]
-    px = phat[:,0]
-    py = phat[:,1]
-    pxy = np.minimum(np.sqrt(px**2 + py**2),1.0)
-    pz = np.sqrt(1.0 - pxy)
-    nparticles = len(pz)
-    pz[:nparticles//2] *= -1
+    fig, axes = plt.subplots(3,1, figsize=(4,8),subplot_kw={'projection':"mollweide"})
+    plt.subplots_adjust(hspace=0, wspace=0)
+    for iplot in range(3):
+        (isnapshot,filename) = filename_list[iplot]
+        print(iplot, isnapshot, filename)
+        f = h5py.File(filename,"r")
+        phat = f["phat"]
+        px = phat[:,0]
+        py = phat[:,1]
+        pz = phat[:,2]
+        #pxy = np.minimum(np.sqrt(px**2 + py**2),1.0)
+        #pz = np.sqrt(1.0 - pxy)
+        #nparticles = len(pz)
+        #pz[:nparticles//2] *= -1
 
-    # calculate  longitude and latitude from phat
-    latitude = np.arccos(pz) - np.pi/2.
-    longitude = np.arctan2(py,px)
+        # calculate  longitude and latitude from phat
+        latitude = np.pi/2. - np.arccos(pz)
+        longitude = np.arctan2(py,px)
 
-
-    Nrho = f["Nrho (1|ccm)"]
-
-    for isnapshot in range(np.shape(Nrho)[0]):
-        plt.close()
-        fig, axes = plt.subplots(2,3, figsize=(16,6),subplot_kw={'projection':"mollweide"})
+        Nrho = f["Nrho (1|ccm)"]
 
         n_nue      = np.real(Nrho[isnapshot,0,0,:])
         n_numu     = np.real(Nrho[isnapshot,0,3,:])
@@ -51,48 +66,49 @@ def makeplot():
         n_nutaubar = np.real(Nrho[isnapshot,1,5,:])
         trace = np.array([n_nue+n_numu+n_nutau,
                           n_nuebar+n_numubar+n_nutaubar])
-        print("max nue-nuebar difference:",np.min((n_nue-n_nuebar)/trace[0]),np.min((n_nue-n_nuebar)/trace[1]))
 
-        findices = [0,3,5]
-        for im in range(2):
-            for fi in range(3):
-                toplot = np.real(Nrho[isnapshot,im,findices[fi],:])/trace[im]
-                sc0 = axes[im,fi].scatter(longitude, latitude, c=toplot, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
-
-        # colorbar
-        cax = fig.add_axes([0.95, 0.1, 0.03, 0.8])
-        #cax.xaxis.set_ticks_position('top')
-        #cax.xaxis.set_label_position('top')
-        cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap)
-        cbar.set_label(r"$\langle \rho_{ii} \rangle$")
-        cbar.ax.minorticks_on()
-        cbar.ax.tick_params(axis='x', which='both', direction='in')
-
-        plt.text(.5,.91,"t = {:.2f}".format(f["t"][isnapshot]*1e9)+" ns",ha='center',va='center',transform=fig.transFigure)
-        plt.text(.25,0.05,r"$e$",ha='center',va='center',transform=fig.transFigure)
-        plt.text(.5,0.05,r"$\mu$",ha='center',va='center',transform=fig.transFigure)
-        plt.text(.78,0.05,r"$\tau$",ha='center',va='center',transform=fig.transFigure)
-        plt.text(0.09,0.7,r"$\nu$",ha='center',va='center',transform=fig.transFigure)
-        plt.text(0.09,0.3,r"$\bar{\nu}$",ha='center',va='center',transform=fig.transFigure)
+        # the 0 accesses the ee component
+        toplot = np.real(Nrho[isnapshot,0,0,:])/trace[0]
+        sc0 = axes[iplot].scatter(longitude, latitude, c=toplot, cmap=cmap, s=5, vmin=vmin, vmax=vmax)
         
-        for ax in axes.flatten():
-            #axes.set_aspect("equal")
-            ax.grid(True)
-            ax.text(0,0,r"$\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(.999*np.pi,0,r"$-\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(-.999*np.pi,0,r"$-\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(np.pi/2.,0,r"$\hat{y}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(-np.pi/2.,0,r"$-\hat{y}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(0,np.pi/2.,r"$\hat{z}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            ax.text(0,-np.pi/2.,r"$-\hat{z}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
-            
-            ax.xaxis.set_ticklabels([])
-            ax.yaxis.set_ticklabels([])
-            
-        plt.savefig("flavor_mollweide_"+str(isnapshot).zfill(2)+".png",bbox_inches="tight")
-        print("finished", isnapshot)
+        # contour plot
+        longitude= np.linspace(-np.pi, np.pi, 40)
+        latitude = np.linspace(-np.pi/2, np.pi/2, 20)
+        X,Y = np.meshgrid(longitude,latitude)
+        Z = ELN(X,Y)
+        axes[iplot].contour(X,Y,Z,[0,],colors="k",alpha=0.5,linewidths=2)
 
-    f.close()
+        f.close()
+        
+    # colorbar
+    cax = fig.add_axes([0.1, 0.05, 0.8, 0.03])
+    #cax.xaxis.set_ticks_position('top')
+    #cax.xaxis.set_label_position('top')
+    cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, orientation="horizontal")
+    cbar.set_label(r"$\langle \rho_{ee} \rangle$")
+    cbar.ax.minorticks_on()
+    cbar.ax.tick_params(axis='x', which='both', direction='in')
+
+    for ax in axes.flatten():
+        #axes.set_aspect("equal")
+        ax.grid(True)
+        ax.text(0          ,0,r"$\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(.999*np.pi ,0,r"$-\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(-.999*np.pi,0,r"$-\hat{x}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(np.pi/2.   ,0,r"$\hat{y}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(-np.pi/2.  ,0,r"$-\hat{y}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(0          ,np.pi/2.,r"$\hat{z}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+        ax.text(0          ,-np.pi/2.,r"$-\hat{z}$",horizontalalignment='center',verticalalignment='center',bbox=dict(facecolor='white', alpha=0.75, edgecolor='.75'))
+
+        ax.xaxis.set_ticklabels([])
+        ax.yaxis.set_ticklabels([])
+
+    axes[0].text(0,.9,"1D", transform=axes[0].transAxes)
+    axes[1].text(0,.9,"2D", transform=axes[1].transAxes)
+    axes[2].text(0,.9,"3D", transform=axes[2].transAxes)
+        
+    plt.savefig("flavor_mollweide.png",bbox_inches="tight")
+
 
 ################
 # plot options #
