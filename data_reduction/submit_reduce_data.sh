@@ -39,4 +39,6 @@
 # On the compute node, change to the directory we submitted from
 cd $SLURM_SUBMIT_DIR
 
+module load python3
+
 srun -n 128 -c 4  python3 ~/emu_scripts/data_reduction/reduce_data.py
