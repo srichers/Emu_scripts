@@ -21,7 +21,7 @@ snapshots = [0.2e-09,1e-09,2e-09]
 ################
 mpl.rcParams['font.size'] = 22
 mpl.rcParams['font.family'] = 'serif'
-#mpl.rc('text', usetex=True)
+mpl.rc('text', usetex=True)
 mpl.rcParams['xtick.major.size'] = 7
 mpl.rcParams['xtick.major.width'] = 2
 mpl.rcParams['xtick.major.pad'] = 8
@@ -33,18 +33,23 @@ mpl.rcParams['ytick.minor.size'] = 4
 mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
-fig, axes = plt.subplots(3,3, figsize=(16,10), sharex = True, sharey = True)
+fig, axes = plt.subplots(3,3, figsize=(16,10), sharey = True)
 plt.subplots_adjust(hspace=0,wspace=0.08)
 
 ##############
 # formatting #
 ##############
 for ax in axes.flat:
-    ax.set(xlabel=r"$k\,(\mathrm{cm}^{-1})$", ylabel=r"$|\widetilde{f}|^2\,(\mathrm{cm}^{-2})$", xlim=(0,8),ylim=(1e-22,1e-0))
+    ax.set(xlabel=r"$k\,(\mathrm{cm}^{-1})$", ylabel=r"$|\widetilde{f}|^2\,(\mathrm{cm}^{-2})$",ylim=(1e-22,1e-0))
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.minorticks_on()
+
+for ax in axes[:,:2].flat:
+    ax.set_xlim(0,8)
+for ax in axes[:,2]:
+    ax.set_xlim(0,2)
 
 # Hide x labels and tick labels for top plots and y ticks for right plots.
 for ax in axes.flat:
@@ -52,10 +57,10 @@ for ax in axes.flat:
 
 #axes[0].set_xticklabels([])
 axes[0,0].text(.05,.85,"Fiducial", transform=axes[0,0].transAxes)
-axes[1,0].text(.05,.85,"90 Degree",transform=axes[1,0].transAxes)
-axes[2,0].text(.05,.85,"2/3",transform=axes[2,0].transAxes)
+axes[0,1].text(.05,.85,"90Degree",transform=axes[0,1].transAxes)
+axes[0,2].text(.05,.85,"TwoThirds",transform=axes[0,2].transAxes)
 for i in range(len(snapshots)):
-    axes[0,i].text(.6,.85,"t=%0.1f ns"%(snapshots[i]*1e9), transform=axes[0,i].transAxes)
+    axes[i,0].text(.6,.85,"t=%0.1f ns"%(snapshots[i]*1e9), transform=axes[i,0].transAxes)
 
 def plotdata(v,f,ax,t,c,l,lab,filename):
     # get appropriate data
@@ -76,33 +81,35 @@ def plotdata(v,f,ax,t,c,l,lab,filename):
 #############
 # plot data #
 #############
-dirlist    = [["gray" ,"1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/converge_direction/1D_dir64"],
-              ["black","2D", "ocean/projects/phy200048p/shared/2D/manydirections64"],
-              ["blue" ,"3D", "global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi"]]
+basedir = "/global/project/projectdirs/m3761/PAPER2"
+dirlist    = [["gray" ,"1D", basedir+"/Fiducial_1D"],
+              ["black","2D", basedir+"/Fiducial_2D"],
+              ["blue" ,"3D", basedir+"/Fiducial_3D"]]
 for inputs in dirlist:
     filename = inputs[2]+"/reduced_data_fft_power.h5"
     for ind,val in enumerate(snapshots):
-        plotdata(variable,flavor,axes[0,ind],val,inputs[0],'-',inputs[1],filename)
+        plotdata(variable,flavor,axes[ind,0],val,inputs[0],'-',inputs[1],filename)
 
-dirlist    = [["gray" ,"-" ,"1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/fbar_direction/90"],
-              ["black","-" ,"2D (in plane)", "ocean/projects/phy200048p/shared/2D/90deg_inplane/fft"],
-              ["black","--","2D (out of plane)", "ocean/projects/phy200048p/shared/2D/90deg_outofplane/fft"],
-              ["blue","-","3D","global/project/projectdirs/m3761/3D/90degree_64d"]]
+dirlist    = [["gray" ,"-" ,"1D", basedir+"/90Degree_1D"],
+              ["black","-" ,"2D (out of plane)", basedir+"/90Degree_2D_outplane"],
+              #["black","--","2D (in plane)", basedir+"/90Degree_2D_inplane"],
+              ["blue","-","3D",basedir+"/90Degree_3D"]]
 for inputs in dirlist:
     filename = inputs[3]+"/reduced_data_fft_power.h5"
     for ind,val in enumerate(snapshots):
-        plotdata(variable,flavor,axes[1,ind],val,inputs[0],inputs[1],inputs[2],filename)
+        plotdata(variable,flavor,axes[ind,1],val,inputs[0],inputs[1],inputs[2],filename)
 
-dirlist    = [["gray", "1D", "global/project/projectdirs/m3018/Emu/PAPER/1D/rando_test/1.0_thirds"],
-              ["blue", "3D", "global/project/projectdirs/m3761/3D/two_thirds"]]
+dirlist    = [["gray", "1D", basedir+"/TwoThirds_1D"],
+              ["black","2D", basedir+"/TwoThirds_2D"],
+              ["blue","3D", basedir+"/TwoThirds_3D/1"]]
 for inputs in dirlist:
     filename = inputs[2]+"/reduced_data_fft_power.h5"
     for ind,val in enumerate(snapshots):
-        plotdata(variable,flavor,axes[2,ind],val,inputs[0],'-',inputs[1],filename)
+        plotdata(variable,flavor,axes[ind,2],val,inputs[0],'-',inputs[1],filename)
 
 #Create custom legend
 axes[0,0].legend(frameon=False,fontsize=13, loc=(.6,.45))
-axes[1,0].legend(frameon=False,fontsize=13, loc=(.45,.45))
+#axes[1,0].legend(frameon=False,fontsize=13, loc=(.45,.45))
 
 ############
 # save pdf #
