@@ -115,7 +115,7 @@ def makeplot():
 ################
 mpl.rcParams['font.size'] = 18
 mpl.rcParams['font.family'] = 'serif'
-#mpl.rc('text', usetex=True)
+mpl.rc('text', usetex=True)
 mpl.rcParams['xtick.major.size'] = 7
 mpl.rcParams['xtick.major.width'] = 2
 mpl.rcParams['xtick.major.pad'] = 8
