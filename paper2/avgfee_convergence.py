@@ -38,7 +38,7 @@ def plotdata(filename):
 ################
 mpl.rcParams['font.size'] = 22
 mpl.rcParams['font.family'] = 'serif'
-#mpl.rc('text', usetex=True)
+mpl.rc('text', usetex=True)
 mpl.rcParams['xtick.major.size'] = 7
 mpl.rcParams['xtick.major.width'] = 2
 mpl.rcParams['xtick.major.pad'] = 8
@@ -51,58 +51,111 @@ mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
 
-fig, axes = plt.subplots(2,1, figsize=(6,10))
+fig, axes = plt.subplots(2,3, figsize=(16,8), sharey=True, sharex=True)
 plt.subplots_adjust(hspace=0,wspace=0)
+basedir = "/global/project/projectdirs/m3761/PAPER2"
 
-#############
-# plot data #
-#############
+def plot(plotinfo, i, j):
+    for dirname,linestyle,label,color in plotinfo:
+        filename = dirname+"/reduced_data.h5"
+        t,N = plotdata(filename)
+        badlocs = np.where(N<0.3)
+        N = np.delete(N,badlocs)
+        t = np.delete(t,badlocs)
+        axes[i,j].plot(t, N,color=color,linestyle=linestyle,label=label)
+
+###############
+# Fiducial 3D #
+###############
 plotinfo = [
-    ["fiducial_2D", "-", "L8 dx1/16 eq32","black"],
-    ["bigdomain", "--","L16 dx1/16 eq32","black"],
-    ["highres", ":","L8 dx1/32 eq32","black"],
-    ["manydirections64", "-.","L8 dx1/16 eq64","black"],
-    ["manydirections128", "-","L8 dx1/16 eq128","blue"],    
-    ["manydirections256", "--","L8 dx1/16 eq256","red"],    
+    [basedir+"/Fiducial_3D", "-", "Base","black"],
+    [basedir+"/convergence/Fiducial_3D_32d", "--", "32d","blue"],
 ]
+plot(plotinfo, 1, 0)
 
-for dirname,linestyle,label,color in plotinfo:
-    filename = "ocean/projects/phy200048p/shared/2D/"+dirname+"/reduced_data.h5"
-    t,N = plotdata(filename)
-    axes[0].plot(t, N,color=color,linestyle=linestyle,label=label)
-
+###############
+# Fiducial 2D #
+###############
 plotinfo = [
-    ["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns", "-", "L10 dx1/12.8 eq4","black"],
-    ["global/project/projectdirs/m3761/3D/128r64d_128n800s16mpi", "-","L8 dx1/16 eq64","blue"],
-    #["global/project/projectdirs/m3018/Emu/3D/3D_3flavor_5ns_v2", "-", "L64 dx1/4 eq4","red"],
-    ["ocean/projects/phy200048p/shared/3D/fiducial_3D/1", "-", "L8 dx1/16 eq32","green"],
+    [basedir+"/Fiducial_2D", "-", "Base","k"],
+    [basedir+"/convergence/Fiducial_2D_32d", "--", "32d","blue"],
+    [basedir+"/convergence/Fiducial_2D_128d", "--", "128d","orange"],
+    [basedir+"/convergence/Fiducial_2D_256d", "--", "256d","green"],
+    [basedir+"/convergence/Fiducial_2D_nx256_32d", "--", "nx256 32d","brown"],
+    [basedir+"/convergence/Fiducial_2D_nx256_16cm_32d", "--", "nx256 16cm 32d","magenta"],
+    [basedir+"/convergence/Fiducial_2D_nx1024_64cm_16d", "--", "nx1024 64cm 16d","red"],
 ]
+plot(plotinfo, 0, 0)
 
-for dirname,linestyle,label,color in plotinfo:
-    filename = dirname+"/reduced_data.h5"
-    t,N = plotdata(filename)
-    axes[1].plot(t, N,color=color,linestyle=linestyle,label=label)
+###############
+# 90Degree 3D #
+###############
+plotinfo = [
+    [basedir+"/90Degree_3D", "-", "Base","black"],
+    [basedir+"/convergence/90Degree_3D_32d", "--", "32d","blue"],
+]
+plot(plotinfo, 1, 1)
+
+###############
+# 90Degree 2D #
+###############
+plotinfo = [
+    [basedir+"/90Degree_2D_outplane", "-", "Base","black"],
+    [basedir+"/convergence/90Degree_2D_outplane_32d", "--", "32d","blue"],
+    [basedir+"/convergence/90Degree_2D_outplane_nx1024_64cm_16d", "--", "nx1024 64cm 16d","red"],
+    [basedir+"/convergence/90Degree_2D_inplane_32d", "--", "inplane 32d","green"],
+    [basedir+"/convergence/90Degree_2D_inplane_nx1024_64cm_16d", "--", "inplane nx1024 64cm 16d","magenta"],
+]
+plot(plotinfo, 0, 1)
+
+################
+# TwoThirds 3D #
+################
+plotinfo = [
+    [basedir+"/TwoThirds_3D/1", "-", "Base","black"],
+    [basedir+"/convergence/TwoThirds_3D_32d", "--", "32d","blue"],
+]
+plot(plotinfo, 1, 2)
+
+################
+# TwoThirds 2D #
+################
+plotinfo = [
+    [basedir+"/TwoThirds_2D", "-", "Base","black"],
+    [basedir+"/convergence/TwoThirds_2D_32d", "--", "32d","blue"],
+    [basedir+"/convergence/TwoThirds_2D_nx256", "--", "nx256","red"],
+    [basedir+"/convergence/TwoThirds_2D_nx256_64cm", "--", "nx256 64cm","green"],
+]
+plot(plotinfo, 0, 2)
 
 ##############
 # formatting #
 ##############
-for ax in axes:
+for ax in axes.flatten():
     ax.axhline(1./3., color="green")
-    ax.set_ylabel(r"$\langle N_{ee}\rangle /\mathrm{Tr}(N)$")
     ax.set_xlim(.1,5)
+    ax.set_ylim(0.25,1.05)
     #ax.set_xscale("log")
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
-    ax.grid(which='both')
+    #ax.grid(which='both')
     ax.minorticks_on()
+    ax.legend(frameon=False,ncol=1,fontsize=12, loc=(.35,.2))
 
-axes[0].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
-axes[1].legend(frameon=False,ncol=1,fontsize=18, loc=(.2,.3))
-axes[0].set_xticklabels([])
-axes[0].text(2.5,.9,"2D")
-axes[1].text(2.5,.9,"3D")
-axes[1].set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
+axes[0,0].set_xticklabels([])
+axes[1,0].set_xticklabels([])
+axes[0,0].text(2.5,.9,"2D Fiducial")
+axes[1,0].text(2.5,.9,"3D Fiducial")
+axes[0,1].text(2.5,.9,"2D 90Degree")
+axes[1,1].text(2.5,.9,"3D 90Degree")
+axes[0,2].text(2.5,.9,"2D TwoThirds")
+axes[1,2].text(2.5,.9,"3D TwoThirds")
+for ax in axes[1,:]:
+    ax.set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
+for ax in axes[:,0]:
+    ax.set_ylabel(r"$\langle \rho_{ee}\rangle$")
+
 
 
 ############
