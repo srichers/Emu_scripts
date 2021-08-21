@@ -17,19 +17,15 @@ from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLoca
 from matplotlib import cm, colors
 from mpl_toolkits.mplot3d import Axes3D
 
-cmap = mpl.cm.nipy_spectral_r
+cmap = mpl.cm.gist_heat_r
 
-def makeplot():
-    f = h5py.File("reduced_data_angular_power_spectrum.h5","r")
+def average_data(filename):
+    f = h5py.File(filename,"r")
     phat = np.array(f["phat"])
     Nrho = np.real(np.array(f["Nrho (1|ccm)"]))
     t = np.array(f["t"])
     f.close()
     print("Nrho shape:",np.shape(Nrho))
-
-    # set up the figure
-    fig, axes = plt.subplots(2,3, figsize=(16,6), sharey=True)
-    plt.subplots_adjust(hspace=0,wspace=0)
 
     # calculate unit momenta
     px = phat[:,0]
@@ -58,57 +54,111 @@ def makeplot():
     for ilat in range(len(unique_lats)):
         locs = np.where(np.isclose(latitude,unique_lats[ilat]))[0]
         integrated_Nrho[:,:,:,ilat] = np.sum(Nrho[:,:,:,locs], axis=3)
-        
-    # plot the data    
+
+    return shape, t, integrated_Nrho, unique_lats
+
+def makeplot():
+    
+    # set up the figure
+    fig, axes = plt.subplots(2,1, figsize=(6,8), sharey=True,sharex=True)
+    plt.subplots_adjust(hspace=0,wspace=0)
+
+    # plot the 3D data    
     findices = [0,3,5]
-    for im in range(2):
-        trace = np.sum(integrated_Nrho[0,im,findices,:], axis=0)
-        for fi in range(3):
-            for it in range(shape[0]):
-                toplot = integrated_Nrho[it,im,findices[fi],:]
-                axes[im,fi].plot(unique_lats, toplot/trace, color=cmap(t[it]/t[-1]))
+
+    axes[0].text(0,.5,"crossing",rotation=-90,color="gray")
+    axes[0].axhline(1./3.,color="green")
+    axes[0].axvline(0,color="gray")
+    axes[0].text(.25,.8,"Fiducial")
+
+    ################
+    # TWOTHIRDS 1D #
+    ################
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/TwoThirds_1D/reduced_data_angular_power_spectrum.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
 
     # draw location of crossing
     n_nue = integrated_Nrho[0,0,0,:]-integrated_Nrho[0,1,0,:]
     print(n_nue)
     icross = len(n_nue[np.where(n_nue<0)])
     lat_crossing = 0.5 * (unique_lats[icross]+unique_lats[icross-1])
+    axes[1].axhline(1./3.,color="green")
+    axes[1].axvline(lat_crossing,color="gray")
+    axes[1].text(.25,.8,"TwoThirds")
+
+    axes[1].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, marker="x", color="gray")
+
+    tmax = 5e-9
+    
+    ################
+    # TWOTHIRDS 3D #
+    ################
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/TwoThirds_3D/1/reduced_data_angular_power_spectrum.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
+    #for it in range(shape[0]):
+    #    toplot = integrated_Nrho[it,0,0,:]
+    #    axes[1].plot(unique_lats, toplot/trace, color=cmap(t[it]/tmax))
+    toplot = integrated_Nrho[-1,0,0,:]
+    axes[1].plot(unique_lats, toplot/trace, color="blue")
+    
+    ################
+    # TWOTHIRDS 2D #
+    ################
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/TwoThirds_2D/reduced_data_angular_power_spectrum.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
+    axes[1].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace,marker="x", color="black")
+
+    ###############
+    # FIDUCIAL 3D #
+    ###############
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/Fiducial_3D/reduced_data_angular_power_spectrum_withphat.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
+    #for it in range(shape[0]):
+    #    toplot = integrated_Nrho[it,0,0,:]
+    #    axes[0].plot(unique_lats, toplot/trace, color=cmap(t[it]/tmax))
+    toplot = integrated_Nrho[-1,0,0,:]
+    axes[0].plot(unique_lats, toplot/trace, color="blue", label="3D")
+    
+    ###############
+    # FIDUCIAL 2D #
+    ###############
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/Fiducial_2D/reduced_data_angular_power_spectrum.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
+    axes[0].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace,marker="x", color="black", label="2D")
+
+    ###############
+    # FIDUCIAL 1D #
+    ###############
+    shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/Fiducial_1D/reduced_data_angular_power_spectrum.h5")
+    trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
+    axes[0].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, marker="x", color="gray", label="1D")
+
+    axes[0].legend(frameon=False,fontsize=16,loc="upper left")
                 
     # colorbar
-    vmin = 0
-    vmax = t[-1]*1e9
-    norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
-    cax = fig.add_axes([0.92, 0.11, 0.03, 0.77])
-    #cax.xaxis.set_ticks_position('top')
-    #cax.xaxis.set_label_position('top')
-    cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-    cbar.set_label(r"$t\,\,(\mathrm{ns})$")
-    cbar.ax.minorticks_on()
-    cbar.ax.tick_params(axis='y', which='both', direction='in')
-
-    axes[0,0].text(.5,0.5,r"$\nu_e$",ha='center',va='center')
-    axes[0,1].text(.5,0.5,r"$\nu_\mu$",ha='center',va='center')
-    axes[0,2].text(.5,0.5,r"$\nu_\tau$",ha='center',va='center')
-    axes[1,0].text(.5,0.5,r"$\bar{\nu}_e$",ha='center',va='center')
-    axes[1,1].text(.5,0.5,r"$\bar{\nu}_\mu$",ha='center',va='center')
-    axes[1,2].text(.5,0.5,r"$\bar{\nu}_\tau$",ha='center',va='center')
-    axes[0,1].text(lat_crossing,.5,"crossing",rotation=-90,color="gray")
+    #vmin = 0
+    #vmax = tmax * 1e9
+    #norm = mpl.colors.Normalize(vmin=vmin,vmax=vmax)
+    #cax = fig.add_axes([0.92, 0.11, 0.03, 0.77])
+    ##cax.xaxis.set_ticks_position('top')
+    ##cax.xaxis.set_label_position('top')
+    #cbar = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    #cbar.set_label(r"$t\,\,(\mathrm{ns})$")
+    #cbar.ax.minorticks_on()
+    #cbar.ax.tick_params(axis='y', which='both', direction='in')
     
     for ax in axes.flatten():
         ax.minorticks_on()
         ax.tick_params(axis='both',which='both',direction='in',right=True,top=True)
-        ax.axvline(lat_crossing,color="gray")
         ax.set_xlim(-0.999, 1.0)
         #axes.set_aspect("equal")
         #ax.grid(True)
-    axes[1,0].set_xlim(-1,1)
+        ax.set_ylabel(r"$\langle\rho_{ee}\rangle$")
+    axes[0].set_xlim(-1,1)
 
-    for ax in axes[1,:]:
-        ax.set_xlabel(r"$p_z/|p|$")
+    axes[1].set_xlabel(r"$p_z/|p|$")
     
-    for ax in axes[:,0]:
-        ax.set_ylabel("Probability")
-
+    
     plt.savefig("averaged_flavor_evolution.pdf",bbox_inches="tight")
 
 ################
@@ -116,7 +166,7 @@ def makeplot():
 ################
 mpl.rcParams['font.size'] = 18
 mpl.rcParams['font.family'] = 'serif'
-#mpl.rc('text', usetex=True)
+mpl.rc('text', usetex=True)
 mpl.rcParams['xtick.major.size'] = 7
 mpl.rcParams['xtick.major.width'] = 2
 mpl.rcParams['xtick.major.pad'] = 8
