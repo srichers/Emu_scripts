@@ -526,7 +526,6 @@ if __name__ == '__main__':
                 chunksize = ncells//nproc
                 if ncells % nproc != 0:
                     chunksize += 1
-                print(chunksize)
                 
                 # sort particles in each chunk
                 rdata = pool.map(sort_rdata_chunk, rdata, chunksize=chunksize)
