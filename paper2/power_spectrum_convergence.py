@@ -34,8 +34,14 @@ def makeplot(ax,data):
     t=data["t"]
     k=data["k"]
     for it in range(1,len(t)):
-        ax.semilogy(k, data["N00_FFT"][it,:-1], color=cmap(t[it]/tmax))
+        ax.semilogy(k, data["N01_FFT"][it,:-1], color=cmap(t[it]/tmax))
     
+def makeplot_last(ax, data):
+    # get appropriate data
+    t=np.array(data["t"])
+    k=data["k"]
+    it = np.argmax(t>1e-9) # index of t=2ns
+    ax.semilogy(k, data["N01_FFT"][it,:-1], color="k",linestyle="--")
 
 
 fig, axes = plt.subplots(2,1, figsize=(6,8))
@@ -47,6 +53,9 @@ data = [h5py.File(basedir+thisdir+"/reduced_data_fft_power.h5","r") for thisdir 
 
 for i in range(2):
     makeplot(axes[i],data[i])
+#for ax in axes:
+#    for i in range(len(dirlist)):
+#        makeplot_last(ax,data[i])
 
 # colorbar
 cax = fig.add_axes([0.125, .9, .775, .03])
@@ -62,11 +71,11 @@ cax.xaxis.set_minor_locator(MultipleLocator(0.25))
 for ax in axes:
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
-    ax.set_ylim(1e40,9.9e71)
+    ax.set_ylim(9.9e50,9.9e70)
     ax.set_xlim(-0.04,8)
     
 axes[0].set_xticklabels([])
-axes[0].set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
+axes[1].set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
 
     
 axes[0].set_ylabel(r"$|\widetilde{N}_{ee}|^2\,(\mathrm{cm}^{-2})$")
