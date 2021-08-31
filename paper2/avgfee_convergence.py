@@ -133,7 +133,7 @@ plot(plotinfo, 0, 2)
 ##############
 for ax in axes.flatten():
     ax.axhline(1./3., color="green")
-    ax.set_xlim(.1,5)
+    ax.set_xlim(0,5)
     ax.set_ylim(0.25,1.05)
     #ax.set_xscale("log")
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
@@ -143,8 +143,7 @@ for ax in axes.flatten():
     ax.minorticks_on()
     ax.legend(frameon=False,ncol=1,fontsize=12, loc=(.35,.2))
 
-axes[0,0].set_xticklabels([])
-axes[1,0].set_xticklabels([])
+#axes[0,0].set_xticklabels([])
 axes[0,0].text(2.5,.9,"2D Fiducial")
 axes[1,0].text(2.5,.9,"3D Fiducial")
 axes[0,1].text(2.5,.9,"2D 90Degree")
