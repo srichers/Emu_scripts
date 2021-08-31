@@ -12,7 +12,7 @@ if(len(sys.argv) != 2):
 base_filename = sys.argv[1]
 print(base_filename)
 
-file_list = sorted(glob.glob("*/"+base_filename))
+file_list = sorted(glob.glob("plt*/"+base_filename))
 
 # get the number of datasets in the file
 f = h5py.File(file_list[0],"r")
