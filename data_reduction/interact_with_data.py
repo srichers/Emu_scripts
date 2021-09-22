@@ -1,5 +1,8 @@
 # USAGE: python3 interact_with_data.py
 # must be run from within the folder that contains the folder d defined below
+# 92 particles correspond to 92 possible directions. They're always moving at the same speed
+#physical neutrinos don't change direction
+#cells in velocity space
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -29,8 +32,10 @@ def get_matrix(ad, base,suffix):
     f12I = ad['boxlib',base+"12_Im"+suffix]
     f22  = ad['boxlib',base+"22_Re"+suffix]
     zero = np.zeros(np.shape(f00))
-    fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
-    fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
+    #made matrix into an array
+    fR = np.array([[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]])
+    fI = np.array([[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]])
+    type (f00)
     return fR, fI
 
 # mapping between particle quantity index and the meaning of that quantity
@@ -141,9 +146,236 @@ print("The global grid has a shape of (",grid_data.nx,grid_data.ny,grid_data.nz,
 print("The global grid cells have a size of (",grid_data.dx,grid_data.dy, grid_data.dz,")")
 print("The domain is split into ",ngrids,"sub-grids.")
 print("There are ",nppc," particles per cell.")
+print()
+print()
+print("Henry's nonsense")
+print()
 
 
-###################################################################
+
+###### Parameters ######
+########################
+
+#fermi coupling constant: G/(c*hbar)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar=1)
+pi=np.pi
+G=1.1663787*10**(-23)
+c=29979245800
+hbar=6.582119569e-16
+#mixing angles (rad): (different values on wikipedia?)
+a12=1e-6*np.pi*2/360
+a13=48.3*np.pi*2/360
+a23=8.61*np.pi*2/360
+
+#CP phase:
+delta=222
+#majorana angles are all 0 and dont influence the matrix
+
+#masses (eV) (Negative mass? 0 mass?)
+m_1=0.008596511
+m_2=0.008
+m_3=0.049487372
+
+#basis with momentum along +z (c=1?)
+
+def basis(theta,phi): #theta is polar, phi is azimuthal
+	global n_vector
+	global x1
+	global x2
+	n_vector=np.array([1,np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)])	
+	x1=np.array([0,np.cos(phi)*np.cos(theta),np.sin(phi)*np.cos(theta),(-1)*np.sin(theta)])
+	x2=np.array([0,-np.sin(phi),np.cos(phi),0])
+	return n_vector,x1,x2
+
+n_vector,x1,x2=basis(pi*0.5,0)
+
+#test neutrino momentum:
+p_abs=10**7#eV
+
+########################
+########################
+
+
+## J 4-Vectors ##
+
+# J^mu 4-vectors (how to make into an array?)
+J=(c*hbar)**3*np.array([N,Fx,Fy,Fz])
+JI=(c*hbar)**3*np.array([NI,FxI,FyI,FzI])
+Jbar=(c*hbar)**3*np.array([Nbar,Fxbar,Fybar,Fzbar])
+JIbar=(c*hbar)**3*np.array([NIbar,FxIbar,FyIbar,FzIbar])
+
+
+
+## Functions ##
+
+#unitary trace matrix
+def trace_matrix(data):
+	matrix=np.zeros((data.shape[1],data.shape[1],data.shape[2]))
+	trace=0
+	for n in range(0,data.shape[1]):
+		matrix[n,n,:]=np.ones((data.shape[2]))
+	for k in range(0,data.shape[2]):
+		for n in range(0,data.shape[1]):
+			trace=trace+data[n,n,k]
+		matrix[:,:,k]=matrix[:,:,k]*trace
+	return matrix
+	
+#scalar trace 	
+def trace(data):
+	trace=np.zeros((data.shape[2]))
+	for n in range(0,data.shape[0]):
+		trace=trace+data[n,n,:]
+	return trace
+	
+#conjugate a matrix
+def conj(matrix):
+	conjugate=np.transpose(np.conjugate(matrix))
+	return conjugate
+	
+#z-derivative of matrix
+def der(data,ad,coord):
+	dq=ad['index','d'+coord].d
+	shape=data.shape
+	der=np.zeros((shape[0],shape[1],shape[2]))
+	
+	for n in range(0,shape[2]):
+		der[:,:,n]=(data[:,:,n]-data[:,:,n-1])/dq[n]
+	return der
+		
+def cos(x):
+	return np.cos(x)	
+def sin(x):
+	return np.sin(x)
+def e(x):
+	return 2.718281828**(x*1j)	
+
+def scalarfunc(array): #takes in (3,3,nz), outputs (nz)
+	nz=array.shape[2]
+	scalar=np.zeros(nz)*1j
+	for k in range(0,nz):
+		for n in np.nditer(array[:,:,k]):
+			scalar[k]=n**2+scalar[k]
+		scalar[k]=scalar[k]**(1/2)
+	return scalar
+	
+def scalar(array,n):
+		return scalarfunc(array)[n]
+
+
+## Chiral Potentials ##
+
+def sigma(flux):
+	Sigma_R=np.zeros(np.shape(flux))
+	Sigma_L=np.zeros(np.shape(flux))
+	for n in range(0,4):
+		Sigma_R[n]=2**(1./2.)*G*(flux[n]+trace_matrix(flux[n]))
+		for k in range(0,np.shape(flux[0])[2]): 
+			Sigma_L[n,:,:,k]=(-1)*np.transpose(Sigma_R[n,:,:,k]) #for majorana 
+	return Sigma_R, Sigma_L
+
+SigmaR,SigmaL=sigma(J)
+SigmaRI,SigmaLI=sigma(JI)
+SigmaRbar,SigmaLbar=sigma(Jbar)
+SigmaRIbar,SigmaLIbar=sigma(JIbar)
+
+S_R=SigmaR+1j*SigmaRI #(4,3,3,nz)
+S_L=SigmaL+1j*SigmaLI
+S_Rbar=SigmaRbar+1j*SigmaRIbar
+S_Lbar=SigmaLbar+1j*SigmaLIbar
+
+#potential projected onto the basis
+def dot(potential,vector):
+	projection=np.zeros(np.shape(potential[0]))
+	for k in range(0,4):
+		projection=projection+vector[k]*potential[k]
+	return projection
+
+def plus(potential): #(3,3,nz)
+	vector=0.5*(x1+1j*x2)
+	plus=dot(potential,vector)
+	return plus
+
+def minus(potential): #(3,3,nz)
+	vector=0.5*(x1-1j*x2)
+	minus=dot(potential,vector)
+	return minus
+	
+def kappa(potential):
+	return dot(potential,n_vector)
+	
+		
+	
+## Mass Matrix ##	
+m23=np.array([[1,0*1j,0],[0,cos(a23),sin(a23)],[0,-sin(a23),cos(a23)]])
+m13=np.array([[cos(a13),0,sin(a13)*e(-delta)],[0,1,0],[-sin(a13)*e(delta),0,cos(a13)]])
+m12=np.array([[cos(a12),sin(a12),0],[-sin(a12),cos(a12),0],[0,0*1j,1]])
+m=np.matmul(m23,m13,m12)
+#m is the mass mixing (MNS) matrix--I think what the paper wants is a matrix M that evaluates the mass of the particle
+M_mass_basis=([[m_1,0*1j,0],[0,m_2,0],[0,0,m_3]])
+M1=np.matmul(m,M_mass_basis)
+M=np.matmul(M1,conj(m)) #(3,3)
+	
+	
+	
+## Helicity-Flip Hamiltonian! ##
+H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+for n in range(0,np.shape(S_R)[3]):
+	MSl=np.matmul(conj(M),plus(S_L)[:,:,n])
+	SrM=np.matmul(plus(S_R)[:,:,n],conj(M))
+	H_LR[:,:,n]=(-1/p_abs)*(SrM-MSl)
+
+
+#Scalar H_LR
+H_LR_scalar=scalarfunc(H_LR)
+	
+#non-interacting term
+
+H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
+
+#H_R
+#H_R=kappa(S_R)+0.5*(1/p_abs)(np.matmul(conj(M),M)
+
+V_si=trace(G*c**3*hbar**3*N)
+
+
+
+#>>> H_LR_scalar[863]
+#(1.830273638096871e-24+6.2463930781197675e-21j)
+#>>> x=scalarfunc(plus(S_R))
+#>>> np.amax(x)
+#(2.0503741796047128e-12-4.858495742876003e-14j)
+#>>> x=scalarfunc(plus(S_L))
+#>>> np.amax(x)
+#(2.0503741796047128e-12-4.858495742876005e-14j)
+#>>> x=scalarfunc(minus(S_L))
+#>>> np.amax(x)
+#(2.0503741796047128e-12+4.858495742876003e-14j)
+#>>> x=scalarfunc(kappa(S_L))
+#>>> np.amax(x)
+#(0.00912997252620219+0j)
+#>>> x=scalarfunc(S_R[0])
+#>>> np.amax(x)
+#(0.006874156791184985+0j)
+#>>> x=scalarfunc(S_R[1])
+#>>> np.amax(x)
+#(3.822525813228831e-12+0j)
+#>>> x=scalarfunc(S_R[2])
+#>#>> np.amax(x)
+#(3.3395633913937374e-12-1.2890274499653342e-29j)
+#>>> x=scalarfunc(S_R[3])
+#>>> np.amax(x)
+#(0.0022558157960778265+1.3988037615351377e-27j)
+#>>> np.shape(N)
+#(3, 3, 1024)
+#>>> scalar(N,1)
+#(2.1495818332172166e+31+0j)
+#>>> scalar(Fx,1)
+#(1.4896131202508143e+25+0j)
+#>>> scalar(Fy,1)
+#(1.5377885955685863e+25+0j)
+#>>> scalar(Fz,1)
+#(1.0055234209170822e+31+0j)
+
+##################################################################
 # The stuff below here works if you uncomment it.                 #
 # This demonstrates how to do some operations with particle data. #
 ###################################################################
@@ -231,6 +463,8 @@ print("There are ",nppc," particles per cell.")
 #    # (different from the N elswhere that means number density...)
 #    Nrho = [get_Nrho(rdata[i]) for i in range(len(rdata))]
 #    print("    N*rho shape (#cells, neutrino/antineutrino, independent matrix components, #particles/cell):",np.shape(Nrho))
+
+
 #    
 #    # count the total number of cells
 #    total_ncells += ncells
