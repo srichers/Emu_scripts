@@ -139,14 +139,14 @@ level = 0
 # for efficiency during the simulation
 ngrids = len(header.grids[level])
 print()
-print("The data is from a snapshot at t=",eds.ds.current_time,"(s.)")
-print("The domain lower bound is (",grid_data.xmin,grid_data.ymin,grid_data.zmin,") cm")
-print("The domain upper bound is (",grid_data.xmax,grid_data.ymax,grid_data.zmax,") cm")
-print("The global grid has a shape of (",grid_data.nx,grid_data.ny,grid_data.nz,")")
-print("The global grid cells have a size of (",grid_data.dx,grid_data.dy, grid_data.dz,")")
-print("The domain is split into ",ngrids,"sub-grids.")
-print("There are ",nppc," particles per cell.")
-print()
+#print("The data is from a snapshot at t=",eds.ds.current_time,"(s.)")
+#print("The domain lower bound is (",grid_data.xmin,grid_data.ymin,grid_data.zmin,") cm")
+#print("The domain upper bound is (",grid_data.xmax,grid_data.ymax,grid_data.zmax,") cm")
+#print("The global grid has a shape of (",grid_data.nx,grid_data.ny,grid_data.nz,")")
+#print("The global grid cells have a size of (",grid_data.dx,grid_data.dy, grid_data.dz,")")
+#print("The domain is split into ",ngrids,"sub-grids.")
+#print("There are ",nppc," particles per cell.")
+#print()
 print()
 print("Henry's nonsense")
 print()
@@ -177,16 +177,16 @@ m_3=0.049487372
 
 #basis with momentum along +z (c=1?)
 
+
 def basis(theta,phi): #theta is polar, phi is azimuthal
 	global n_vector
 	global x1
-	global x2
+	global x2	
 	n_vector=np.array([1,np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)])	
 	x1=np.array([0,np.cos(phi)*np.cos(theta),np.sin(phi)*np.cos(theta),(-1)*np.sin(theta)])
 	x2=np.array([0,-np.sin(phi),np.cos(phi),0])
 	return n_vector,x1,x2
-
-n_vector,x1,x2=basis(pi*0.5,0)
+basis(0,0)
 
 #test neutrino momentum:
 p_abs=10**7#eV
@@ -205,7 +205,8 @@ JIbar=(c*hbar)**3*np.array([NIbar,FxIbar,FyIbar,FzIbar])
 
 
 
-## Functions ##
+#### Functions ####
+###################
 
 #unitary trace matrix
 def trace_matrix(data):
@@ -248,17 +249,26 @@ def sin(x):
 def e(x):
 	return 2.718281828**(x*1j)	
 
-def scalarfunc(array): #takes in (3,3,nz), outputs (nz)
+def scalarfunc(array): #takes in (k,k,nz), outputs real (nz)
 	nz=array.shape[2]
 	scalar=np.zeros(nz)*1j
 	for k in range(0,nz):
 		for n in np.nditer(array[:,:,k]):
-			scalar[k]=n**2+scalar[k]
+			scalar[k]=n*(conj(n))+scalar[k]
 		scalar[k]=scalar[k]**(1/2)
+	scalar=np.real(scalar)
 	return scalar
 	
-def scalar(array,n):
-		return scalarfunc(array)[n]
+def scalar(array): #takes in (k,k), outputs real number
+	scalar=0
+	for n in np.nditer(H_free[:,:]):
+		scalar=n*conj(n)+scalar
+	scalar=np.real(scalar**(1/2))
+	return scalar
+	
+###################
+###################
+
 
 
 ## Chiral Potentials ##
@@ -324,17 +334,61 @@ for n in range(0,np.shape(S_R)[3]):
 	H_LR[:,:,n]=(-1/p_abs)*(SrM-MSl)
 
 
-#Scalar H_LR
-H_LR_scalar=scalarfunc(H_LR)
-	
-#non-interacting term
 
+## non-interacting term ##
 H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
-
+H_free_func=scalar(H_free)*np.ones((1024))
 #H_R
-#H_R=kappa(S_R)+0.5*(1/p_abs)(np.matmul(conj(M),M)
+#H_R=kappa(S_R)+0.5*(1/p_abs)(np.matmul(conj(M),M)-
 
 V_si=trace(G*c**3*hbar**3*N)
+
+
+#### PLOTS ####
+fig,ax=plt.subplots()
+ax.plot(np.arange(0,1024),scalarfunc(H_LR),label='Spin-flip Hamiltonian')
+ax.plot(np.arange(0,1024),scalar(H_free)*np.ones((1024)),label='Vacuum Hamiltonian')
+#ax.plot(np.arange(0,1024),scalarfunc(kappa(S_R)),label='Kappa Potential')
+plt.yscale('log')
+ax.set_xlabel('z-position (cell number)')
+ax.set_ylabel('Energy (eV)')
+ax.set_title('Variation of Hamiltonian Terms with Position')
+ax.legend()
+
+
+
+
+
+
+#### Variable definer: running this changes all quantities to the var's you want and returns a plot
+
+def redefine(theta, phi, p_abs):
+	global H_LR
+	global kappa_R
+	basis(theta,phi)	
+	H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+	for n in range(0,np.shape(S_R)[3]):
+		MSl=np.matmul(conj(M),plus(S_L)[:,:,n])
+		SrM=np.matmul(plus(S_R)[:,:,n],conj(M))
+		H_LR[:,:,n]=(-1/p_abs)*(SrM-MSl)
+	kappa_R=kappa(S_R)
+	return
+		
+
+def zplot(funcs,scale):
+	fig,ax=plt.subplots()
+	for n in np.arange(np.shape(funcs)[0]):
+		ax.plot(np.arange(np.shape(funcs)[1]),funcs[n],label='n')
+	plt.yscale(scale)
+	ax.set_xlabel('z-position (cell number)')
+	ax.set_ylabel('Energy (eV)')
+	ax.set_title('Variation of functions with Position')
+	ax.legend()
+	plt.show()
+	return
+	
+
+
 
 
 
