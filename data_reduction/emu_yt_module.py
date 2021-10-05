@@ -1,5 +1,6 @@
 import yt
 import numpy as np
+import math
 import scipy.fft as fft
 from yt import derived_field
 import yt.units.dimensions as dimensions
@@ -97,7 +98,7 @@ class EmuDataset(object):
             # the spacing we calculated should be the same as what linspace finds between cell centers
             # using our edge-to-cell-center offset and the number of samples
             #print("dx, DX = ", dx, DX)
-            assert self.dx == DX
+            assert math.isclose(self.dx,DX)
 
         if self.Ny > 1:
             # low, high edge locations in y domain
@@ -116,7 +117,7 @@ class EmuDataset(object):
             # the spacing we calculated should be the same as what linspace finds between cell centers
             # using our edge-to-cell-center offset and the number of samples
             #print("dy, DY = ", dy, DY)
-            assert self.dy == DY
+            assert math.isclose(self.dy,DY)
 
 
         if self.Nz > 1:
@@ -136,7 +137,7 @@ class EmuDataset(object):
             # the spacing we calculated should be the same as what linspace finds between cell centers
             # using our edge-to-cell-center offset and the number of samples
             #print("dz, DZ = ", dz, DZ)
-            assert self.dz == DZ
+            assert math.isclose(self.dz,DZ)
 
     def get_num_flavors(self):
         just_the_fields = [f for ftype, f in self.ds.field_list]
