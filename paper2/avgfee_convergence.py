@@ -144,12 +144,12 @@ for ax in axes.flatten():
     ax.legend(frameon=False,ncol=1,fontsize=12, loc=(.35,.2))
 
 #axes[0,0].set_xticklabels([])
-axes[0,0].text(2.5,.9,"2D Fiducial")
-axes[1,0].text(2.5,.9,"3D Fiducial")
-axes[0,1].text(2.5,.9,"2D 90Degree")
-axes[1,1].text(2.5,.9,"3D 90Degree")
-axes[0,2].text(2.5,.9,"2D TwoThirds")
-axes[1,2].text(2.5,.9,"3D TwoThirds")
+axes[0,0].text(2.5,.9,"Fiducial\_2D")
+axes[1,0].text(2.5,.9,"Fiducial\_3D")
+axes[0,1].text(2.5,.9,"90Degree\_2D")
+axes[1,1].text(2.5,.9,"90Degree\_3D")
+axes[0,2].text(2.5,.9,"TwoThirds\_2D")
+axes[1,2].text(2.5,.9,"TwoThirds\_3D")
 for ax in axes[1,:]:
     ax.set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
 for ax in axes[:,0]:

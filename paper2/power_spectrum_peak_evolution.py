@@ -32,7 +32,7 @@ def makeplot(ax,data, ls, label, color):
 
     # get appropriate data
     t=np.array(data["t"])
-    k=data["k"]
+    k=np.array(data["k"])*2.*np.pi
     kpeak = []
     for it in range(len(t)):
         fft = data["N01_FFT"][it,:-1]
@@ -59,10 +59,11 @@ for i in range(len(dirlist)):
     makeplot(ax,data[i], linestyles[i], labels[i], colors[i])
 
 ax.set_xlabel(r"$t\,(10^{-9}\,\mathrm{s})$")
-ax.set_ylabel(r"$k_\mathrm{peak}\,(\mathrm{cm}^{-1})$")
+ax.set_ylabel(r"$|k|_\mathrm{peak}\,(\mathrm{cm}^{-1})$")
 ax.set_xlim(0,5)
+ax.set_ylim(0,10)
 ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
-ax.legend(frameon=False, loc="upper right", fontsize=16)
+ax.legend(frameon=False, loc="upper right", fontsize=14, ncol=2, handlelength=1.5)
 ax.minorticks_on()
 
 plt.savefig("power_spectrum_peak_evolution.pdf", bbox_inches='tight')

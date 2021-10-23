@@ -32,7 +32,7 @@ def makeplot(ax,data):
 
     # get appropriate data
     t=data["t"]
-    k=data["k"]
+    k=np.array(data["k"])*2.*np.pi
     for it in range(1,len(t)):
         ax.semilogy(k, data["N01_FFT"][it,:-1], color=cmap(t[it]/tmax))
 
@@ -61,21 +61,21 @@ for ax in axes:
     ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.set_ylim(1e50,9.9e71)
-    ax.set_xlim(-0.04,8)
+    ax.set_xlim(-0.04,8*2.*np.pi)
 
 for ax in axes[:-1]:
     ax.set_xticklabels([])
-axes[3].set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
+axes[3].set_xlabel(r"$|k|\,(\mathrm{cm}^{-1})$")
 
     
-axes[0].set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
-axes[1].set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
-axes[2].set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
-axes[3].set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
+axes[0].set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
+axes[1].set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
+axes[2].set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
+axes[3].set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
 axes[0].text(0.5,0.85,"Fiducial\_2D\_32d",transform=axes[0].transAxes)
 axes[1].text(0.5,0.85,"Fiducial\_2D",transform=axes[1].transAxes)
-axes[2].text(0.5,0.85,"Fiducial\_2D\_64d",transform=axes[2].transAxes)
-axes[3].text(0.5,0.85,"Fiducial\_2D\_128d",transform=axes[3].transAxes)
+axes[2].text(0.5,0.85,"Fiducial\_2D\_128d",transform=axes[2].transAxes)
+axes[3].text(0.5,0.85,"Fiducial\_2D\_256d",transform=axes[3].transAxes)
 
 plt.savefig("power_spectrum_convergence_2D.pdf", bbox_inches='tight')
 
@@ -88,20 +88,20 @@ plt.savefig("power_spectrum_convergence_2D.pdf", bbox_inches='tight')
 def makeplot_last(ax, data, color, linestyle, label):
     # get appropriate data
     t=np.array(data["t"])
-    k=data["k"]
+    k=np.array(data["k"])*2.*np.pi
     it = np.argmax(t>1e-9) # index of t=2ns
     ax.semilogy(k, data["N01_FFT"][it,:-1], color=color,linestyle=linestyle, label=label)
     
 
 fig, ax = plt.subplots(1,1, figsize=(6,5))
 
-dirlist   = [("Fiducial_1D"        ,"gray", "-" , "Fiducial 1D"),
-    ("convergence/Fiducial_2D_32d" ,"k"   , "--", "Fiducial 2D 32d" ),
-    ("Fiducial_2D"                 ,"k"   , "-" , "Fiducial 2D"     ),
-    ("convergence/Fiducial_2D_128d","k"   , ":" , "Fiducial 2D 128d"),
-    ("convergence/Fiducial_2D_256d","k"   , "-.", "Fiducial 2D 256d"),
-    ("convergence/Fiducial_3D_32d" ,"blue", "--", "Fiducial 3D 32d" ),
-    ("Fiducial_3D"                 ,"blue", "-" , "Fiducial 3D"     )]
+dirlist   = [("Fiducial_1D"        ,"gray", "-" , "Fiducial\_1D"),
+    ("convergence/Fiducial_2D_32d" ,"k"   , "--", "Fiducial\_2D\_32d" ),
+    ("Fiducial_2D"                 ,"k"   , "-" , "Fiducial\_2D"     ),
+    ("convergence/Fiducial_2D_128d","k"   , ":" , "Fiducial\_2D\_128d"),
+    ("convergence/Fiducial_2D_256d","k"   , "-.", "Fiducial\_2D\_256d"),
+    ("convergence/Fiducial_3D_32d" ,"blue", "--", "Fiducial\_3D\_32d" ),
+    ("Fiducial_3D"                 ,"blue", "-" , "Fiducial\_3D"     )]
 
 for dirname, color, ls, label in dirlist:
     makeplot_last(ax, h5py.File(basedir+dirname+"/reduced_data_fft_power.h5","r"), color, ls, label)
@@ -124,8 +124,8 @@ mpl.rcParams['axes.linewidth'] = 2
 ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.set_ylim(1e50,9.9e71)
-ax.set_xlim(-0.04,8)
-ax.set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
-ax.set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
+ax.set_xlim(-0.04,8*2.*np.pi)
+ax.set_xlabel(r"$|k|\,(\mathrm{cm}^{-1})$")
+ax.set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-6})$")
     
 plt.savefig("power_spectrum_convergence_2D_1ns.pdf", bbox_inches='tight')

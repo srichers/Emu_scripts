@@ -33,7 +33,7 @@ def makeplot(axes,data):
     # get appropriate data
     t=data["t"]
     print([t[i+1]-t[i] for i in range(len(t)-1)])
-    k=data["k"]
+    k=np.array(data["k"])*2.*np.pi
     for it in range(1,len(t)):
         axes[0].semilogy(k, data["N00_FFT"][it,:-1], color=cmap(t[it]/tmax))
         axes[1].semilogy(k, data["N01_FFT"][it,:-1], color=cmap(t[it]/tmax))
@@ -76,19 +76,19 @@ for ax in axes[1,:]:
     ax.set_ylim(1e50,1e73)
     
 for ax in axes[1,:]:
-    ax.set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
+    ax.set_xlabel(r"$|k|\,(\mathrm{cm}^{-1})$")
 
 for ax in axes[:,:2].flatten():
-    ax.set_xlim(-0.04,8)
-    ax.xaxis.set_major_locator(MultipleLocator(2))
+    ax.set_xlim(-0.04,8*2.*np.pi)
+    #ax.xaxis.set_major_locator(MultipleLocator(2))
     
 for ax in axes[:,2].flatten():
-    ax.set_xlim(-0.01,2)
+    ax.set_xlim(-0.01,2*2.*np.pi)
     
-axes[0,0].set_ylabel(r"$|\widetilde{N}_{ee}|^2\,(\mathrm{cm}^{-2})$")
-axes[1,0].set_ylabel(r"$|\widetilde{N}_{e\mu}|^2\,(\mathrm{cm}^{-2})$")
-axes[0,0].text(0.5,0.85,"Fiducial",transform=axes[0,0].transAxes)
-axes[0,1].text(0.5,0.85,"90Degree",transform=axes[0,1].transAxes)
-axes[0,2].text(0.5,0.85,"TwoThirds",transform=axes[0,2].transAxes)
+axes[0,0].set_ylabel(r"$|\widetilde{n}_{ee}|^2\,(\mathrm{cm}^{-6})$")
+axes[1,0].set_ylabel(r"$|\widetilde{n}_{e\mu}|^2\,(\mathrm{cm}^{-6})$")
+axes[0,0].text(0.5,0.85,"Fiducial\_3D",transform=axes[0,0].transAxes)
+axes[0,1].text(0.5,0.85,"90Degree\_3D",transform=axes[0,1].transAxes)
+axes[0,2].text(0.5,0.85,"TwoThirds\_3D",transform=axes[0,2].transAxes)
 
 plt.savefig("power_spectrum.pdf", bbox_inches='tight')

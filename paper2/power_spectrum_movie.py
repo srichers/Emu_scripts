@@ -58,7 +58,7 @@ def makeplot(v,f,data):
 
         # axis labels
         ax.set_xlabel(r"$k\,(\mathrm{cm}^{-1})$")
-        ax.set_ylabel(r"$|\widetilde{f}|^2\,(\mathrm{cm}^{-2})$")
+        ax.set_ylabel(r"$|\widetilde{n}|^2\,(\mathrm{cm}^{-6})$")
         ax.set_ylim([ymin,ymax])
         
         plt.savefig(v+f+"_FFT_power_"+str(it).zfill(5)+".png", bbox_inches='tight')

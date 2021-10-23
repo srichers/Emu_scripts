@@ -86,7 +86,7 @@ def makeplot():
     axes[1].axvline(lat_crossing,color="gray")
     axes[1].text(.25,.8,"TwoThirds")
 
-    axes[1].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, marker="x", color="gray")
+    axes[1].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, facecolors='none', color="gray",linewidth=2)
 
     tmax = 5e-9
     
@@ -131,7 +131,7 @@ def makeplot():
     ###############
     shape, t, integrated_Nrho, unique_lats = average_data("/global/project/projectdirs/m3761/PAPER2/Fiducial_1D/reduced_data_angular_power_spectrum.h5")
     trace = np.sum(integrated_Nrho[0,0,findices,:], axis=0)
-    axes[0].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, marker="x", color="gray", label="1D")
+    axes[0].scatter(unique_lats, integrated_Nrho[-1,0,0,:]/trace, facecolors='none', color="gray",linewidth=2, label="1D")
 
     axes[0].legend(frameon=False,fontsize=16,loc="upper left")
                 
