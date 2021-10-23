@@ -26,10 +26,10 @@ def offdiagMag(f):
 ######################
 # read averaged data #
 ######################
-def plotdata(filename):
+def plotdata(filename,a,b):
     avgData = h5py.File(filename,"r")
     t=np.array(avgData["t"])*1e9
-    N=np.array(avgData["N_avg_mag"])[:,0,0]
+    N=np.array(avgData["N_avg_mag"])[:,a,b]
     avgData.close()
     return t, N
 
@@ -69,10 +69,15 @@ ax.grid(which='both')
 # plot data #
 #############
 filename = "reduced_data.h5"
-t,N = plotdata(filename)
+t,N = plotdata(filename,0,0)
 ax.plot(t, N)
 
 ############
 # save pdf #
 ############
 plt.savefig("avgfee.pdf", bbox_inches="tight")
+
+# same for f_e\mu
+t,N = plotdata(filename,0,1)
+ax.semilogy(t, N)
+plt.savefig("avgfemu.pdf", bbox_inches="tight")
