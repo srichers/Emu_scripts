@@ -24,6 +24,7 @@ import scipy.special
 ##########
 # INPUTS #
 ##########
+NF = 2
 nproc = 8
 do_average = False
 do_fft     = False
@@ -94,19 +95,26 @@ def get_matrix(base,suffix):
     f00  = ad['boxlib',base+"00_Re"+suffix]
     f01  = ad['boxlib',base+"01_Re"+suffix]
     f01I = ad['boxlib',base+"01_Im"+suffix]
-    f02  = ad['boxlib',base+"02_Re"+suffix]
-    f02I = ad['boxlib',base+"02_Im"+suffix]
     f11  = ad['boxlib',base+"11_Re"+suffix]
-    f12  = ad['boxlib',base+"12_Re"+suffix]
-    f12I = ad['boxlib',base+"12_Im"+suffix]
-    f22  = ad['boxlib',base+"22_Re"+suffix]
+    if(NF>=3):
+        f02  = ad['boxlib',base+"02_Re"+suffix]
+        f02I = ad['boxlib',base+"02_Im"+suffix]
+        f12  = ad['boxlib',base+"12_Re"+suffix]
+        f12I = ad['boxlib',base+"12_Im"+suffix]
+        f22  = ad['boxlib',base+"22_Re"+suffix]
     zero = np.zeros(np.shape(f00))
-    fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
-    fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
+    if(NF==2):
+        fR = [[f00 , f01 ], [ f01 ,f11 ]]
+        fI = [[zero, f01I], [-f01I,zero]]
+    if(NF==3):
+        fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
+        fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
     return fR, fI
 
 def sumtrace_N(N):
-    sumtrace = np.sum(N[0][0]+N[1][1]+N[2][2])
+    sumtrace = 0
+    for fi in range(NF):
+        sumtrace += np.sum(N[fi][fi])
     return sumtrace
 
 def averaged_N(N, NI, sumtrace):
@@ -115,9 +123,9 @@ def averaged_N(N, NI, sumtrace):
     
     # do the averaging
     # f1, f2, R/I
-    Nout = np.zeros((3,3))
-    for i in range(3):
-        for j in range(3):
+    Nout = np.zeros((NF,NF))
+    for i in range(NF):
+        for j in range(NF):
             Nout[i][j] = float(np.sum(np.sqrt(N[i][j]**2 + NI[i][j]**2)) / sumtrace)
     return np.array(Nout)
 
@@ -127,10 +135,10 @@ def averaged_F(F, FI, sumtrace):
     
     # do the averaging
     # direction, f1, f2, R/I
-    Fout = np.zeros((3,3,3))
+    Fout = np.zeros((3,NF,NF))
     for i in range(3):
-        for j in range(3):
-            for k in range(3):
+        for j in range(NF):
+            for k in range(NF):
                 Fout[i][j][k] = float(np.sum(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2))/sumtrace)
 
     return Fout
@@ -138,9 +146,11 @@ def averaged_F(F, FI, sumtrace):
 def offdiagMag(f):
     R = 0
     I = 1
-    return np.sqrt(f[:,0,1,R]**2 + f[:,0,1,I]**2 +
-                   f[:,0,2,R]**2 + f[:,0,2,I]**2 +
-                   f[:,1,2,R]**2 + f[:,1,2,I]**2)
+    result = 0
+    for f0 in range(NF):
+        for f1 in range(f0+1,NF):
+            result += f[:,f0,f1,R]**2 + f[:,f0,f1,I]**2
+    return np.sqrt(result)
 
 
 
@@ -292,19 +302,28 @@ def spherical_harmonic_power_spectrum_singlel(l, Nrho):
 def get_Nrho(p):
     # build Nrho complex values
     nparticles = len(p)
-    Nrho = np.zeros((2,6,nparticles))*1j
-    Nrho[0,0,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f00_Re"   ]] + 1j*0                      )
-    Nrho[0,1,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f01_Re"   ]] + 1j*p[:,rkey["f01_Im"   ]] )
-    Nrho[0,2,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f02_Re"   ]] + 1j*p[:,rkey["f02_Im"   ]] )
-    Nrho[0,3,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f11_Re"   ]] + 1j*0                      )
-    Nrho[0,4,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f12_Re"   ]] + 1j*p[:,rkey["f12_Im"   ]] )
-    Nrho[0,5,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f22_Re"   ]] + 1j*0                      )
-    Nrho[1,0,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f00_Rebar"]] + 1j*0                      )
-    Nrho[1,1,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f01_Rebar"]] + 1j*p[:,rkey["f01_Imbar"]] )
-    Nrho[1,2,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f02_Rebar"]] + 1j*p[:,rkey["f02_Imbar"]] )
-    Nrho[1,3,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f11_Rebar"]] + 1j*0                      )
-    Nrho[1,4,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f12_Rebar"]] + 1j*p[:,rkey["f12_Imbar"]] )
-    Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
+    if NF==2:
+        Nrho = np.zeros((2,3,nparticles))*1j
+        Nrho[0,0,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f00_Re"   ]] + 1j*0                      )
+        Nrho[0,1,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f01_Re"   ]] + 1j*p[:,rkey["f01_Im"   ]] )
+        Nrho[0,2,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f11_Re"   ]] + 1j*0                      )
+        Nrho[1,0,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f00_Rebar"]] + 1j*0                      )
+        Nrho[1,1,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f01_Rebar"]] + 1j*p[:,rkey["f01_Imbar"]] )
+        Nrho[1,2,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f11_Rebar"]] + 1j*0                      )
+    if NF==3:
+        Nrho = np.zeros((2,6,nparticles))*1j
+        Nrho[0,0,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f00_Re"   ]] + 1j*0                      )
+        Nrho[0,1,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f01_Re"   ]] + 1j*p[:,rkey["f01_Im"   ]] )
+        Nrho[0,2,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f02_Re"   ]] + 1j*p[:,rkey["f02_Im"   ]] )
+        Nrho[0,3,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f11_Re"   ]] + 1j*0                      )
+        Nrho[0,4,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f12_Re"   ]] + 1j*p[:,rkey["f12_Im"   ]] )
+        Nrho[0,5,:] = p[:,rkey["N"   ]] * ( p[:,rkey["f22_Re"   ]] + 1j*0                      )
+        Nrho[1,0,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f00_Rebar"]] + 1j*0                      )
+        Nrho[1,1,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f01_Rebar"]] + 1j*p[:,rkey["f01_Imbar"]] )
+        Nrho[1,2,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f02_Rebar"]] + 1j*p[:,rkey["f02_Imbar"]] )
+        Nrho[1,3,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f11_Rebar"]] + 1j*0                      )
+        Nrho[1,4,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f12_Rebar"]] + 1j*p[:,rkey["f12_Imbar"]] )
+        Nrho[1,5,:] = p[:,rkey["Nbar"]] * ( p[:,rkey["f22_Rebar"]] + 1j*0                      )
     return Nrho
 
 def spherical_harmonic_power_spectrum(Nrho):
@@ -377,89 +396,93 @@ for d in directories[mpi_rank::mpi_size]:
     outputfilename = d+"/reduced_data_fft_power.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_fft and not already_done:
+
+        print("# rank",mpi_rank,"writing",outputfilename)
+        fout = h5py.File(outputfilename,"w")
+        fout["t"] = [np.array(t),]
+
         fft = eds.fourier("N00_Re",nproc=nproc)
+        fout["k"] = get_kmid(fft)
         cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
         N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N11_Re",nproc=nproc)
         N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("N22_Re",nproc=nproc)
-        N22_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier("N01_Re","N01_Im",nproc=nproc)
         N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("N02_Re","N02_Im",nproc=nproc)
-        N02_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("N12_Re","N12_Im",nproc=nproc)
-        N12_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        fout["N00_FFT"] = [np.array(N00_FFT),]
+        fout["N11_FFT"] = [np.array(N11_FFT),]
+        fout["N01_FFT"] = [np.array(N01_FFT),]
+        if NF>2:
+            fft = eds.fourier("N22_Re",nproc=nproc)
+            N22_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+            fft = eds.fourier("N02_Re","N02_Im",nproc=nproc)
+            N02_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+            fft = eds.fourier("N12_Re","N12_Im",nproc=nproc)
+            N12_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+            fout["N22_FFT"] = [np.array(N22_FFT),]
+            fout["N02_FFT"] = [np.array(N02_FFT),]
+            fout["N12_FFT"] = [np.array(N12_FFT),]
         
         #fft = eds.fourier("Fx00_Re")
         #Fx00_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fx11_Re")
         #Fx11_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fx22_Re")
-        #Fx22_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fx01_Re","Fx01_Im")
         #Fx01_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fx02_Re","Fx02_Im")
-        #Fx02_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fx12_Re","Fx12_Im")
-        #Fx12_FFT.append(fft_power(fft))
+        #fout["Fx00_FFT"] = [np.array(Fx00_FFT),]
+        #fout["Fx11_FFT"] = [np.array(Fx11_FFT),]
+        #fout["Fx01_FFT"] = [np.array(Fx01_FFT),]
+        #if NF>2:
+            #fft = eds.fourier("Fx22_Re")
+            #Fx22_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fx02_Re","Fx02_Im")
+            #Fx02_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fx12_Re","Fx12_Im")
+            #Fx12_FFT.append(fft_power(fft))
+            #fout["Fx22_FFT"] = [np.array(Fx22_FFT),]
+            #fout["Fx02_FFT"] = [np.array(Fx02_FFT),]
+            #fout["Fx12_FFT"] = [np.array(Fx12_FFT),]
         
         #fft = eds.fourier("Fy00_Re")
         #Fy00_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fy11_Re")
         #Fy11_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fy22_Re")
-        #Fy22_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fy01_Re","Fy01_Im")
         #Fy01_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fy02_Re","Fy02_Im")
-        #Fy02_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fy12_Re","Fy12_Im")
-        #Fy12_FFT.append(fft_power(fft))
+        #fout["Fy00_FFT"] = [np.array(Fy00_FFT),]
+        #fout["Fy11_FFT"] = [np.array(Fy11_FFT),]
+        #fout["Fy01_FFT"] = [np.array(Fy01_FFT),]
+        #if NF>2:
+            #fft = eds.fourier("Fy22_Re")
+            #Fy22_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fy02_Re","Fy02_Im")
+            #Fy02_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fy12_Re","Fy12_Im")
+            #Fy12_FFT.append(fft_power(fft))
+            #fout["Fy22_FFT"] = [np.array(Fy22_FFT),]
+            #fout["Fy02_FFT"] = [np.array(Fy02_FFT),]
+            #fout["Fy12_FFT"] = [np.array(Fy12_FFT),]
         
         #fft = eds.fourier("Fz00_Re")
         #Fz00_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fz11_Re")
         #Fz11_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fz22_Re")
-        #Fz22_FFT.append(fft_power(fft))
         #fft = eds.fourier("Fz01_Re","Fz01_Im")
         #Fz01_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fz02_Re","Fz02_Im")
-        #Fz02_FFT.append(fft_power(fft))
-        #fft = eds.fourier("Fz12_Re","Fz12_Im")
-        #Fz12_FFT.append(fft_power(fft))
-
-        kmid = get_kmid(fft)
-
-        print("# rank",mpi_rank,"writing",outputfilename)
-        fout = h5py.File(outputfilename,"w")
-        fout["t"] = [np.array(t),]
-        fout["k"] = kmid
-        fout["N00_FFT"] = [np.array(N00_FFT),]
-        fout["N11_FFT"] = [np.array(N11_FFT),]
-        fout["N22_FFT"] = [np.array(N22_FFT),]
-        fout["N01_FFT"] = [np.array(N01_FFT),]
-        fout["N02_FFT"] = [np.array(N02_FFT),]
-        fout["N12_FFT"] = [np.array(N12_FFT),]
-        #fout["Fx00_FFT"] = [np.array(Fx00_FFT),]
-        #fout["Fx11_FFT"] = [np.array(Fx11_FFT),]
-        #fout["Fx22_FFT"] = [np.array(Fx22_FFT),]
-        #fout["Fx01_FFT"] = [np.array(Fx01_FFT),]
-        #fout["Fx02_FFT"] = [np.array(Fx02_FFT),]
-        #fout["Fx12_FFT"] = [np.array(Fx12_FFT),]
-        #fout["Fy00_FFT"] = [np.array(Fy00_FFT),]
-        #fout["Fy11_FFT"] = [np.array(Fy11_FFT),]
-        #fout["Fy22_FFT"] = [np.array(Fy22_FFT),]
-        #fout["Fy01_FFT"] = [np.array(Fy01_FFT),]
-        #fout["Fy02_FFT"] = [np.array(Fy02_FFT),]
-        #fout["Fy12_FFT"] = [np.array(Fy12_FFT),]
         #fout["Fz00_FFT"] = [np.array(Fz00_FFT),]
         #fout["Fz11_FFT"] = [np.array(Fz11_FFT),]
-        #fout["Fz22_FFT"] = [np.array(Fz22_FFT),]
         #fout["Fz01_FFT"] = [np.array(Fz01_FFT),]
-        #fout["Fz02_FFT"] = [np.array(Fz02_FFT),]
-        #fout["Fz12_FFT"] = [np.array(Fz12_FFT),]
+        #if NF>2:
+            #fft = eds.fourier("Fz22_Re")
+            #Fz22_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fz02_Re","Fz02_Im")
+            #Fz02_FFT.append(fft_power(fft))
+            #fft = eds.fourier("Fz12_Re","Fz12_Im")
+            #Fz12_FFT.append(fft_power(fft))
+            #fout["Fz22_FFT"] = [np.array(Fz22_FFT),]
+            #fout["Fz02_FFT"] = [np.array(Fz02_FFT),]
+            #fout["Fz12_FFT"] = [np.array(Fz12_FFT),]
+
         fout.close()
 
 # separate loop for angular spectra so there is no aliasing and better load balancing
@@ -502,8 +525,12 @@ if __name__ == '__main__':
         
             # average the angular power spectrum over many cells
             # loop over all cells within each grid
-            spectrum = np.zeros((nl,2,6))
-            Nrho_avg = np.zeros((2,6,nppc))*1j
+            if NF==2:
+                ncomps = 3
+            if NF==3:
+                ncomps = 6
+            spectrum = np.zeros((nl,2,ncomps))
+            Nrho_avg = np.zeros((2,ncomps,nppc))*1j
             total_ncells = 0
             for gridID in range(mpi_rank,ngrids,mpi_size):
                 print("    rank",mpi_rank,"grid",gridID+1,"/",ngrids)
