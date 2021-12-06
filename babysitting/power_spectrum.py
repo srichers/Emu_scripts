@@ -62,7 +62,8 @@ data = h5py.File("reduced_data_fft_power.h5","r")
 
 for v in variables:
     for f in flavors:
-        print(v+f)
-        makeplot(v,f, data)
+        if v+f+"_FFT" in data:
+            print(v+f)
+            makeplot(v,f, data)
 
 data.close()
