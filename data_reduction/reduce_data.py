@@ -24,11 +24,10 @@ import scipy.special
 ##########
 # INPUTS #
 ##########
-NF = 2
 nproc = 8
-do_average = False
-do_fft     = False
-do_angular = True
+do_average = True
+do_fft     = True
+do_angular = False
 
 do_MPI = False
 
@@ -342,6 +341,11 @@ else:
     mpi_rank = 0
     mpi_size = 1
 directories = sorted(glob.glob("plt*"))
+
+# get NF
+eds = emu.EmuDataset(directories[0])
+NF = eds.get_num_flavors()
+
 if( (not do_average) and (not do_fft)):
     directories = []
 for d in directories[mpi_rank::mpi_size]:
