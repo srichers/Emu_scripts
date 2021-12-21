@@ -1,3 +1,5 @@
+import os
+os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 import numpy as np
 import matplotlib.pyplot as plt
 import glob

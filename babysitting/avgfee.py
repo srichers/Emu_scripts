@@ -1,5 +1,7 @@
 # Run from /ocean/projects/phy200048p/shared to generate plot showing time evolution of <fee> at different dimensionalities
 
+import os
+os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
