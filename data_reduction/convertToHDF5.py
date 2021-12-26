@@ -1,5 +1,5 @@
 # used to make plots but now just generates a hdf5 file with domain-averaged data.
-0;10;1c# Run in the directory of the simulation the data should be generated for.
+# Run in the directory of the simulation the data should be generated for.
 # Still has functionality for per-snapshot plots, but the line is commented out.
 # This version averages the magnitudes of off-diagonal components rather than the real/imaginary parts
 # also normalizes fluxes by sumtrace of N rather than F.
