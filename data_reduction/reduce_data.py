@@ -156,7 +156,6 @@ def offdiagMag(f):
 #########################
 # angular preliminaries #
 #########################
-rkey, ikey = amrex.get_3flavor_particle_keys()
 paramfile = open("inputs","r")
 for line in paramfile:
     line_without_comments = line.split("#")[0]
@@ -345,6 +344,10 @@ directories = sorted(glob.glob("plt*"))
 # get NF
 eds = emu.EmuDataset(directories[0])
 NF = eds.get_num_flavors()
+if NF==2:
+    rkey, ikey = amrex.get_particle_keys()
+if NF==3:
+    rkey, ikey = amrex.get_3flavor_particle_keys()
 
 if( (not do_average) and (not do_fft)):
     directories = []
