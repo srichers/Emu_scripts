@@ -169,9 +169,7 @@ def old_scalar(array):
 	return scalar
 
 # Save data to hdf5 dataset
-def save_hdf5(filename, datasetname, data):
-        # open the hdf5 file
-        f = h5py.File(filename, "a")
+def save_hdf5(f, datasetname, data):
         chunkshape = tuple([1]   +list(data.shape))
         maxshape   = tuple([None]+list(data.shape))
 
@@ -202,10 +200,24 @@ def save_hdf5(filename, datasetname, data):
                 # grow the dataset by one and add the data
                 dsetR[-1] = np.real(data)
                 dsetI[-1] = np.imag(data)
-                
-        # close the file
-        f.close()
-        
+
+def read_hdf5(filename):
+        infile = h5py.File(filename,"r")
+        JR = np.array(infile["J(eV^3)R"])
+        JI = np.array(infile["J(eV^3)I"])
+        J = JR + 1j*JI
+
+        S_L_R = np.array(infile["S_L(eV^3)R"])
+        S_L_I = np.array(infile["S_L(eV^3)I"])
+        S_L = S_L_R + 1j*S_L_I
+
+        S_R_R = np.array(infile["S_R(eV^3)R"])
+        S_R_I = np.array(infile["S_R(eV^3)I"])
+        S_R = S_R_R + 1j*S_R_I
+
+        infile.close()
+
+        return J, S_L, S_R
 
 def datasaver(data,filename): #data is the array/var to be saved, filename is a string. saves to a directory on my computer so it wont work on another unless you change the path
     current_directory=os.getcwd()
@@ -337,41 +349,45 @@ def get_HLR(S_R, S_L):
 def interact(d, outputfilename):
     # Read in the data
     eds = emu.EmuDataset(d)
+
+    # open the hdf5 file
+    outputfile = h5py.File(outputfilename, "a")
+
     t = eds.ds.current_time
-    save_hdf5(outputfilename,"t(s)",t)
+    save_hdf5(outputfile,"t(s)",t)
 
     J = four_current(eds)
-    save_hdf5(outputfilename,"J(eV^3)", J)
+    save_hdf5(outputfile,"J(eV^3)", J)
     
     S_R,S_L=sigma(J)
-    save_hdf5(outputfilename,"S_R(eV^3)", S_R)
-    save_hdf5(outputfilename,"S_L(eV^3)", S_L)
+    save_hdf5(outputfile,"S_R(eV^3)", S_R)
+    save_hdf5(outputfile,"S_L(eV^3)", S_L)
 
+    # close the file
+    outputfile.close()
+
+def Hamiltonian_terms(J, S_L, S_R):
     ## Helicity-Flip Hamiltonian! ##
     H_LR = get_HLR(S_R, S_L)
-    save_hdf5(outputfilename,"H_LR(eV^3)", H_LR)
 
     ## Non-Interacting Term ##
     H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
-    save_hdf5(outputfilename, "H_free(eV^3)", H_free)
 
     ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
 
     cross_term_z=1j*np.zeros(np.shape(plus(S_R)))
     for n in range(0,nz):
         cross_term_z[:,:,:,n]=np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n])
-    save_hdf5(outputfilename, "cross_term_z(eV^3)", cross_term_z)
-
 
     H_Rz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
     for n in range(0,np.shape(S_R)[3]):
         H_Rz[:,:,:,n]=kappa(S_R)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n]))
-    save_hdf5(outputfilename, "H_Rz(eV^3)", H_Rz)
 
     H_Lz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
     for n in range(0,np.shape(S_R)[3]):
         H_Lz[:,:,:,n]=kappa(S_L)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_L)[:,:,:,n],minus(S_L)[:,:,:,n]))
-    save_hdf5(outputfilename, "H_Lz(eV^3)", H_Lz)
+
+    return H_LR, H_free, cross_term_z, H_Rz, H_Lz
 
 
 
