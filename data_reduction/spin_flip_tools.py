@@ -304,9 +304,7 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 #cells in velocity space
 
 # Four current, indexed by [time, spacetime component, nu/antinu, f1, f2, z]
-def four_current(d):
-    # get data
-    eds = emu.EmuDataset(d)
+def four_current(eds):
     ad = eds.ds.all_data()
 
     # get array of number densities and number flux densities
@@ -337,7 +335,12 @@ def get_HLR(S_R, S_L):
 
 # Input: what folder do we want to process?
 def interact(d, outputfilename):
-    J = four_current(d)
+    # Read in the data
+    eds = emu.EmuDataset(d)
+    t = eds.ds.current_time
+    save_hdf5(outputfilename,"t(s)",t)
+
+    J = four_current(eds)
     save_hdf5(outputfilename,"J(eV^3)", J)
     
     S_R,S_L=sigma(J)
