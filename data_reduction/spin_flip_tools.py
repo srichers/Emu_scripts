@@ -125,7 +125,6 @@ def e(x):
 GM=np.array([[[0,1,0],[1,0,0],[0,0,0*1j]],
              [[0,-1j,0],[1j,0,0],[0,0,0*1j]],
              [[1,0,0],[0,-1,0],[0,0,0*1j]],
-             [[1,0,0],[0,-1,0],[0,0,0*1j]],
              [[0,0,1],[0,0,0],[1,0,0*1j]],
              [[0,0,-1j],[0,0,0],[1j,0,0*1j]],
              [[0,0,0],[0,0,1],[0,1,0*1j]],
@@ -133,19 +132,19 @@ GM=np.array([[[0,1,0],[1,0,0],[0,0,0*1j]],
              [[3**(-1/2),0,0],[0,3**(-1/2),0],[0*1j,0,-2*3**(-1/2)]]])
 
 #scalarfunc: averages square magnitude of components for every location in nz and returns a list of these
-def scalarfunc(array):#3,3,nz
-    scalars=0*1j*np.zeros(nz)
+def scalarfunc(array): #3,3
+    scalars=1j*np.zeros(nz)
     for n in range(nz):
-        components=(0*1j)*np.zeros(8)
+        components=1j*np.zeros(8)
         for k in range(0,8):
-            components[k]=(1/2+0*1j)*np.trace(np.matmul(GM[k],array[:,:,n]))
-        scalars[n]=(1/9)*sum([(x*conj(x))**(1/2) for x in components])
+            components[k]=np.trace(np.matmul(GM[k],array[:,:,n]))
+        scalars[n]=(1/(2**(1/2))+0*1j)*(sum([(x*conj(x)) for x in components]))**(1/2)
     return scalars
 
 #scalar: works on a single matrix (k,k), outputs positive number 	
 def scalar(matrix): #3,3
-    components=1j*np.zeros(9)
-    for k in range(0,9):
+    components=1j*np.zeros(8)
+    for k in range(0,8):
         components[k]=1/2*np.trace(np.matmul(GM[k],matrix))
     return (1/9)*sum([(x*conj(x))**(1/2) for x in components])
 
@@ -168,6 +167,22 @@ def old_scalar(array):
 		scalar=n*conj(n)+scalar
 	scalar=np.real(scalar**(1/2))
 	return scalar
+
+def datasaver(data,filename): #data is the array/var to be saved, filename is a string. saves to a directory on my computer so it wont work on another unless you change the path
+    current_directory=os.getcwd()
+    os.chdir('/home/henryrpg/Desktop/N3AS/savedarrays')
+    opendata=open(filename, 'wb')
+    pickle.dump(data,opendata)
+    opendata.close()
+    os.chdir(current_directory)
+    return
+
+def dataloader(filename): 
+    current_directory=os.getcwd()
+    os.chdir('/home/henryrpg/Desktop/N3AS/savedarrays')
+    opendata=open(filename, 'rb')
+    os.chdir(current_directory)
+    return pickle.load(opendata)
 
 ###################
 ###################
