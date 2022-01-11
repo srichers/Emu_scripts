@@ -227,14 +227,16 @@ def dataloader(filename):
 ###################
 
 ## Chiral Potentials ##
+# input: flux[spacetime, matter/antimatter, f1, f2, z]
+# output: Sigma_R[spacetime, matter/antimatter, f1, f2, z]
 def sigma(flux):
-	Sigma_R=np.zeros(np.shape(flux))
-	Sigma_L=np.zeros(np.shape(flux))
-	for n in range(0,4):
-		Sigma_R[n]=2**(1./2.)*G*(flux[n]+trace_matrix(flux[n]))
-		for k in range(0,nz): 
-			Sigma_L[n,:,:,k]=(-1)*np.transpose(Sigma_R[n,:,:,k]) #for majorana 
-	return Sigma_R, Sigma_L
+        Sigma_R=0j*np.zeros(np.shape(flux)) 
+        Sigma_L=0j*np.zeros(np.shape(flux))
+        for n in range(0,4):
+                for m in range(2):
+                        Sigma_R[n,m]=2**(1./2.)*G*(flux[n,m]+trace_matrix(flux[n,m]))
+        Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,1,3,2,4)) #for majorana 
+        return Sigma_R, Sigma_L
 
 #potential projected onto the basis
 def dot(potential,vector):
@@ -301,7 +303,7 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 #physical neutrinos don't change direction
 #cells in velocity space
 
-# Four current, indexed by [time, nu/antinu, spacetime component, f1, f2, z]
+# Four current, indexed by [time, spacetime component, nu/antinu, f1, f2, z]
 def four_current(d):
     # get data
     eds = emu.EmuDataset(d)
@@ -318,49 +320,55 @@ def four_current(d):
     Fzbar, FzIbar = rd.get_matrix(ad,"Fz","bar")
 
     # J^mu 4-vectors (number density and fluxes)
-    J     = np.array([N,    Fx,    Fy,    Fz    ])
-    JI    = np.array([NI,   FxI,   FyI,   FzI   ])
-    Jbar  = np.array([Nbar, Fxbar, Fybar, Fzbar ])
-    JIbar = np.array([NIbar,FxIbar,FyIbar,FzIbar])
+    J     = np.array([[N,  Nbar],  [Fx,  Fxbar],  [Fy,  Fybar],  [Fz, Fzbar]   ])
+    JI    = np.array([[NI, NIbar], [FxI, FxIbar], [FyI, FyIbar], [FzI, FzIbar] ])
 
-    Jeverything = (c*hbar)**3 * np.array([J + 1j*JI, Jbar + 1j*JIbar])
+    Jeverything = (c*hbar)**3 * (J + 1j*JI)
 
     return Jeverything
 
-# Input: what folder do we want to process?
-def interact(d):
-    J = four_current(d)
+def get_HLR(S_R, S_L):
+        H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+        for n in range(0,nz):
+                MSl=np.matmul(conj(M),plus(S_L)[:,:,:,n])
+                SrM=np.matmul(plus(S_R)[:,:,:,n],conj(M))
+                H_LR[:,:,:,n]=(-1/p_abs)*(SrM-MSl)
+        return H_LR
 
-    S_R,S_L=sigma(J[0])
-    S_Rbar,S_Lbar=sigma(J[1])
+# Input: what folder do we want to process?
+def interact(d, outputfilename):
+    J = four_current(d)
+    save_hdf5(outputfilename,"J(eV^3)", J)
+    
+    S_R,S_L=sigma(J)
+    save_hdf5(outputfilename,"S_R(eV^3)", S_R)
+    save_hdf5(outputfilename,"S_L(eV^3)", S_L)
 
     ## Helicity-Flip Hamiltonian! ##
-    H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
-    for n in range(0,nz):
-        MSl=np.matmul(conj(M),plus(S_L)[:,:,n])
-        SrM=np.matmul(plus(S_R)[:,:,n],conj(M))
-        H_LR[:,:,n]=(-1/p_abs)*(SrM-MSl)
+    H_LR = get_HLR(S_R, S_L)
+    save_hdf5(outputfilename,"H_LR(eV^3)", H_LR)
 
     ## Non-Interacting Term ##
     H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
-    H_free_func=scalar(H_free)*np.ones((1024))
+    save_hdf5(outputfilename, "H_free(eV^3)", H_free)
 
     ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
 
     cross_term_z=1j*np.zeros(np.shape(plus(S_R)))
     for n in range(0,nz):
-        cross_term_z[:,:,n]=np.matmul(plus(S_R)[:,:,n],minus(S_R)[:,:,n])
+        cross_term_z[:,:,:,n]=np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n])
+    save_hdf5(outputfilename, "cross_term_z(eV^3)", cross_term_z)
+
 
     H_Rz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
     for n in range(0,np.shape(S_R)[3]):
-        H_Rz[:,:,n]=kappa(S_R)[:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_R)[:,:,n],minus(S_R)[:,:,n]))
+        H_Rz[:,:,:,n]=kappa(S_R)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n]))
+    save_hdf5(outputfilename, "H_Rz(eV^3)", H_Rz)
 
     H_Lz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
     for n in range(0,np.shape(S_R)[3]):
-        H_Lz[:,:,n]=kappa(S_L)[:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_L)[:,:,n],minus(S_L)[:,:,n]))
-
-        
-    return H_LR, cross_term_z, H_Rz
+        H_Lz[:,:,:,n]=kappa(S_L)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_L)[:,:,:,n],minus(S_L)[:,:,:,n]))
+    save_hdf5(outputfilename, "H_Lz(eV^3)", H_Lz)
 
 
 
