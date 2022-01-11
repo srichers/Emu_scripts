@@ -90,7 +90,7 @@ def fft_power(fft, cleft, cright, ileft, iright, kmid):
 #########################
 # average preliminaries #
 #########################
-def get_matrix(base,suffix):
+def get_matrix(ad,base,suffix):
     f00  = ad['boxlib',base+"00_Re"+suffix]
     f01  = ad['boxlib',base+"01_Re"+suffix]
     f01I = ad['boxlib',base+"01_Im"+suffix]
@@ -338,26 +338,26 @@ for d in directories[mpi_rank::mpi_size]:
     outputfilename = d+"/reduced_data.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
-        thisN, thisNI = get_matrix("N",""   )
+        thisN, thisNI = get_matrix(ad,"N",""   )
         sumtrace = sumtrace_N(thisN)
         trace = sumtrace
         N = averaged_N(thisN,thisNI,sumtrace)
 
-        thisN, thisNI = get_matrix("N","bar")
+        thisN, thisNI = get_matrix(ad,"N","bar")
         sumtrace = sumtrace_N(thisN)
         tracebar = sumtrace
         Nbar = averaged_N(thisN,thisNI,sumtrace)
 
-        thisFx, thisFxI = get_matrix("Fx","")
-        thisFy, thisFyI = get_matrix("Fy","")
-        thisFz, thisFzI = get_matrix("Fz","")
+        thisFx, thisFxI = get_matrix(ad,"Fx","")
+        thisFy, thisFyI = get_matrix(ad,"Fy","")
+        thisFz, thisFzI = get_matrix(ad,"Fz","")
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
         F = averaged_F(Ftmp, FtmpI,sumtrace)
     
-        thisFx, thisFxI = get_matrix("Fx","bar") 
-        thisFy, thisFyI = get_matrix("Fy","bar") 
-        thisFz, thisFzI = get_matrix("Fz","bar") 
+        thisFx, thisFxI = get_matrix(ad,"Fx","bar") 
+        thisFy, thisFyI = get_matrix(ad,"Fy","bar") 
+        thisFz, thisFzI = get_matrix(ad,"Fz","bar") 
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
         Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
