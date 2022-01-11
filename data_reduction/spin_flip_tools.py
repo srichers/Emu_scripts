@@ -262,12 +262,11 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 #physical neutrinos don't change direction
 #cells in velocity space
 
-# Input: what folder do we want to process?
-def interact(d):
+# Four current, indexed by [time, nu/antinu, spacetime component, f1, f2, z]
+def four_current(d):
     # get data
     eds = emu.EmuDataset(d)
     ad = eds.ds.all_data()
-
 
     # get array of number densities and number flux densities
     N,     NI     = rd.get_matrix(ad,"N","")
@@ -277,18 +276,25 @@ def interact(d):
     Nbar,  NIbar  = rd.get_matrix(ad,"N","bar")
     Fxbar, FxIbar = rd.get_matrix(ad,"Fx","bar") 
     Fybar, FyIbar = rd.get_matrix(ad,"Fy","bar") 
-    Fzbar, FzIbar = rd.get_matrix(ad,"Fz","bar") 
-
-    # get grid structure from "all data" object
-    grid_data = rd.GridData(ad)
-    
-    ## J 4-Vectors ##
+    Fzbar, FzIbar = rd.get_matrix(ad,"Fz","bar")
 
     # J^mu 4-vectors (number density and fluxes)
-    J=(c*hbar)**3*np.array([N,Fx,Fy,Fz])
-    JI=(c*hbar)**3*np.array([NI,FxI,FyI,FzI])
-    Jbar=(c*hbar)**3*np.array([Nbar,Fxbar,Fybar,Fzbar])
-    JIbar=(c*hbar)**3*np.array([NIbar,FxIbar,FyIbar,FzIbar])
+    J     = np.array([N,    Fx,    Fy,    Fz    ])
+    JI    = np.array([NI,   FxI,   FyI,   FzI   ])
+    Jbar  = np.array([Nbar, Fxbar, Fybar, Fzbar ])
+    JIbar = np.array([NIbar,FxIbar,FyIbar,FzIbar])
+
+    Jeverything = (c*hbar)**3 * np.array([J + 1j*JI, Jbar + 1j*JIbar])
+
+    return Jeverything
+
+# Input: what folder do we want to process?
+def interact(d):
+    Jeverything = four_current(d)
+    J     = np.real(J[0])
+    JI    = np.imag(J[0])
+    Jbar  = np.real(J[1])
+    JIbar = np.imag(J[1])
 
     SigmaR,SigmaL=sigma(J)
     SigmaRI,SigmaLI=sigma(JI)
