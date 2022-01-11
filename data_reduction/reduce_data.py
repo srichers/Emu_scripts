@@ -147,14 +147,15 @@ def offdiagMag(f):
 #########################
 # angular preliminaries #
 #########################
-rkey, ikey = amrex.get_3flavor_particle_keys()
-paramfile = open("inputs","r")
-for line in paramfile:
-    line_without_comments = line.split("#")[0]
-    if "nphi_equator" in line_without_comments:
-        nl = int(line_without_comments.split("=")[1]) // 2
-paramfile.close()
-nl += 1
+if __name__ == '__main__':
+    rkey, ikey = amrex.get_3flavor_particle_keys()
+    paramfile = open("inputs","r")
+    for line in paramfile:
+        line_without_comments = line.split("#")[0]
+        if "nphi_equator" in line_without_comments:
+            nl = int(line_without_comments.split("=")[1]) // 2
+    paramfile.close()
+    nl += 1
 
 class GridData(object):
     def __init__(self, ad):
@@ -462,19 +463,18 @@ for d in directories[mpi_rank::mpi_size]:
         #fout["Fz12_FFT"] = [np.array(Fz12_FFT),]
         fout.close()
 
-# separate loop for angular spectra so there is no aliasing and better load balancing
-directories = sorted(glob.glob("plt*/neutrinos"))
-directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
-
-# get number of particles to be able to construct 
-nppc = get_nppc(directories[-1])
-
-# create shared object
-# double the size for real+imaginary parts
-Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
-
-
 if __name__ == '__main__':
+    # separate loop for angular spectra so there is no aliasing and better load balancing
+    directories = sorted(glob.glob("plt*/neutrinos"))
+    directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
+    
+    # get number of particles to be able to construct 
+    nppc = get_nppc(directories[-1])
+    
+    # create shared object
+    # double the size for real+imaginary parts
+    Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
+
     pool = Pool(nproc)
     for d in directories:
         if mpi_rank==0:
