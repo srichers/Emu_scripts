@@ -87,7 +87,7 @@ def trace_matrix(data):#takes in (3,3,nz)
 	for n in range(0,data.shape[1]):
 		matrix[n,n,:]=np.ones((data.shape[2]))
 	for k in range(0,data.shape[2]):
-		trace=0
+		trace=0j
 		for n in range(0,data.shape[1]):
 			trace=trace+data[n,n,k]
 		matrix[:,:,k]=matrix[:,:,k]*trace
@@ -329,21 +329,10 @@ def four_current(d):
 
 # Input: what folder do we want to process?
 def interact(d):
-    Jeverything = four_current(d)
-    J     = np.real(J[0])
-    JI    = np.imag(J[0])
-    Jbar  = np.real(J[1])
-    JIbar = np.imag(J[1])
+    J = four_current(d)
 
-    SigmaR,SigmaL=sigma(J)
-    SigmaRI,SigmaLI=sigma(JI)
-    SigmaRbar,SigmaLbar=sigma(Jbar)
-    SigmaRIbar,SigmaLIbar=sigma(JIbar)
-
-    S_R=SigmaR+1j*SigmaRI #(4,3,3,nz)
-    S_L=SigmaL+1j*SigmaLI
-    S_Rbar=SigmaRbar+1j*SigmaRIbar
-    S_Lbar=SigmaLbar+1j*SigmaLIbar
+    S_R,S_L=sigma(J[0])
+    S_Rbar,S_Lbar=sigma(J[1])
 
     ## Helicity-Flip Hamiltonian! ##
     H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
