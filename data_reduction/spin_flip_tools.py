@@ -168,6 +168,32 @@ def old_scalar(array):
 	scalar=np.real(scalar**(1/2))
 	return scalar
 
+# Save data to hdf5 dataset
+def save_hdf5(filename, datasetname, data):
+        # open the hdf5 file
+        f = h5py.File(filename, "a")
+
+        # grab dataset from file. Create the dataset if it doesn't already exist
+        if datasetname+"R" in f:
+                dsetR = f[datasetname+"R"]
+                dsetR.resize(np.shape(dsetR)[0] + 1, axis=0)
+                dsetI = f[datasetname+"I"]
+                dsetI.resize(np.shape(dsetI)[0] + 1, axis=0)
+        else:
+                chunkshape =      tuple([1]   +list(data.shape))
+                maxshape   =      tuple([None]+list(data.shape))
+                zeros = np.zeros( chunkshape )
+                dsetR = f.create_dataset(datasetname+"R", data=zeros, maxshape=maxshape, chunks=chunkshape)
+                dsetI = f.create_dataset(datasetname+"I", data=zeros, maxshape=maxshape, chunks=chunkshape)
+
+        # grow the dataset by one and add the data
+        dsetR[-1] = np.real(data)
+        dsetI[-1] = np.imag(data)
+                
+        # close the file
+        f.close()
+        
+
 def datasaver(data,filename): #data is the array/var to be saved, filename is a string. saves to a directory on my computer so it wont work on another unless you change the path
     current_directory=os.getcwd()
     os.chdir('/home/henryrpg/Desktop/N3AS/savedarrays')
