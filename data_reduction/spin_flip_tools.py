@@ -228,24 +228,6 @@ def append_hdf5_2D_scalar(outputfile, datasetname, data):
     append_to_hdf5(outputfile, datasetname, scalar)
 
 
-def read_hdf5(filename):
-        infile = h5py.File(filename,"r")
-        JR = np.array(infile["J(eV^3)R"])
-        JI = np.array(infile["J(eV^3)I"])
-        J = JR + 1j*JI
-
-        S_L_R = np.array(infile["S_L(eV^3)R"])
-        S_L_I = np.array(infile["S_L(eV^3)I"])
-        S_L = S_L_R + 1j*S_L_I
-
-        S_R_R = np.array(infile["S_R(eV^3)R"])
-        S_R_I = np.array(infile["S_R(eV^3)I"])
-        S_R = S_R_R + 1j*S_R_I
-
-        infile.close()
-
-        return J, S_L, S_R
-
 def datasaver(data,filename): #data is the array/var to be saved, filename is a string. saves to a directory on my computer so it wont work on another unless you change the path
     current_directory=os.getcwd()
     os.chdir('/home/henryrpg/Desktop/N3AS/savedarrays')
