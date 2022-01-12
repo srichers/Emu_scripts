@@ -50,22 +50,18 @@ class Basis:
 
 #unitary trace matrix
 def trace_matrix(data):#takes in (3,3,nz)
-	matrix=1j*np.zeros((data.shape[1],data.shape[1],data.shape[2]))
-	for n in range(0,data.shape[1]):
-		matrix[n,n,:]=np.ones((data.shape[2]))
-	for k in range(0,data.shape[2]):
-		trace=0j
-		for n in range(0,data.shape[1]):
-			trace=trace+data[n,n,k]
-		matrix[:,:,k]=matrix[:,:,k]*trace
-	return matrix
-	
-#scalar trace 	
-def trace(data):
-	trace=np.zeros((data.shape[2]))
-	for n in range(0,data.shape[0]):
-		trace=trace+data[n,n,:]
-	return trace
+        nz = data.shape[2]
+        
+        # calculate trace
+        diagonals = np.array([data[n,n,:] for n in range(3)])
+        trace = np.sum(diagonals, axis=0) # length of nz
+        
+        # create an identity matrix multiplied by the trace
+        matrix=np.zeros_like(data)
+        for n in range(3):
+                matrix[n,n,:]=trace
+        
+        return matrix
 	
 #conjugate a matrix
 def conj(matrix):
