@@ -18,9 +18,9 @@ from numpy import sin, cos, exp
 
 #fermi coupling constant: G/(c*hbar)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar=1)
 pi=np.pi
-G=1.1663787*10**(-23)
-c=29979245800
-hbar=6.582119569e-16
+G=1.1663787*10**(-23) # eV^-2
+c=29979245800         # cm/s
+hbar=6.582119569e-16  # erg s
 #mixing angles (rad): (different values on wikipedia?)
 a12=1e-6*np.pi*2/360
 a13=48.3*np.pi*2/360
@@ -54,6 +54,9 @@ p_abs=10**7#eV
 
 nz=1024 #length of box in z direction (nx=ny=1)
 
+## Non-Interacting Term ## [f1, f2]
+H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
+H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
 ########################
 ########################
 
@@ -345,9 +348,6 @@ def interact(d, outputfilename):
     
     ## Helicity-Flip Hamiltonian! ##
     H_LR = get_HLR(S_R_plus, S_L_minus)
-    
-    ## Non-Interacting Term ##
-    H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
     
     # empty arrays to put stuff into
     S_R_plusminus=1j*np.zeros(np.shape(S_R_plus))
