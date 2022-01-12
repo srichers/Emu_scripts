@@ -205,7 +205,7 @@ def append_to_hdf5(f, datasetname, data):
                 dsetR[-1] = np.real(data)
                 dsetI[-1] = np.imag(data)
 
-def append_hdf5_1D_scalar(outputfile, datasetname, data):
+def append_to_hdf5_1D_scalar(outputfile, datasetname, data):
     n0 = np.shape(data)[0]
     nz = np.shape(data)[-1]
     scalar = np.zeros((n0,nz))
@@ -214,14 +214,9 @@ def append_hdf5_1D_scalar(outputfile, datasetname, data):
     append_to_hdf5(outputfile, datasetname, scalar)
 
 
-def append_hdf5_2D_scalar(outputfile, datasetname, data):
-    n0 = np.shape(data)[0]
-    n1 = np.shape(data)[1]
+def append_to_hdf5_scalar(outputfile, datasetname, data):
     nz = np.shape(data)[-1]
-    scalar = np.zeros((n0,n1,nz))
-    for i0 in range(n0):
-            for i1 in range(n1):
-                    scalar[i0,i1] = scalarfunc(data[i0,i1])
+    scalar = scalarfunc(data)
     append_to_hdf5(outputfile, datasetname, scalar)
 
 
@@ -245,15 +240,14 @@ def dataloader(filename):
 ###################
 
 ## Chiral Potentials ##
-# input: flux[spacetime, matter/antimatter, f1, f2, z]
-# output: Sigma_R[spacetime, matter/antimatter, f1, f2, z]
+# input: flux[spacetime, f1, f2, z]
+# output: Sigma_R[spacetime, f1, f2, z]
 def sigma(flux):
         Sigma_R=0j*np.zeros(np.shape(flux)) 
         Sigma_L=0j*np.zeros(np.shape(flux))
         for n in range(0,4):
-                for m in range(2):
-                        Sigma_R[n,m]=2**(1./2.)*G*(flux[n,m]+trace_matrix(flux[n,m]))
-        Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,1,3,2,4)) #for majorana 
+                Sigma_R[n]=2**(1./2.)*G*(flux[n]+trace_matrix(flux[n]))
+        Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,2,1,3)) #for majorana 
         return Sigma_R, Sigma_L
 
 #potential projected onto the basis
@@ -321,7 +315,7 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 #physical neutrinos don't change direction
 #cells in velocity space
 
-# Four current, indexed by [spacetime component, nu/antinu, f1, f2, z]
+# Four current, indexed by [spacetime component, f1, f2, z]
 def four_current(eds):
     ad = eds.ds.all_data()
 
@@ -336,12 +330,14 @@ def four_current(eds):
     Fzbar, FzIbar = rd.get_matrix(ad,"Fz","bar")
 
     # J^mu 4-vectors (number density and fluxes)
-    J     = np.array([[N,  Nbar],  [Fx,  Fxbar],  [Fy,  Fybar],  [Fz, Fzbar]   ])
-    JI    = np.array([[NI, NIbar], [FxI, FxIbar], [FyI, FyIbar], [FzI, FzIbar] ])
+    JR    = np.array([N    , Fx    , Fy    , Fz    ])
+    JI    = np.array([NI   , FxI   , FyI   , FzI   ])
+    JRbar = np.array([Nbar , Fxbar , Fybar , Fzbar ])
+    JIbar = np.array([NIbar, FxIbar, FyIbar, FzIbar])
+    J    = JR    + 1j*JI
+    Jbar = JRbar + 1j*JIbar
 
-    Jeverything = (c*hbar)**3 * (J + 1j*JI)
-
-    return Jeverything
+    return J - np.conj(Jbar)
 
 ## Non-Interacting Term ## [f1, f2]
 H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
@@ -359,51 +355,51 @@ def interact(d, outputfilename):
     t = eds.ds.current_time
     append_to_hdf5(outputfile,"t(s)",t)
 
-    # [spacetime component, nu/antinu, f1, f2, z]
+    # [spacetime component, f1, f2, z]
     J = four_current(eds)
-    append_hdf5_2D_scalar(outputfile, "J(eV^3)", J)
+    append_to_hdf5_1D_scalar(outputfile, "J(eV^3)", J)
 
-    # [spacetime, nu/antinu, f1, f2, z]
+    # [spacetime, f1, f2, z]
     S_R,S_L=sigma(J)
-    append_hdf5_2D_scalar(outputfile, "S_R(eV)", S_R)
-    append_hdf5_2D_scalar(outputfile, "S_L(eV)", S_L)
+    append_to_hdf5_1D_scalar(outputfile, "S_R(eV)", S_R)
+    append_to_hdf5_1D_scalar(outputfile, "S_L(eV)", S_L)
 
-    # precompute Sigma plus/minus [nu/antinu, f1, f2, z]
+    # precompute Sigma [f1, f2, z]
     S_R_plus = plus(S_R)
     S_L_plus = plus(S_L)
     S_R_minus = minus(S_R)
     S_L_minus = minus(S_L)
     S_R_kappa = kappa(S_R)
     S_L_kappa = kappa(S_L)
-    append_hdf5_1D_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
-    append_hdf5_1D_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
-    append_hdf5_1D_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
-    append_hdf5_1D_scalar(outputfile, "S_L_minus(eV)", S_L_minus)
-    append_hdf5_1D_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
-    append_hdf5_1D_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
+    append_to_hdf5_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
+    append_to_hdf5_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
+    append_to_hdf5_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
+    append_to_hdf5_scalar(outputfile, "S_L_minus(eV)", S_L_minus)
+    append_to_hdf5_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
+    append_to_hdf5_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
-    ## Helicity-Flip Hamiltonian! ## [nu/antinu, f1, f2, z]
-    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,:,n]) for n in range(nz) ])
-    SrM = np.array([ np.matmul(S_R_plus[:,:,:,n],conj(M))  for n in range(nz) ])
+    ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
+    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,n]) for n in range(nz) ])
+    SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
-    H_LR = H_LR.transpose((1,2,3,0))
-    append_to_hdf5(outputfile, "H_LR(eV)", H_LR)    
+    H_LR = H_LR.transpose((1,2,0))
+    append_to_hdf5_scalar(outputfile, "H_LR(eV)", H_LR)    
     
-    # plusminus term [anti/nu, f1, f2, z]
+    # plusminus term [f1, f2, z]
     H_R_plusminus = 2./p_abs * np.array([
-            np.matmul(S_R_plus[:,:,:,z], S_R_minus[:,:,:,z])
-            for z in range(nz)]).transpose((1,2,3,0))
+            np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
+            for z in range(nz)]).transpose((1,2,0))
     H_L_minusplus = 2./p_abs * np.array([
-            np.matmul(S_L_minus[:,:,:,z], S_L_plus[:,:,:,z])
-            for z in range(nz)]).transpose((1,2,3,0))
-    append_hdf5_1D_scalar(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
-    append_hdf5_1D_scalar(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
+            np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
+            for z in range(nz)]).transpose((1,2,0))
+    append_to_hdf5_scalar(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
+    append_to_hdf5_scalar(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
     
     ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
-    H_Rz = S_R_kappa + H_R_free[np.newaxis,:,:,np.newaxis] + H_R_plusminus
-    H_Lz = S_L_kappa + H_L_free[np.newaxis,:,:,np.newaxis] + H_L_minusplus
-    append_hdf5_1D_scalar(outputfile, "H_Rz(eV)", H_Rz)
-    append_hdf5_1D_scalar(outputfile, "H_Lz(eV)", H_Lz)
+    H_Rz = S_R_kappa + H_R_free[:,:,np.newaxis] + H_R_plusminus
+    H_Lz = S_L_kappa + H_L_free[:,:,np.newaxis] + H_L_minusplus
+    append_to_hdf5_scalar(outputfile, "H_Rz(eV)", H_Rz)
+    append_to_hdf5_scalar(outputfile, "H_Lz(eV)", H_Lz)
 
     # close the output file
     outputfile.close()
