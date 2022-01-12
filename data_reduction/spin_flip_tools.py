@@ -83,7 +83,7 @@ def redefine(theta, phi, p_abs):
 
 #unitary trace matrix
 def trace_matrix(data):#takes in (3,3,nz)
-	matrix=np.zeros((data.shape[1],data.shape[1],data.shape[2]))
+	matrix=1j*np.zeros((data.shape[1],data.shape[1],data.shape[2]))
 	for n in range(0,data.shape[1]):
 		matrix[n,n,:]=np.ones((data.shape[2]))
 	for k in range(0,data.shape[2]):
@@ -337,11 +337,11 @@ def four_current(eds):
 
     return Jeverything
 
-def get_HLR(S_R, S_L):
-        H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+def get_HLR(S_R_plus, S_L_minus):
+        H_LR=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
         for n in range(0,nz):
-                MSl=np.matmul(conj(M),plus(S_L)[:,:,:,n])
-                SrM=np.matmul(plus(S_R)[:,:,:,n],conj(M))
+                MSl=np.matmul(conj(M),S_L_minus[:,:,:,n])
+                SrM=np.matmul(S_R_plus[:,:,:,n],conj(M))
                 H_LR[:,:,:,n]=(-1/p_abs)*(SrM-MSl)
         return H_LR
 
@@ -375,22 +375,25 @@ def Hamiltonian_terms(S_L_many, S_R_many):
         S_L = S_L_many[it]
         S_R = S_R_many[it]
             
-        ## Helicity-Flip Hamiltonian! ##
-        H_LR = get_HLR(S_R, S_L)
-
-        ## Non-Interacting Term ##
-        H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
-        
-        ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
-        
-        S_R_plusminus=1j*np.zeros(np.shape(plus(S_R)))
-        S_L_plusminus=1j*np.zeros(np.shape(plus(S_L)))
-        H_Rz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
-        H_Lz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+        # precompute Sigma plus/minus
         S_R_plus = plus(S_R)
         S_L_plus = plus(S_L)
         S_R_minus = minus(S_R)
         S_L_minus = minus(S_L)
+
+        ## Helicity-Flip Hamiltonian! ##
+        H_LR = get_HLR(S_R_plus, S_L_minus)
+
+        ## Non-Interacting Term ##
+        H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
+        
+        # empty arrays to put stuff into
+        S_R_plusminus=1j*np.zeros(np.shape(S_R_plus))
+        S_L_plusminus=1j*np.zeros(np.shape(S_L_plus))
+        H_Rz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
+        H_Lz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
+
+        ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
         for n in range(0,nz):
                 S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
                 S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
