@@ -363,44 +363,32 @@ def interact(d, outputfilename):
     save_hdf5(outputfile,"S_R(eV^3)", S_R)
     save_hdf5(outputfile,"S_L(eV^3)", S_L)
 
-    # close the file
-    outputfile.close()
-
-# inputs - S_L_many[#timesteps, spacetime, matter/antimatter, f1, f2, z]
-def Hamiltonian_terms(S_L_many, S_R_many):
-    nt = np.shape(S_L_many)[0]
+    # precompute Sigma plus/minus
+    S_R_plus = plus(S_R)
+    S_L_plus = plus(S_L)
+    S_R_minus = minus(S_R)
+    S_L_minus = minus(S_L)
+    
+    ## Helicity-Flip Hamiltonian! ##
+    H_LR = get_HLR(S_R_plus, S_L_minus)
+    
+    ## Non-Interacting Term ##
+    H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
+    
+    # empty arrays to put stuff into
+    S_R_plusminus=1j*np.zeros(np.shape(S_R_plus))
+    S_L_plusminus=1j*np.zeros(np.shape(S_L_plus))
+    H_Rz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
+    H_Lz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
+    
+    ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
     mdaggerm = np.matmul(conj(M),M)
+    for n in range(0,nz):
+            S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
+            S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
+            H_Rz[:,:,:,n] = kappa(S_R)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
+            H_Lz[:,:,:,n] = kappa(S_L)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
 
-    for it in range(10):
-        S_L = S_L_many[it]
-        S_R = S_R_many[it]
-            
-        # precompute Sigma plus/minus
-        S_R_plus = plus(S_R)
-        S_L_plus = plus(S_L)
-        S_R_minus = minus(S_R)
-        S_L_minus = minus(S_L)
-
-        ## Helicity-Flip Hamiltonian! ##
-        H_LR = get_HLR(S_R_plus, S_L_minus)
-
-        ## Non-Interacting Term ##
-        H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
-        
-        # empty arrays to put stuff into
-        S_R_plusminus=1j*np.zeros(np.shape(S_R_plus))
-        S_L_plusminus=1j*np.zeros(np.shape(S_L_plus))
-        H_Rz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
-        H_Lz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
-
-        ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
-        for n in range(0,nz):
-                S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
-                S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
-                H_Rz[:,:,:,n] = kappa(S_R)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
-                H_Lz[:,:,:,n] = kappa(S_L)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
-
-    return H_LR, H_free, S_L_plusminus, H_Rz, H_Lz
 
 
 
