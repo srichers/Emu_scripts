@@ -324,7 +324,7 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 #physical neutrinos don't change direction
 #cells in velocity space
 
-# Four current, indexed by [time, spacetime component, nu/antinu, f1, f2, z]
+# Four current, indexed by [spacetime component, nu/antinu, f1, f2, z]
 def four_current(eds):
     ad = eds.ds.all_data()
 
@@ -375,7 +375,7 @@ def interact(d, outputfilename):
     append_hdf5_2D_scalar(outputfile, "S_R(eV)", S_R)
     append_hdf5_2D_scalar(outputfile, "S_L(eV)", S_L)
 
-    # precompute Sigma plus/minus
+    # precompute Sigma plus/minus [nu/antinu, f1, f2, z]
     S_R_plus = plus(S_R)
     S_L_plus = plus(S_L)
     S_R_minus = minus(S_R)
@@ -389,7 +389,7 @@ def interact(d, outputfilename):
     append_hdf5_1D_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
     append_hdf5_1D_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
-    ## Helicity-Flip Hamiltonian! ##
+    ## Helicity-Flip Hamiltonian! ## [nu/antinu, f1, f2, z]
     H_LR = get_HLR(S_R_plus, S_L_minus)
     append_hdf5_1D_scalar(outputfile, "H_LR(eV)", H_LR)    
     
