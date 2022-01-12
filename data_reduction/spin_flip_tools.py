@@ -35,46 +35,15 @@ m_1=0.608596511
 m_2=0.608
 m_3=0.649487372
 
-#basis with momentum along +z (c=1?)
-
-
-def basis(theta,phi): #theta is polar, phi is azimuthal
-	global n_vector
-	global x1
-	global x2	
-	n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])	
-	x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
-	x2=np.array([0,-sin(phi),cos(phi),0])
-	return n_vector,x1,x2
-basis(0,0)
-#running this for some pair of angles changes the lightlike(kappa) component of the basis.
-
 #test neutrino momentum:
 p_abs=10**7#eV
 
-########################
-########################
-
-
-#??????
-#### Variable definer: running this changes all quantities to the var's you want
-def redefine(theta, phi, p_abs):
-	global H_LR
-	basis(theta,phi)	
-	H_LR=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
-	for n in range(0,nz):
-		MSl=np.matmul(conj(M),plus(S_L)[:,:,n])
-		SrM=np.matmul(plus(S_R)[:,:,n],conj(M))
-		H_LR[:,:,n]=(-1/p_abs)*(SrM-MSl)
-	
-	
-	return
-		
-
-
-
-
-
+# set of orthonormal vectors, where n_vector is pointed along theta,phi
+class Basis:
+        def __init__(self,theta, phi): #theta is polar, phi is azimuthal
+	        self.n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])	
+	        self.x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
+	        self.x2=np.array([0,-sin(phi),cos(phi),0])
 
 #### Functions ####
 ###################
@@ -104,6 +73,7 @@ def conj(matrix):
 	return conjugate
 	
 #z-derivative of (3,3,nz) matrix (returns 3,3,nz)
+#TODO - needs to implement periodic boundary conditions.
 def der(data,ad):
 	dq=ad['index','dz'].d
 	shape=np.shape(data)
@@ -166,10 +136,6 @@ def scalarfunc(array):
     scalars = np.sqrt( np.sum( components*np.conj(components), axis=1) )
 
     return np.real(scalars)
-
-#average: for one timestep, takes in #3,3,nz and outputs average value of scalarfunc over space
-def scalar_avg(array):
-    return sum(scalarfunc(array))/nz
 
 # Save data to hdf5 dataset
 # f is the hdf5 file we are writing to
@@ -257,18 +223,18 @@ def dot(potential,vector):
 		projection=projection+vector[k]*potential[k]
 	return projection
 
-def plus(potential): #(3,3,nz)
-	vector=0.5*(x1+1j*x2)
+def plus(potential, basis): #(3,3,nz)
+	vector=0.5*(basis.x1+1j*basis.x2)
 	plus=dot(potential,vector)
 	return plus
 
-def minus(potential): #(3,3,nz)
-	vector=0.5*(x1-1j*x2)
+def minus(potential, basis): #(3,3,nz)
+	vector=0.5*(basis.x1-1j*basis.x2)
 	minus=dot(potential,vector)
 	return minus
 	
-def kappa(potential):
-	return dot(potential,n_vector)
+def kappa(potential, basis):
+	return dot(potential,basis.n_vector)
 	
 ## Mass Matrix ##	
 m23=np.array([[1,0*1j,0],[0,cos(a23),sin(a23)],[0,-sin(a23),cos(a23)]])
@@ -307,13 +273,6 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 	plt.show()
 	return
 
-
-
-# USAGE: python3 interact_with_data.py
-# must be run from within the folder that contains the folder d defined below
-# 92 particles correspond to 92 possible directions. They're always moving at the same speed
-#physical neutrinos don't change direction
-#cells in velocity space
 
 # Four current, indexed by [spacetime component, f1, f2, z]
 def four_current(eds):
@@ -373,13 +332,16 @@ def interact(d, outputfilename):
     append_to_hdf5_1D_scalar(outputfile, "S_R(eV)", S_R)
     append_to_hdf5_1D_scalar(outputfile, "S_L(eV)", S_L)
 
+    # define the basis as along z
+    basis = Basis(0,0)
+    
     # precompute Sigma [f1, f2, z]
-    S_R_plus = plus(S_R)
-    S_L_plus = plus(S_L)
-    S_R_minus = minus(S_R)
-    S_L_minus = minus(S_L)
-    S_R_kappa = kappa(S_R)
-    S_L_kappa = kappa(S_L)
+    S_R_plus = plus(S_R, basis)
+    S_L_plus = plus(S_L, basis)
+    S_R_minus = minus(S_R, basis)
+    S_L_minus = minus(S_L, basis)
+    S_R_kappa = kappa(S_R, basis)
+    S_L_kappa = kappa(S_L, basis)
     append_to_hdf5_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
     append_to_hdf5_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
     append_to_hdf5_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
