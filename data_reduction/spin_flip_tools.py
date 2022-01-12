@@ -52,8 +52,6 @@ basis(0,0)
 #test neutrino momentum:
 p_abs=10**7#eV
 
-nz=1024 #length of box in z direction (nx=ny=1)
-
 ## Non-Interacting Term ## [f1, f2]
 H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
 H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
@@ -378,6 +376,7 @@ def get_HLR(S_R_plus, S_L_minus):
 def interact(d, outputfilename):
     # Read in the data
     eds = emu.EmuDataset(d)
+    nz = eds.Nz
 
     # open the hdf5 file
     outputfile = h5py.File(outputfilename, "a")
