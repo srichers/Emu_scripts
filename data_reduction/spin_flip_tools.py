@@ -152,14 +152,25 @@ GM=np.array([[[0, 1, 0],
 ])
 
 #scalarfunc: averages square magnitude of components for every location in nz and returns a list of these
-def scalarfunc(array): #3,3
-    scalars=1j*np.zeros(nz)
-    for n in range(nz):
-        components=1j*np.zeros(8)
-        for k in range(0,8):
-            components[k]=np.trace(np.matmul(GM[k],array[:,:,n]))
-        scalars[n]=(1/(2**(1/2))+0*1j)*(sum([(x*conj(x)) for x in components]))**(1/2)
-    return scalars
+# input: array of shape (3,3,nz)
+# ouptut: array of length nz
+def scalarfunc(array):
+    nz = np.shape(array)[2]
+
+    # get the coefficients of each Gell-Mann matrix
+    # GM matrices are normalized so that Tr(G_a G_b) = 2 delta_ab
+    # result has shape (nz,8)
+    components = 0.5 * np.array([[
+            np.trace( np.matmul( GM[k], array[:,:,n] ) )
+            for k in range(8)] for n in range(nz)] )
+
+    # Construct a scalar out of the GM coefficients as sqrt(G.G) where G is the vector of GM matrix coefficients
+    # even though for a Hermitian matrix coefficients must be real, the input could be multiplied by an overall phase
+    # Return a real number by using a*conj(a)
+    # result has length nz
+    scalars = np.sqrt( np.sum( components*np.conj(components), axis=1) )
+
+    return np.real(scalars)
 
 #average: for one timestep, takes in #3,3,nz and outputs average value of scalarfunc over space
 def scalar_avg(array):
