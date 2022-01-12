@@ -366,28 +366,38 @@ def interact(d, outputfilename):
     # close the file
     outputfile.close()
 
-def Hamiltonian_terms(J, S_L, S_R):
-    ## Helicity-Flip Hamiltonian! ##
-    H_LR = get_HLR(S_R, S_L)
+# inputs - S_L_many[#timesteps, spacetime, matter/antimatter, f1, f2, z]
+def Hamiltonian_terms(S_L_many, S_R_many):
+    nt = np.shape(S_L_many)[0]
+    mdaggerm = np.matmul(conj(M),M)
 
-    ## Non-Interacting Term ##
-    H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
+    for it in range(10):
+        S_L = S_L_many[it]
+        S_R = S_R_many[it]
+            
+        ## Helicity-Flip Hamiltonian! ##
+        H_LR = get_HLR(S_R, S_L)
 
-    ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
+        ## Non-Interacting Term ##
+        H_free=0.5*(1/p_abs)*np.matmul(conj(M),M) #For H_R; H_L has the m and m^dagger flipped
+        
+        ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
+        
+        S_R_plusminus=1j*np.zeros(np.shape(plus(S_R)))
+        S_L_plusminus=1j*np.zeros(np.shape(plus(S_L)))
+        H_Rz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+        H_Lz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
+        S_R_plus = plus(S_R)
+        S_L_plus = plus(S_L)
+        S_R_minus = minus(S_R)
+        S_L_minus = minus(S_L)
+        for n in range(0,nz):
+                S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
+                S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
+                H_Rz[:,:,:,n] = kappa(S_R)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
+                H_Lz[:,:,:,n] = kappa(S_L)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
 
-    cross_term_z=1j*np.zeros(np.shape(plus(S_R)))
-    for n in range(0,nz):
-        cross_term_z[:,:,:,n]=np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n])
-
-    H_Rz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
-    for n in range(0,np.shape(S_R)[3]):
-        H_Rz[:,:,:,n]=kappa(S_R)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_R)[:,:,:,n],minus(S_R)[:,:,:,n]))
-
-    H_Lz=1j*np.zeros(np.shape(plus(S_R))) #(3,3,nz)
-    for n in range(0,np.shape(S_R)[3]):
-        H_Lz[:,:,:,n]=kappa(S_L)[:,:,:,n]+0.5*(1/p_abs)*(np.matmul(conj(M),M)+4*np.matmul(plus(S_L)[:,:,:,n],minus(S_L)[:,:,:,n]))
-
-    return H_LR, H_free, cross_term_z, H_Rz, H_Lz
+    return H_LR, H_free, S_L_plusminus, H_Rz, H_Lz
 
 
 
