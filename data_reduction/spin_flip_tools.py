@@ -210,6 +210,26 @@ def append_to_hdf5(f, datasetname, data):
                 dsetR[-1] = np.real(data)
                 dsetI[-1] = np.imag(data)
 
+def append_hdf5_1D_scalar(outputfile, datasetname, data):
+    n0 = np.shape(data)[0]
+    nz = np.shape(data)[-1]
+    scalar = np.zeros((n0,nz))
+    for i0 in range(n0):
+            scalar[i0] = scalarfunc(data[i0])
+    append_to_hdf5(outputfile, datasetname, scalar)
+
+
+def append_hdf5_2D_scalar(outputfile, datasetname, data):
+    n0 = np.shape(data)[0]
+    n1 = np.shape(data)[1]
+    nz = np.shape(data)[-1]
+    scalar = np.zeros((n0,n1,nz))
+    for i0 in range(n0):
+            for i1 in range(n1):
+                    scalar[i0,i1] = scalarfunc(data[i0,i1])
+    append_to_hdf5(outputfile, datasetname, scalar)
+
+
 def read_hdf5(filename):
         infile = h5py.File(filename,"r")
         JR = np.array(infile["J(eV^3)R"])
@@ -367,12 +387,12 @@ def interact(d, outputfilename):
 
     # [spacetime component, nu/antinu, f1, f2, z]
     J = four_current(eds)
-    append_to_hdf5(outputfile,"J(eV^3)", J)
+    append_hdf5_2D_scalar(outputfile, "J(eV^3)", J)
 
     # [spacetime, nu/antinu, f1, f2, z]
     S_R,S_L=sigma(J)
-    append_to_hdf5(outputfile,"S_R(eV^3)", S_R)
-    append_to_hdf5(outputfile,"S_L(eV^3)", S_L)
+    append_hdf5_2D_scalar(outputfile, "S_R(eV)", S_R)
+    append_hdf5_2D_scalar(outputfile, "S_L(eV)", S_L)
 
     # precompute Sigma plus/minus
     S_R_plus = plus(S_R)
@@ -381,23 +401,32 @@ def interact(d, outputfilename):
     S_L_minus = minus(S_L)
     S_R_kappa = kappa(S_R)
     S_L_kappa = kappa(S_L)
+    append_hdf5_1D_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
+    append_hdf5_1D_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
+    append_hdf5_1D_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
+    append_hdf5_1D_scalar(outputfile, "S_L_minus(eV)", S_L_minus)
+    append_hdf5_1D_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
+    append_hdf5_1D_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian! ##
     H_LR = get_HLR(S_R_plus, S_L_minus)
+    append_hdf5_1D_scalar(outputfile, "H_LR(eV)", H_LR)    
     
-    # empty arrays to put stuff into
-    S_R_plusminus=1j*np.zeros(np.shape(S_R_plus))
-    S_L_plusminus=1j*np.zeros(np.shape(S_L_plus))
-    H_Rz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
-    H_Lz=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
+    # plusminus term [anti/nu, f1, f2, z]
+    H_R_plusminus = 2./p_abs * np.array([
+            np.matmul(S_R_plus[:,:,:,z], S_R_minus[:,:,:,z])
+            for z in range(nz)]).transpose((1,2,3,0))
+    H_L_minusplus = 2./p_abs * np.array([
+            np.matmul(S_L_minus[:,:,:,z], S_L_plus[:,:,:,z])
+            for z in range(nz)]).transpose((1,2,3,0))
+    append_hdf5_1D_scalar(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
+    append_hdf5_1D_scalar(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
     
     ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
-    mdaggerm = np.matmul(conj(M),M)
-    for n in range(0,nz):
-            S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
-            S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
-            H_Rz[:,:,:,n] = S_R_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
-            H_Lz[:,:,:,n] = S_L_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
+    H_Rz = S_R_kappa + H_R_free[np.newaxis,:,:,np.newaxis] + H_R_plusminus
+    H_Lz = S_L_kappa + H_L_free[np.newaxis,:,:,np.newaxis] + H_L_minusplus
+    append_hdf5_1D_scalar(outputfile, "H_Rz(eV)", H_Rz)
+    append_hdf5_1D_scalar(outputfile, "H_Lz(eV)", H_Lz)
 
     # close the output file
     outputfile.close()
