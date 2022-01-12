@@ -326,9 +326,11 @@ def interact(d, outputfilename):
     t = eds.ds.current_time
     save_hdf5(outputfile,"t(s)",t)
 
+    # [spacetime component, nu/antinu, f1, f2, z]
     J = four_current(eds)
     save_hdf5(outputfile,"J(eV^3)", J)
-    
+
+    # [spacetime, nu/antinu, f1, f2, z]
     S_R,S_L=sigma(J)
     save_hdf5(outputfile,"S_R(eV^3)", S_R)
     save_hdf5(outputfile,"S_L(eV^3)", S_L)
@@ -338,6 +340,8 @@ def interact(d, outputfilename):
     S_L_plus = plus(S_L)
     S_R_minus = minus(S_R)
     S_L_minus = minus(S_L)
+    S_R_kappa = kappa(S_R)
+    S_L_kappa = kappa(S_L)
     
     ## Helicity-Flip Hamiltonian! ##
     H_LR = get_HLR(S_R_plus, S_L_minus)
@@ -356,9 +360,5 @@ def interact(d, outputfilename):
     for n in range(0,nz):
             S_R_plusminus[:,:,:,n] = np.matmul(S_R_plus[:,:,:,n],S_R_minus[:,:,:,n])
             S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
-            H_Rz[:,:,:,n] = kappa(S_R)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
-            H_Lz[:,:,:,n] = kappa(S_L)[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
-
-
-
-
+            H_Rz[:,:,:,n] = S_R_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
+            H_Lz[:,:,:,n] = S_L_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
