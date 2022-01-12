@@ -362,3 +362,6 @@ def interact(d, outputfilename):
             S_L_plusminus[:,:,:,n] = np.matmul(S_L_plus[:,:,:,n],S_L_minus[:,:,:,n])
             H_Rz[:,:,:,n] = S_R_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_R_plusminus[:,:,:,n] )
             H_Lz[:,:,:,n] = S_L_kappa[:,:,:,n] + 0.5*(1/p_abs)*( mdaggerm + 4*S_L_plusminus[:,:,:,n] )
+
+    # close the output file
+    outputfile.close()
