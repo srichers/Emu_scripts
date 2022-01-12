@@ -177,7 +177,8 @@ def scalar_avg(array):
     return sum(scalarfunc(array))/nz
 
 # Save data to hdf5 dataset
-def save_hdf5(f, datasetname, data):
+# f is the hdf5 file we are writing to
+def append_to_hdf5(f, datasetname, data):
         chunkshape = tuple([1]   +list(data.shape))
         maxshape   = tuple([None]+list(data.shape))
 
@@ -362,16 +363,16 @@ def interact(d, outputfilename):
     outputfile = h5py.File(outputfilename, "a")
 
     t = eds.ds.current_time
-    save_hdf5(outputfile,"t(s)",t)
+    append_to_hdf5(outputfile,"t(s)",t)
 
     # [spacetime component, nu/antinu, f1, f2, z]
     J = four_current(eds)
-    save_hdf5(outputfile,"J(eV^3)", J)
+    append_to_hdf5(outputfile,"J(eV^3)", J)
 
     # [spacetime, nu/antinu, f1, f2, z]
     S_R,S_L=sigma(J)
-    save_hdf5(outputfile,"S_R(eV^3)", S_R)
-    save_hdf5(outputfile,"S_L(eV^3)", S_L)
+    append_to_hdf5(outputfile,"S_R(eV^3)", S_R)
+    append_to_hdf5(outputfile,"S_L(eV^3)", S_L)
 
     # precompute Sigma plus/minus
     S_R_plus = plus(S_R)
