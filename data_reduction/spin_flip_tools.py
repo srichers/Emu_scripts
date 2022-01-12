@@ -11,7 +11,7 @@ import h5py
 import amrex_plot_tools as amrex
 import emu_yt_module as emu
 import reduce_data as rd
-
+from numpy import sin, cos, exp
 
 ###### Parameters ######
 ########################
@@ -27,7 +27,7 @@ a13=48.3*np.pi*2/360
 a23=8.61*np.pi*2/360
 
 #CP phase:
-delta=222
+delta=222*np.pi*2/360
 #majorana angles are all 0 and dont influence the matrix
 
 #masses (eV) (Negative mass? 0 mass?)
@@ -42,9 +42,9 @@ def basis(theta,phi): #theta is polar, phi is azimuthal
 	global n_vector
 	global x1
 	global x2	
-	n_vector=np.array([1,np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)])	
-	x1=np.array([0,np.cos(phi)*np.cos(theta),np.sin(phi)*np.cos(theta),(-1)*np.sin(theta)])
-	x2=np.array([0,-np.sin(phi),np.cos(phi),0])
+	n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])	
+	x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
+	x2=np.array([0,-sin(phi),cos(phi),0])
 	return n_vector,x1,x2
 basis(0,0)
 #running this for some pair of angles changes the lightlike(kappa) component of the basis.
@@ -113,13 +113,6 @@ def der(data,ad):
 	for n in range(0,shape[2]):
 		der[:,:,n]=(data[:,:,n]-(1+0j)*data[:,:,n-1])/dq[n]
 	return der
-		
-def cos(x):
-	return np.cos(x)	
-def sin(x):
-	return np.sin(x)
-def e(x):
-	return 2.718281828**(x*1j)	
 
 #Gell-Mann matrices (for scalarfunc)
 GM=np.array([[[0,1,0],[1,0,0],[0,0,0*1j]],
@@ -249,7 +242,7 @@ def kappa(potential):
 	
 ## Mass Matrix ##	
 m23=np.array([[1,0*1j,0],[0,cos(a23),sin(a23)],[0,-sin(a23),cos(a23)]])
-m13=np.array([[cos(a13),0,sin(a13)*e(-delta)],[0,1,0],[-sin(a13)*e(delta),0,cos(a13)]])
+m13=np.array([[cos(a13),0,sin(a13)*exp(-1j*delta)],[0,1,0],[-sin(a13)*exp(1j*delta),0,cos(a13)]])
 m12=np.array([[cos(a12),sin(a12),0],[-sin(a12),cos(a12),0],[0,0*1j,1]])
 m=np.matmul(m23,m13,m12)
 #m is the mass mixing (MNS) matrix--I think what the paper wants is a matrix M that evaluates the mass of the particle
