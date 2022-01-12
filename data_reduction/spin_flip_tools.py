@@ -355,6 +355,15 @@ def interact(d, outputfilename):
     t = eds.ds.current_time
     append_to_hdf5(outputfile,"t(s)",t)
 
+    # write the free Hamiltonians
+    if "H_R_free(eV)" not in outputfile:
+            outputfile["H_R_free(eV)"] = H_R_free
+            outputfile["H_L_free(eV)"] = H_L_free
+
+    # write the z grid
+    if "z(cm)" not in outputfile:
+            outputfile["z(cm)"] = np.arange(eds.dz/2., nz*eds.dz, eds.dz)
+    
     # [spacetime component, f1, f2, z]
     J = four_current(eds)
     append_to_hdf5_1D_scalar(outputfile, "J(eV^3)", J)
