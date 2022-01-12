@@ -52,9 +52,6 @@ basis(0,0)
 #test neutrino momentum:
 p_abs=10**7#eV
 
-## Non-Interacting Term ## [f1, f2]
-H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
-H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
 ########################
 ########################
 
@@ -346,13 +343,9 @@ def four_current(eds):
 
     return Jeverything
 
-def get_HLR(S_R_plus, S_L_minus):
-        H_LR=1j*np.zeros(np.shape(S_R_plus)) #(3,3,nz)
-        for n in range(0,nz):
-                MSl=np.matmul(conj(M),S_L_minus[:,:,:,n])
-                SrM=np.matmul(S_R_plus[:,:,:,n],conj(M))
-                H_LR[:,:,:,n]=(-1/p_abs)*(SrM-MSl)
-        return H_LR
+## Non-Interacting Term ## [f1, f2]
+H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
+H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
 
 # Input: what folder do we want to process?
 def interact(d, outputfilename):
@@ -390,8 +383,11 @@ def interact(d, outputfilename):
     append_hdf5_1D_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian! ## [nu/antinu, f1, f2, z]
-    H_LR = get_HLR(S_R_plus, S_L_minus)
-    append_hdf5_1D_scalar(outputfile, "H_LR(eV)", H_LR)    
+    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,:,n]) for n in range(nz) ])
+    SrM = np.array([ np.matmul(S_R_plus[:,:,:,n],conj(M))  for n in range(nz) ])
+    H_LR = (-1/p_abs)*(SrM-MSl)
+    H_LR = H_LR.transpose((1,2,3,0))
+    append_to_hdf5(outputfile, "H_LR(eV)", H_LR)    
     
     # plusminus term [anti/nu, f1, f2, z]
     H_R_plusminus = 2./p_abs * np.array([
