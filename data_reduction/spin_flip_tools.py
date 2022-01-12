@@ -141,32 +141,9 @@ def scalarfunc(array): #3,3
         scalars[n]=(1/(2**(1/2))+0*1j)*(sum([(x*conj(x)) for x in components]))**(1/2)
     return scalars
 
-#scalar: works on a single matrix (k,k), outputs positive number 	
-def scalar(matrix): #3,3
-    components=1j*np.zeros(8)
-    for k in range(0,8):
-        components[k]=1/2*np.trace(np.matmul(GM[k],matrix))
-    return (1/9)*sum([(x*conj(x))**(1/2) for x in components])
-
 #average: for one timestep, takes in #3,3,nz and outputs average value of scalarfunc over space
 def scalar_avg(array):
     return sum(scalarfunc(array))/nz
-#same purpose as scalarfunc but just squares every elt in the matrix and averages
-def old_scalarfunc(array): #takes in (k,k,nz), outputs real (nz)
-	nz=array.shape[2]
-	scalar=np.zeros(nz)*1j
-	for k in range(0,nz):
-		for n in np.nditer(array[:,:,k]):
-			scalar[k]=n*(conj(n))+scalar[k]
-		scalar[k]=scalar[k]**(1/2)
-	scalar=np.real(scalar)
-	return scalar
-def old_scalar(array): 
-	scalar=0
-	for n in np.nditer(H_free[:,:]):
-		scalar=n*conj(n)+scalar
-	scalar=np.real(scalar**(1/2))
-	return scalar
 
 # Save data to hdf5 dataset
 def save_hdf5(f, datasetname, data):
