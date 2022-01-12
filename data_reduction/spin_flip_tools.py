@@ -299,7 +299,7 @@ H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
 H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
 
 # Input: what folder do we want to process?
-def interact(d, outputfilename):
+def interact(d, outputfilename, basis_theta, basis_phi):
     # Read in the data
     eds = emu.EmuDataset(d)
     nz = eds.Nz
@@ -329,7 +329,7 @@ def interact(d, outputfilename):
     append_to_hdf5_1D_scalar(outputfile, "S_L(eV)", S_L)
 
     # define the basis as along z
-    basis = Basis(0,0)
+    basis = Basis(basis_theta,basis_phi)
     
     # precompute Sigma [f1, f2, z]
     S_R_plus = plus(S_R, basis)
