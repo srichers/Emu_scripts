@@ -26,6 +26,10 @@ import scipy.special
 ##########
 nproc = 1
 
+# time constant for output
+mu_time = 9.4127e10 # 1/s
+
+
 #########################
 # angular preliminaries #
 #########################
@@ -242,7 +246,7 @@ if __name__ == '__main__':
             maxDeltaLength = max(maxDeltaLength, np.max(pool.map( get_maxDeltaLength, rdata, chunksize=chunksize)) )
 
         # write max delta length
-        maxDeltaLength_file.write(str(t.d)+"\t"+str(maxDeltaLength)+"\n")
+        maxDeltaLength_file.write(str(t.d*mu_time)+"\t"+str(maxDeltaLength)+"\n")
             
         # divide out cell volume and number of cells to get average differential number density
         Nrho_avg /= total_ncells*ad['index',"cell_volume"][0]
