@@ -24,8 +24,8 @@ import scipy.special
 ##########
 # INPUTS #
 ##########
-nproc = 8
-do_average = True
+nproc = 4
+do_average = False
 do_fft     = True
 do_angular = False
 
@@ -369,11 +369,6 @@ for d in directories[mpi_rank::mpi_size]:
         trace = sumtrace
         N = averaged_N(thisN,thisNI,sumtrace)
 
-        thisN, thisNI = get_matrix("N","bar")
-        sumtrace = sumtrace_N(thisN)
-        tracebar = sumtrace
-        Nbar = averaged_N(thisN,thisNI,sumtrace)
-
         thisFx, thisFxI = get_matrix("Fx","")
         thisFy, thisFyI = get_matrix("Fy","")
         thisFz, thisFzI = get_matrix("Fz","")
@@ -381,6 +376,11 @@ for d in directories[mpi_rank::mpi_size]:
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
         F = averaged_F(Ftmp, FtmpI,sumtrace)
     
+        thisN, thisNI = get_matrix("N","bar")
+        sumtrace = sumtrace_N(thisN)
+        tracebar = sumtrace
+        Nbar = averaged_N(thisN,thisNI,sumtrace)
+
         thisFx, thisFxI = get_matrix("Fx","bar") 
         thisFy, thisFyI = get_matrix("Fy","bar") 
         thisFz, thisFzI = get_matrix("Fz","bar") 
