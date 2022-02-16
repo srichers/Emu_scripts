@@ -79,7 +79,7 @@ for d in fluid_directories:
     allData["it"][-1] = int(d[3:])
     for v in varlist:
         allData[v].resize(np.shape(allData[v])[0] + 1, axis=0)
-        allData[v][-1,:] = ad['boxlib',v].d
+        allData[v][-1,:] = eds.cg[v].d
 
 if DELETE_ALL_BUT_LAST_RESTART:
     particle_directories = [d[:-10] for d in sorted(glob.glob("plt*/neutrinos"))]
