@@ -25,7 +25,7 @@ import scipy.special
 # INPUTS #
 ##########
 nproc = 4
-do_average = False
+do_average = True
 do_fft     = True
 do_angular = False
 
@@ -492,16 +492,17 @@ for d in directories[mpi_rank::mpi_size]:
 
         fout.close()
 
-# separate loop for angular spectra so there is no aliasing and better load balancing
-directories = sorted(glob.glob("plt*/neutrinos"))
-directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
-
-# get number of particles to be able to construct 
-nppc = get_nppc(directories[-1])
-
-# create shared object
-# double the size for real+imaginary parts
-Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
+if(do_angular):
+    # separate loop for angular spectra so there is no aliasing and better load balancing
+    directories = sorted(glob.glob("plt*/neutrinos"))
+    directories = [directories[i].split('/')[0] for i in range(len(directories))] # remove "neutrinos"
+    
+    # get number of particles to be able to construct 
+    nppc = get_nppc(directories[-1])
+    
+    # create shared object
+    # double the size for real+imaginary parts
+    Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
 
 
 if __name__ == '__main__':
