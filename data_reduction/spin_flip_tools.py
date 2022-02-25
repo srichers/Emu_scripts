@@ -78,6 +78,7 @@ def der(data,ad):
 		der[:,:,n]=(data[:,:,n]-(1+0j)*data[:,:,n-1])/dq[n]
 	return der
 
+
 #Gell-Mann matrices (for scalarfunc)
 GM=np.array([[[0, 1, 0],
               [1, 0, 0],
@@ -270,8 +271,9 @@ def plot(funcs,scale,xlabel,ylabel,name): #funcs is a list of tuples with legend
 	return
 
 
-# Four current, indexed by [spacetime component, f1, f2, z]
-def four_current(eds):
+# Four currents for particles and antiparticles, indexed by [spacetime component, f1, f2, z]
+#total current (defined in the interact function as J) is the particle current minus the conjugate of the antiparticle current
+def four_current_eds(eds):
     ad = eds.ds.all_data()
 
     # get array of number densities and number flux densities
@@ -292,14 +294,46 @@ def four_current(eds):
     J    = JR    + 1j*JI
     Jbar = JRbar + 1j*JIbar
 
-    return J - np.conj(Jbar)
+    return J, Jbar
+  
+#same return J, Jbar like the above function but this one works on h5 files (takes in a h5 file open with read permissions)
+#keys must be of the form ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', 'Fx01_Re', 'Fx01_Rebar', 'Fx11_Re', 'Fx11_Rebar', 'Fy00_Re', 'Fy00_Rebar', 'Fy01_Imbar', 'Fy01_Re', 'Fy01_Rebar', 'Fy11_Re', 'Fy11_Rebar', 'Fz00_Re', 'Fz00_Rebar', 'Fz01_Imbar', 'Fz01_Re', 'Fz01_Rebar', 'Fz11_Re', 'Fz11_Rebar', 'N00_Re', 'N00_Rebar', 'N01_Imbar', 'N01_Re', 'N01_Rebar', 'N11_Re', 'N11_Rebar', 'dz(cm)', 'it', 't(s)']>
+#where the numbers denote flavor components (flavornum is the number of flavors) 
+         
+#number of flavors is variable
+def four_current_h5(h5):
+    
+    #extract data into dictionary
+    d={key:np.array(h5[key]) for key in list(h5.keys())}
+    
+     #this is kind of janky but I'm going to figure out how many flavors there are by finding the maximum value of the third letter in the keys, which is always a flavor number
+    num_flavors=max([int(key[2]) for key in list(d.keys()) if key[0]=='F'])+1
+    component_shape=np.shape(d['N00_Re'])
+    components=['N', 'Fx', 'Fy', 'Fz']
+
+    J_Re=np.array([[[d[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] 
+   for n in range (0,4)]) 
+    #J_Im=np.array([[[d[components[n] + str(min(i,j)) + str(max(i,j)) +'_Im'] for i in range(0,num_flavors)]
+                            #for j in range (0, num_flavors)] for n in range(0,4)])
+        
+    J_Re_bar=np.array([[[d[components[n] + str(min(i,j)) + str(max(i,j)) +'_Rebar'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] 
+   for n in range (0,4)]) 
+    J_Im_bar=np.array([[[ np.zeros(component_shape) if i==j else d[components[n] + str(min(i,j)) + str(max(i,j)) +'_Imbar'] for i in range(0,num_flavors)]
+                         for j in range (0, num_flavors)] for n in range(0,4)])             
+    
+    J = J_Re #+J_Im
+    Jbar = J_Re_bar + J_Im_bar
+    
+    return J, Jbar
+                    
+
 
 ## Non-Interacting Term ## [f1, f2]
 H_R_free = 0.5*(1/p_abs)*np.matmul(conj(M),M)
 H_L_free = 0.5*(1/p_abs)*np.matmul(M,conj(M))
 
 # Input: what folder do we want to process?
-def interact(d, outputfilename, basis_theta, basis_phi):
+def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     # Read in the data
     eds = emu.EmuDataset(d)
     nz = eds.Nz
@@ -320,7 +354,13 @@ def interact(d, outputfilename, basis_theta, basis_phi):
             outputfile["z(cm)"] = np.arange(eds.dz/2., nz*eds.dz, eds.dz)
     
     # [spacetime component, f1, f2, z]
-    J = four_current(eds)
+    #particle, antiparticle and total neutrino four currents respectively
+    J_p = four_current(eds)[0]
+    J_a = four_current(eds)[1] 
+    J = J_p-np.conj(J_a)
+    
+    append_to_hdf5_1D_scalar(outputfile, "J_p(eV^3)", J_p)
+    append_to_hdf5_1D_scalar(outputfile, "J_a(eV^3)", J_a)
     append_to_hdf5_1D_scalar(outputfile, "J(eV^3)", J)
 
     # [spacetime, f1, f2, z]
@@ -370,3 +410,89 @@ def interact(d, outputfilename, basis_theta, basis_phi):
 
     # close the output file
     outputfile.close()
+    return
+         
+#<KeysViewHDF5 ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', 'Fx01_Re', 'Fx01_Rebar', 'Fx11_Re', 'Fx11_Rebar', 'Fy00_Re', 'Fy00_Rebar', 'Fy01_Imbar', 'Fy01_Re', 'Fy01_Rebar', 'Fy11_Re', 'Fy11_Rebar', 'Fz00_Re', 'Fz00_Rebar', 'Fz01_Imbar', 'Fz01_Re', 'Fz01_Rebar', 'Fz11_Re', 'Fz11_Rebar', 'N00_Re', 'N00_Rebar', 'N01_Imbar', 'N01_Re', 'N01_Rebar', 'N11_Re', 'N11_Rebar', 'dz(cm)', 'it', 't(s)']>
+         
+def interact(d, outputfilename, basis_theta, basis_phi):
+    # Read in the data
+    
+    #different operation for if the dataset d is an h5py file
+    if d[-3:]=='.h5':
+         
+    eds = emu.EmuDataset(d)
+    nz = eds.Nz
+
+    # open the hdf5 file
+    outputfile = h5py.File(outputfilename, "a")
+
+    t = eds.ds.current_time
+    append_to_hdf5(outputfile,"t(s)",t)
+
+    # write the free Hamiltonians
+    if "H_R_free(eV)" not in outputfile:
+            outputfile["H_R_free(eV)"] = H_R_free
+            outputfile["H_L_free(eV)"] = H_L_free
+
+    # write the z grid
+    if "z(cm)" not in outputfile:
+            outputfile["z(cm)"] = np.arange(eds.dz/2., nz*eds.dz, eds.dz)
+    
+    # [spacetime component, f1, f2, z]
+    #particle, antiparticle and total neutrino four currents respectively
+    J_p = four_current(eds)[0]
+    J_a = four_current(eds)[1] 
+    J = J_p-np.conj(J_a)
+    
+    append_to_hdf5(outputfile, "J_p(eV^3)", J_p)
+    append_to_hdf5(outputfile, "J_a(eV^3)", J_a)
+    append_to_hdf5(outputfile, "J(eV^3)", J)
+    
+    # [spacetime, f1, f2, z]
+    S_R,S_L=sigma(J)
+    append_to_hdf5(outputfile, "S_R(eV)", S_R)
+    append_to_hdf5(outputfile, "S_L(eV)", S_L)
+
+    # define the basis as along z
+    basis = Basis(basis_theta,basis_phi)
+    
+    # precompute Sigma [f1, f2, z]
+    S_R_plus = plus(S_R, basis)
+    S_L_plus = plus(S_L, basis)
+    S_R_minus = minus(S_R, basis)
+    S_L_minus = minus(S_L, basis)
+    S_R_kappa = kappa(S_R, basis)
+    S_L_kappa = kappa(S_L, basis)
+    append_to_hdf5(outputfile, "S_R_plus(eV)", S_R_plus)
+    append_to_hdf5(outputfile, "S_L_plus(eV)", S_L_plus)
+    append_to_hdf5(outputfile, "S_R_minus(eV)", S_R_minus)
+    append_to_hdf5(outputfile, "S_L_minus(eV)", S_L_minus)
+    append_to_hdf5(outputfile, "S_R_kappa(eV)", S_R_kappa)
+    append_to_hdf5(outputfile, "S_L_kappa(eV)", S_L_kappa)
+    
+    ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
+    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,n]) for n in range(nz) ])
+    SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
+    H_LR = (-1/p_abs)*(SrM-MSl)
+    H_LR = H_LR.transpose((1,2,0))
+    append_to_hdf5(outputfile, "H_LR(eV)", H_LR)    
+    
+    # plusminus term [f1, f2, z]
+    H_R_plusminus = 2./p_abs * np.array([
+            np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
+            for z in range(nz)]).transpose((1,2,0))
+    H_L_minusplus = 2./p_abs * np.array([
+            np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
+            for z in range(nz)]).transpose((1,2,0))
+    append_to_hdf5(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
+    append_to_hdf5(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
+    
+    ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
+    H_Rz = S_R_kappa + H_R_free[:,:,np.newaxis] + H_R_plusminus
+    H_Lz = S_L_kappa + H_L_free[:,:,np.newaxis] + H_L_minusplus
+    append_to_hdf5(outputfile, "H_Rz(eV)", H_Rz)
+    append_to_hdf5(outputfile, "H_Lz(eV)", H_Lz)
+
+    # close the output file
+    outputfile.close()
+         
