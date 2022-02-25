@@ -67,8 +67,8 @@ for d in fluid_directories:
                 for f2 in range(f1,NF):
                     for b in nunubar:
                         varlist.append(v+str(f1)+str(f2)+"_Re"+b)
-                    if f2!=f1:
-                        varlist.append(v+str(f1)+str(f2)+"_Im"+b)
+                        if f2!=f1:
+                            varlist.append(v+str(f1)+str(f2)+"_Im"+b)
         for v in varlist:
             allData.create_dataset(v, data=zeros, maxshape=maxshape, chunks=chunkshape, dtype=datatype)
 
