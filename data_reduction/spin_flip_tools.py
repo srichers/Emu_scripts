@@ -418,7 +418,8 @@ def interact(d, outputfilename, basis_theta, basis_phi):
     # Read in the data
     
     #different operation for if the dataset d is an h5py file
-    if d[-3:]=='.h5':
+    #if d[-3:]=='.h5':
+    
          
     eds = emu.EmuDataset(d)
     nz = eds.Nz
