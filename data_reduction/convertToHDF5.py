@@ -66,9 +66,9 @@ for d in fluid_directories:
             for f1 in range(NF):
                 for f2 in range(f1,NF):
                     for b in nunubar:
-                        varlist.append(v+str(f1)+str(f2)+"_Re"+b)
+                        varlist.append(v+str(f1)+str(f2)+"_Re"+b+"(1|ccm)")
                         if f2!=f1:
-                            varlist.append(v+str(f1)+str(f2)+"_Im"+b)
+                            varlist.append(v+str(f1)+str(f2)+"_Im"+b+"(1|ccm)")
         for v in varlist:
             allData.create_dataset(v, data=zeros, maxshape=maxshape, chunks=chunkshape, dtype=datatype)
 
@@ -79,7 +79,7 @@ for d in fluid_directories:
     allData["it"][-1] = int(d[3:])
     for v in varlist:
         allData[v].resize(np.shape(allData[v])[0] + 1, axis=0)
-        allData[v][-1,:] = eds.cg[v].d
+        allData[v][-1,:] = eds.cg[v[:-7]].d / ad['index',"cell_volume"][0]
 
 if DELETE_ALL_BUT_LAST_RESTART:
     particle_directories = [d[:-10] for d in sorted(glob.glob("plt*/neutrinos"))]
