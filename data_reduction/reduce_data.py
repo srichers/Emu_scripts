@@ -110,13 +110,7 @@ def get_matrix(base,suffix):
         fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
     return fR/ad['index',"cell_volume"][0], fI/ad['index',"cell_volume"][0]
 
-def sumtrace_N(N):
-    sumtrace = 0
-    for fi in range(NF):
-        sumtrace += np.sum(N[fi][fi])
-    return sumtrace
-
-def averaged_N(N, NI, sumtrace):
+def averaged_N(N, NI):
     R=0
     I=1
     
@@ -125,10 +119,10 @@ def averaged_N(N, NI, sumtrace):
     Nout = np.zeros((NF,NF))
     for i in range(NF):
         for j in range(NF):
-            Nout[i][j] = float(np.sum(np.sqrt(N[i][j]**2 + NI[i][j]**2)) / sumtrace)
+            Nout[i][j] = float(np.average(np.sqrt(N[i][j]**2 + NI[i][j]**2)))
     return np.array(Nout)
 
-def averaged_F(F, FI, sumtrace):
+def averaged_F(F, FI):
     R=0
     I=1
     
@@ -138,7 +132,7 @@ def averaged_F(F, FI, sumtrace):
     for i in range(3):
         for j in range(NF):
             for k in range(NF):
-                Fout[i][j][k] = float(np.sum(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2))/sumtrace)
+                Fout[i][j][k] = float(np.average(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2)))
 
     return Fout
 
@@ -365,28 +359,24 @@ for d in directories[mpi_rank::mpi_size]:
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
         thisN, thisNI = get_matrix("N",""   )
-        sumtrace = sumtrace_N(thisN)
-        trace = sumtrace
-        N = averaged_N(thisN,thisNI,sumtrace)
+        N = averaged_N(thisN,thisNI)
 
         thisFx, thisFxI = get_matrix("Fx","")
         thisFy, thisFyI = get_matrix("Fy","")
         thisFz, thisFzI = get_matrix("Fz","")
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        F = averaged_F(Ftmp, FtmpI,sumtrace)
+        F = averaged_F(Ftmp, FtmpI)
     
         thisN, thisNI = get_matrix("N","bar")
-        sumtrace = sumtrace_N(thisN)
-        tracebar = sumtrace
-        Nbar = averaged_N(thisN,thisNI,sumtrace)
+        Nbar = averaged_N(thisN,thisNI)
 
         thisFx, thisFxI = get_matrix("Fx","bar") 
         thisFy, thisFyI = get_matrix("Fy","bar") 
         thisFz, thisFzI = get_matrix("Fz","bar") 
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
+        Fbar = averaged_F(Ftmp, FtmpI)
 
         print("# rank",mpi_rank,"writing",outputfilename)
         avgData = h5py.File(outputfilename,"w")
