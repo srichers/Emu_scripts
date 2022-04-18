@@ -108,7 +108,7 @@ def get_matrix(base,suffix):
     if(NF==3):
         fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
         fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
-    return fR, fI
+    return fR/ad['index',"cell_volume"][0], fI/ad['index',"cell_volume"][0]
 
 def sumtrace_N(N):
     sumtrace = 0
@@ -390,10 +390,10 @@ for d in directories[mpi_rank::mpi_size]:
 
         print("# rank",mpi_rank,"writing",outputfilename)
         avgData = h5py.File(outputfilename,"w")
-        avgData["N_avg_mag"] = [N,]
-        avgData["Nbar_avg_mag"] = [Nbar,]
-        avgData["F_avg_mag"] = [F,]
-        avgData["Fbar_avg_mag"] = [Fbar,]
+        avgData["N_avg_mag(1|ccm)"] = [N,]
+        avgData["Nbar_avg_mag(1|ccm)"] = [Nbar,]
+        avgData["F_avg_mag(1|ccm)"] = [F,]
+        avgData["Fbar_avg_mag(1|ccm)"] = [Fbar,]
         avgData["t"] = [t,]
         avgData.close()
 
