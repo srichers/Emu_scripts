@@ -40,11 +40,13 @@ p_abs=10**7#eV
 
 # set of orthonormal vectors, where n_vector is pointed along theta,phi
 class Basis:
-        def __init__(self,theta, phi): #theta is polar, phi is azimuthal
-	        self.n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])	
-	        self.x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
-	        self.x2=np.array([0,-sin(phi),cos(phi),0])
-
+        def __init__(self, theta, phi): #theta is polar, phi is azimuthal
+            self.phi=phi
+            self.n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])
+            self.x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
+            self.x2=np.array([0,-sin(phi),cos(phi),0])
+            
+            
 #### Functions ####
 ###################
 
@@ -134,6 +136,9 @@ def scalarfunc(array):
 
     return np.real(scalars)
 
+#like scalarfunc, but takes in time dependent arrays (nt, nF, nF, nz) and applies scalarfunc at every time point
+def scalarfunc_time(array):
+    return np.array([scalarfunc(array[t]) for t in range(0,np.shape(array)[0])])
 # Save data to hdf5 dataset
 # f is the hdf5 file we are writing to
 def append_to_hdf5(f, datasetname, data):
@@ -182,6 +187,18 @@ def append_to_hdf5_scalar(outputfile, datasetname, data):
     scalar = scalarfunc(data)
     append_to_hdf5(outputfile, datasetname, scalar)
 
+    #total takes in read-only h5 dataset and the array you want to compute and just adds the real and imaginary parts for the array
+def total(d, array):
+    return (1+0*1j)*np.array(d[array+'R'])+1j*np.array(d[array+'I'])
+def J(d):
+    return total(d,'J(eV^3)')
+
+#GM gets the 8 GM components of the flux matrix
+def GM_components(d):
+    flux=J(d)
+    return np.array([[[[np.trace( np.matmul( GM[k], flux[t,x,:,:,n] ) ) 
+                        for k in range (0,8)] for n in range (0,np.shape(flux)[-1])]
+                        for x in range (0,4)] for t in range (0,np.shape(flux)[0])])
 
 def datasaver(data,filename): #data is the array/var to be saved, filename is a string. saves to a directory on my computer so it wont work on another unless you change the path
     current_directory=os.getcwd()
@@ -215,19 +232,19 @@ def sigma(flux):
 
 #potential projected onto the basis
 def dot(potential,vector):
-	projection=np.zeros(np.shape(potential[0]))
-	for k in range(0,4):
+	projection=-vector[0]*potential[0]
+	for k in range(1,4):
 		projection=projection+vector[k]*potential[k]
 	return projection
 
 def plus(potential, basis): #(3,3,nz)
 	vector=0.5*(basis.x1+1j*basis.x2)
-	plus=dot(potential,vector)
+	plus=np.exp(1j*basis.phi)*dot(potential,vector)
 	return plus
 
 def minus(potential, basis): #(3,3,nz)
 	vector=0.5*(basis.x1-1j*basis.x2)
-	minus=dot(potential,vector)
+	minus=np.exp(-1j*basis.phi)*dot(potential,vector)
 	return minus
 	
 def kappa(potential, basis):
@@ -314,7 +331,7 @@ def extract(h5_directory):
 def extract_time(h5_directory, t):
     
     data = h5py.File(h5_directory, "r")
-    nt = np.shape(np.array(data['N00_Re']))[0]
+    nt = np.shape(np.array(data['N00_Re(1|ccm)']))[0]
     #extract data into dictionary, selects the timestep t for all time dependent data
     d = dict((key, np.array(data[key])[t]) if key != "dz(cm)" else (key, np.array(data[key])) for key in list(data.keys()))
     
@@ -330,22 +347,25 @@ def four_current_h5(h5_dict):
      #this is kind of janky but I'm going to figure out how many flavors there are by finding the maximum value of the third letter in the keys, which is always a flavor number
         
     num_flavors=max([int(key[2]) for key in list(h5_dict.keys()) if key[0]=='F'])+1
-    component_shape=np.shape(h5_dict['N00_Re'])
+    component_shape=np.shape(h5_dict['N00_Re(1|ccm)'])
     components=['N', 'Fx', 'Fy', 'Fz']
 
-    J_Re=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re'] for i in range(0,num_flavors)] 
+    J_Re=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re(1|ccm)'] for i in range(0,num_flavors)] 
                             for j in range (0, num_flavors)] for n in range(0,4)]) 
-    J_Im=np.array([[[d[components[n] + str(min(i,j)) + str(max(i,j)) +'_Im'] for i in range(0,num_flavors)]
-                            for j in range (0, num_flavors)] for n in range(0,4)])
+    J_Im=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Im(1|ccm)'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] for n in range(0,4)])   
         
-    J_Re_bar=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Rebar'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] 
+    J_Re_bar=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Rebar(1|ccm)'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] 
    for n in range (0,4)]) 
-    J_Im_bar=np.array([[[ np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Imbar'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] for n in range(0,4)])             
-    
+    J_Im_bar=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Imbar(1|ccm)'] for i in range(0,num_flavors)] for j in range (0, num_flavors)] for n in range(0,4)])             
+    for i in range(0,num_flavors):
+        for j in range(0,i):
+            J_Im_bar[:,i,j,:]=-J_Im_bar[:,i,j,:]
+            J_Im[:,i,j,:]=-J_Im[:,i,j,:]
+            
     J = (1+0*1j)*J_Re + 1j*J_Im
     Jbar = (1+0*1j)*J_Re_bar + 1j*J_Im_bar
     
-    return J, Jbar
+    return (c**3*hbar**3)*J, (c**3*hbar**3)*Jbar
                     
 
 
@@ -532,7 +552,7 @@ def calculator_h5(d, outputfilename, basis_theta, basis_phi, time):
     # Read in the data
     data = extract_time(d, time)
     
-    nz = np.shape(data['N00_Re'])[0]
+    nz = np.shape(data['N00_Re(1|ccm)'])[0]
     
     t = data['t(s)']
     
@@ -572,7 +592,6 @@ def calculator_eds(d, outputfilename, basis_theta, basis_phi):
     
 
 def interact(d, outputfilename, basis_theta, basis_phi, time=0):
-    
     #extract the data, depending on type
     if d[-3:]=='.h5':
         nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, basis_theta, basis_phi, time)
@@ -588,9 +607,10 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     #define the size of the mass matrices
     if nF == 2:
         M=M_2flavor
-    elif nf == 3:
+    elif nF == 3:
         M=M_3flavor
     else:
+        print("unsupported flavor number.")
         return "unsupported flavor number."
         
     
@@ -655,6 +675,7 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
 
     # close the output file
     outputfile.close()
+
     return
             
            
