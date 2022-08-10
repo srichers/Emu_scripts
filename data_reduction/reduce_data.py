@@ -108,7 +108,7 @@ def get_matrix(base,suffix):
     if(NF==3):
         fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
         fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
-    return fR/ad['index',"cell_volume"][0], fI/ad['index',"cell_volume"][0]
+    return fR, fI
 
 def averaged_N(N, NI):
     R=0
@@ -579,8 +579,8 @@ if __name__ == '__main__':
 
             # write averaged data
             if mpi_rank==0:
-                spectrum /= total_ncells*ad['index',"cell_volume"][0]
-                Nrho_avg /= total_ncells*ad['index',"cell_volume"][0]
+                spectrum /= total_ncells
+                Nrho_avg /= total_ncells
             
                 print("# writing",outputfilename)
                 avgData = h5py.File(outputfilename,"w")
