@@ -35,10 +35,8 @@ eds = emu.EmuDataset(directories[0])
 NF = eds.get_num_flavors()
 if NF==2:
     rkey, ikey = amrex.get_particle_keys()
-    ncomps = 3
 if NF==3:
     rkey, ikey = amrex.get_3flavor_particle_keys()
-    ncomps = 6
 
 
 # separate loop for angular spectra so there is no aliasing and better load balancing
