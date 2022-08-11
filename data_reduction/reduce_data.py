@@ -31,6 +31,87 @@ do_angular = False
 
 do_MPI = False
 
+data_format = "Emu" # "FLASH" or "Emu"
+
+########################
+# format peculiarities #
+########################
+if(data_format=="FLASH"):
+    assert(not do_angular)
+    yt_descriptor = "flash"
+    energyGroup = "01"
+    e01_energy = 50.0 # MeV
+
+    MeV_to_codeenergy = 1.60217733e-6*5.59424238e-55 #code energy/MeV
+    cm_to_codelength = 6.77140812e-06 #code length/cm
+    convert_N_to_inv_ccm = 4.0*np.pi*f00/(e01_energy*MeV_to_codeenergy/cm_to_codelength**3)#1/cm^3
+
+    output_base = "NSM_sim_hdf5_chk_"
+    sorted(glob.glob(output_base+"*"))
+    
+if(data_format=="Emu"):
+    yt_descriptor = "boxlib"
+    convert_N_to_inv_ccm = 1.0
+
+    # get the number of spherical harmonics to evaluate
+    paramfile = open("inputs","r")
+    for line in paramfile:
+        line_without_comments = line.split("#")[0]
+        if "nphi_equator" in line_without_comments:
+            nl = int(line_without_comments.split("=")[1]) // 2
+    paramfile.close()
+    nl += 1
+
+    directories = sorted(glob.glob("plt*"))
+
+def dataset_name(moment, nu_nubar, i, j, ReIm):
+    # make sure the inputs make sense
+    assert(i>=0)
+    assert(j>=0)
+    assert(i<=j)
+    if(i==j):
+        assert(ReIm=="Re")
+    assert(ReIm=="Re" or ReIm=="Im")
+    assert(moment=="N" or moment=="Fx" or moment=="Fy" or moment=="Fz")
+    assert(nu_nubar=="" or nu_nubar=="bar")
+
+    # Emu
+    if(data_format=="Emu"):
+        return moment+str(i)+str(j)+"_"+ReIm
+
+    # FLASH
+    if(data_format=="FLASH"):
+        # make sure inputs only assume two flavors
+        assert(i<=1)
+        assert(j<=1)
+    
+        if moment=="N":  momentFlash = "e"
+        if moment=="Fx": momentFlash = "f"
+        if moment=="Fy": momentFlash = "g"
+        if moment=="Fz": momentFlash = "h"
+        
+        if i==0 and j==0:
+            if nu_nubar=="": componentFlash = "e"
+            else:            componentFlash = "a"
+        if j==1 and j==1:
+            if nu_nubar=="": componentFlash = "m"
+            else:            componentFlash = "n"
+        if i==0 and j==1:
+            if ReIm=="Re":
+                if nu_nubar=="": componentFlash = "r"
+                else:            componentFlash = "s"
+            else:
+                if nu_nubar=="": componentFlash = "i"
+                else:            componentFlash = "j"
+        
+        return momentFlash+componentFlash+energyGroup
+
+# N is the corresponding flavor's number density (already converted to the proper units)
+def convert_F_to_inv_ccm(N):
+    if(data_format=="Emu"):   return 1.0
+    if(data_format=="FLASH"): return N
+    
+
 #####################
 # FFT preliminaries #
 #####################
@@ -90,17 +171,17 @@ def fft_power(fft, cleft, cright, ileft, iright, kmid):
 #########################
 # average preliminaries #
 #########################
-def get_matrix(base,suffix):
-    f00  = ad['boxlib',base+"00_Re"+suffix]
-    f01  = ad['boxlib',base+"01_Re"+suffix]
-    f01I = ad['boxlib',base+"01_Im"+suffix]
-    f11  = ad['boxlib',base+"11_Re"+suffix]
+def get_matrix(moment,nu_nubar):
+    f00  = ad[yt_descriptor, dataset_name(moment, nu_nubar, 0, 0, "Re")]
+    f01  = ad[yt_descriptor, dataset_name(moment, nu_nubar, 0, 1, "Re")]
+    f01I = ad[yt_descriptor, dataset_name(moment, nu_nubar, 0, 1, "Im")]
+    f11  = ad[yt_descriptor, dataset_name(moment, nu_nubar, 1, 1, "Re")]
     if(NF>=3):
-        f02  = ad['boxlib',base+"02_Re"+suffix]
-        f02I = ad['boxlib',base+"02_Im"+suffix]
-        f12  = ad['boxlib',base+"12_Re"+suffix]
-        f12I = ad['boxlib',base+"12_Im"+suffix]
-        f22  = ad['boxlib',base+"22_Re"+suffix]
+        f02  = ad[yt_descriptor,dataset_name(moment, nu_nubar, 0, 2, "Re")]
+        f02I = ad[yt_descriptor,dataset_name(moment, nu_nubar, 0, 2, "Im")]
+        f12  = ad[yt_descriptor,dataset_name(moment, nu_nubar, 1, 2, "Re")]
+        f12I = ad[yt_descriptor,dataset_name(moment, nu_nubar, 1, 2, "Im")]
+        f22  = ad[yt_descriptor,dataset_name(moment, nu_nubar, 2, 2, "Re")]
     zero = np.zeros(np.shape(f00))
     if(NF==2):
         fR = [[f00 , f01 ], [ f01 ,f11 ]]
@@ -146,17 +227,6 @@ def offdiagMag(f):
     return np.sqrt(result)
 
 
-
-#########################
-# angular preliminaries #
-#########################
-paramfile = open("inputs","r")
-for line in paramfile:
-    line_without_comments = line.split("#")[0]
-    if "nphi_equator" in line_without_comments:
-        nl = int(line_without_comments.split("=")[1]) // 2
-paramfile.close()
-nl += 1
 
 class GridData(object):
     def __init__(self, ad):
@@ -333,7 +403,6 @@ if do_MPI:
 else:
     mpi_rank = 0
     mpi_size = 1
-directories = sorted(glob.glob("plt*"))
 
 # get NF
 eds = emu.EmuDataset(directories[0])
@@ -359,24 +428,24 @@ for d in directories[mpi_rank::mpi_size]:
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
         thisN, thisNI = get_matrix("N",""   )
-        N = averaged_N(thisN,thisNI)
+        N = averaged_N(thisN,thisNI) * convert_N_to_inv_ccm
 
-        thisFx, thisFxI = get_matrix("Fx","")
+        thisFx, thisFxI = get_matrix("Fx","") 
         thisFy, thisFyI = get_matrix("Fy","")
         thisFz, thisFzI = get_matrix("Fz","")
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        F = averaged_F(Ftmp, FtmpI)
+        F = averaged_F(Ftmp, FtmpI) * convert_F_to_inv_ccm(N)
     
         thisN, thisNI = get_matrix("N","bar")
-        Nbar = averaged_N(thisN,thisNI)
+        Nbar = averaged_N(thisN,thisNI) * convert_N_to_inv_ccm
 
-        thisFx, thisFxI = get_matrix("Fx","bar") 
-        thisFy, thisFyI = get_matrix("Fy","bar") 
-        thisFz, thisFzI = get_matrix("Fz","bar") 
+        thisFx, thisFxI = get_matrix("Fx","bar")
+        thisFy, thisFyI = get_matrix("Fy","bar")
+        thisFz, thisFzI = get_matrix("Fz","bar")
         Ftmp  = np.array([thisFx , thisFy , thisFz ])
         FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        Fbar = averaged_F(Ftmp, FtmpI)
+        Fbar = averaged_F(Ftmp, FtmpI) * convert_F_to_inv_ccm(Nbar)
 
         print("# rank",mpi_rank,"writing",outputfilename)
         avgData = h5py.File(outputfilename,"w")
@@ -495,7 +564,7 @@ if(do_angular):
     Ylm_star_shared = mp.RawArray('d', int(2 * (nl+1)**2 * nppc))
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' and do_angular:
     pool = Pool(nproc)
     for d in directories:
         if mpi_rank==0:
@@ -509,7 +578,7 @@ if __name__ == '__main__':
         ################
         outputfilename = d+"/reduced_data_angular_power_spectrum.h5"
         already_done = len(glob.glob(outputfilename))>0
-        if do_angular and not already_done:
+        if not already_done:
 
             if mpi_rank==0:
                 print("Computing up to l =",nl-1)
