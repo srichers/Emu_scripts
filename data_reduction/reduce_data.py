@@ -77,7 +77,7 @@ def dataset_name(moment, nu_nubar, i, j, ReIm):
 
     # Emu
     if(data_format=="Emu"):
-        return moment+str(i)+str(j)+"_"+ReIm
+        return moment+str(i)+str(j)+"_"+ReIm+nu_nubar
 
     # FLASH
     if(data_format=="FLASH"):
