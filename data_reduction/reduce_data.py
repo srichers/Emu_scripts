@@ -453,7 +453,7 @@ for d in directories[mpi_rank::mpi_size]:
         avgData["Nbar_avg_mag(1|ccm)"] = [Nbar,]
         avgData["F_avg_mag(1|ccm)"] = [F,]
         avgData["Fbar_avg_mag(1|ccm)"] = [Fbar,]
-        avgData["t"] = [t,]
+        avgData["t(s)"] = [t,]
         avgData.close()
 
     ############
@@ -465,10 +465,10 @@ for d in directories[mpi_rank::mpi_size]:
 
         print("# rank",mpi_rank,"writing",outputfilename)
         fout = h5py.File(outputfilename,"w")
-        fout["t"] = [np.array(t),]
+        fout["t(s)"] = [np.array(t),]
 
         fft = eds.fourier(dataset_name("N", "", 0, 0, "Re"),nproc=nproc)
-        fout["k"] = get_kmid(fft)
+        fout["k(1|cm)"] = get_kmid(fft)
         cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
         N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fft = eds.fourier(dataset_name("N", "", 1, 1, "Re"),nproc=nproc)
@@ -476,9 +476,9 @@ for d in directories[mpi_rank::mpi_size]:
         fft = eds.fourier(dataset_name("N", "", 0, 1, "Re"),
                           dataset_name("N", "", 0, 1, "Im"),nproc=nproc)
         N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fout["N00_FFT"] = [np.array(N00_FFT),]
-        fout["N11_FFT"] = [np.array(N11_FFT),]
-        fout["N01_FFT"] = [np.array(N01_FFT),]
+        fout["N00_FFT(cm^-2)"] = [np.array(N00_FFT),]
+        fout["N11_FFT(cm^-2)"] = [np.array(N11_FFT),]
+        fout["N01_FFT(cm^-2)"] = [np.array(N01_FFT),]
         if NF>2:
             fft = eds.fourier(dataset_name("N", "", 2, 2, "Re"),nproc=nproc)
             N22_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
@@ -488,9 +488,9 @@ for d in directories[mpi_rank::mpi_size]:
             fft = eds.fourier(dataset_name("N", "", 1, 2, "Re"),
                               dataset_name("N", "", 1, 2, "Im"),nproc=nproc)
             N12_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-            fout["N22_FFT"] = [np.array(N22_FFT),]
-            fout["N02_FFT"] = [np.array(N02_FFT),]
-            fout["N12_FFT"] = [np.array(N12_FFT),]
+            fout["N22_FFT(cm^-2)"] = [np.array(N22_FFT),]
+            fout["N02_FFT(cm^-2)"] = [np.array(N02_FFT),]
+            fout["N12_FFT(cm^-2)"] = [np.array(N12_FFT),]
         
         #fft = eds.fourier("Fx00_Re")
         #Fx00_FFT.append(fft_power(fft))
@@ -659,7 +659,7 @@ if __name__ == '__main__' and do_angular:
                 avgData["angular_spectrum"] = [spectrum,]
                 avgData["Nrho (1|ccm)"] = [Nrho_avg,]
                 avgData["phat"] = phat
-                avgData["t"] = [t,]
+                avgData["t(s)"] = [t,]
                 avgData.close()
 
     
