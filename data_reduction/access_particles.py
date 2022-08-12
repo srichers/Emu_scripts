@@ -53,9 +53,6 @@ if __name__ == '__main__':
         ################
         # angular work #
         ################
-        outputfilename = d+"/reduced_data_angular_power_spectrum.h5"
-        already_done = len(glob.glob(outputfilename))>0
-
         header = amrex.AMReXParticleHeader(d+"/neutrinos/Header")
         grid_data = GridData(ad)
         nlevels = len(header.grids)
