@@ -31,7 +31,7 @@ do_angular = False
 
 do_MPI = False
 
-data_format = "Emu" # "FLASH" or "Emu"
+data_format = "FLASH" # "FLASH" or "Emu"
 
 ########################
 # format peculiarities #
@@ -44,10 +44,10 @@ if(data_format=="FLASH"):
 
     MeV_to_codeenergy = 1.60217733e-6*5.59424238e-55 #code energy/MeV
     cm_to_codelength = 6.77140812e-06 #code length/cm
-    convert_N_to_inv_ccm = 4.0*np.pi*f00/(e01_energy*MeV_to_codeenergy/cm_to_codelength**3)#1/cm^3
+    convert_N_to_inv_ccm = 4.0*np.pi/(e01_energy*MeV_to_codeenergy/cm_to_codelength**3)#1/cm^3
 
     output_base = "NSM_sim_hdf5_chk_"
-    sorted(glob.glob(output_base+"*"))
+    directories = sorted(glob.glob(output_base+"*"))
     
 if(data_format=="Emu"):
     yt_descriptor = "boxlib"
@@ -424,7 +424,7 @@ for d in directories[mpi_rank::mpi_size]:
     # average work #
     ################
     # write averaged data
-    outputfilename = d+"/reduced_data.h5"
+    outputfilename = d+"_reduced_data.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
         thisN, thisNI = get_matrix("N",""   )
@@ -459,7 +459,7 @@ for d in directories[mpi_rank::mpi_size]:
     ############
     # FFT work #
     ############
-    outputfilename = d+"/reduced_data_fft_power.h5"
+    outputfilename = d+"_reduced_data_fft_power.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_fft and not already_done:
 
@@ -467,23 +467,26 @@ for d in directories[mpi_rank::mpi_size]:
         fout = h5py.File(outputfilename,"w")
         fout["t"] = [np.array(t),]
 
-        fft = eds.fourier("N00_Re",nproc=nproc)
+        fft = eds.fourier(dataset_name("N", "", 0, 0, "Re"),nproc=nproc)
         fout["k"] = get_kmid(fft)
         cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
         N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("N11_Re",nproc=nproc)
+        fft = eds.fourier(dataset_name("N", "", 1, 1, "Re"),nproc=nproc)
         N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("N01_Re","N01_Im",nproc=nproc)
+        fft = eds.fourier(dataset_name("N", "", 0, 1, "Re"),
+                          dataset_name("N", "", 0, 1, "Im"),nproc=nproc)
         N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
         fout["N00_FFT"] = [np.array(N00_FFT),]
         fout["N11_FFT"] = [np.array(N11_FFT),]
         fout["N01_FFT"] = [np.array(N01_FFT),]
         if NF>2:
-            fft = eds.fourier("N22_Re",nproc=nproc)
+            fft = eds.fourier(dataset_name("N", "", 2, 2, "Re"),nproc=nproc)
             N22_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-            fft = eds.fourier("N02_Re","N02_Im",nproc=nproc)
+            fft = eds.fourier(dataset_name("N", "", 0, 2, "Re"),
+                              dataset_name("N", "", 0, 2, "Im"),nproc=nproc)
             N02_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-            fft = eds.fourier("N12_Re","N12_Im",nproc=nproc)
+            fft = eds.fourier(dataset_name("N", "", 1, 2, "Re"),
+                              dataset_name("N", "", 1, 2, "Im"),nproc=nproc)
             N12_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
             fout["N22_FFT"] = [np.array(N22_FFT),]
             fout["N02_FFT"] = [np.array(N02_FFT),]

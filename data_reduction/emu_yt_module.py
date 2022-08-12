@@ -63,7 +63,7 @@ class EmuDataset(object):
     def setup_dataset(self, yt_dataset):
         self.ds = yt_dataset
         self.construct_covering_grid()
-        self.add_emu_fields()
+        #self.add_emu_fields()
 
     def construct_covering_grid(self):
         self.cg = self.ds.covering_grid(level=0, left_edge=self.ds.domain_left_edge,
@@ -152,35 +152,35 @@ class EmuDataset(object):
         dim = self.ds.domain_dimensions
         return np.sum(dim > 1)
 
-    def add_emu_fields(self):
-        # first, define the trace
-        def _make_trace(ds):
-            if self.get_num_flavors() == 3:
-                def _trace(field, data):
-                    return data["N00_Re"] + data["N11_Re"] + data["N22_Re"]
-                return _trace
-            else:
-                def _trace(field, data):
-                    return data["N00_Re"] + data["N11_Re"]
-                return _trace
-
-        _trace = _make_trace(self.ds)
-
-        self.ds.add_field(("gas", "trace"), function=_trace, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
-
-        # now, define normalized fields
-        for f in self.ds.field_list:
-            if "_Re" in f[1] or "_Im" in f[1]:
-                fname = f[1]
-                fname_norm = "{}_norm_tr".format(fname)
-
-                def _make_derived_field(f):
-                    def _derived_field(field, data):
-                        return data[f]/data[("gas", "trace")]
-                    return _derived_field
-
-                _norm_derived_f = _make_derived_field(f)
-                self.ds.add_field(("gas", fname_norm), function=_norm_derived_f, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
+    #def add_emu_fields(self):
+    #    # first, define the trace
+    #    def _make_trace(ds):
+    #        if self.get_num_flavors() == 3:
+    #            def _trace(field, data):
+    #                return data["N00_Re"] + data["N11_Re"] + data["N22_Re"]
+    #            return _trace
+    #        else:
+    #            def _trace(field, data):
+    #                return data["N00_Re"] + data["N11_Re"]
+    #            return _trace
+    #
+    #    _trace = _make_trace(self.ds)
+    #
+    #    self.ds.add_field(("gas", "trace"), function=_trace, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
+    #
+    #    # now, define normalized fields
+    #    for f in self.ds.field_list:
+    #        if "_Re" in f[1] or "_Im" in f[1]:
+    #            fname = f[1]
+    #            fname_norm = "{}_norm_tr".format(fname)
+    #
+    #            def _make_derived_field(f):
+    #                def _derived_field(field, data):
+    #                    return data[f]/data[("gas", "trace")]
+    #                return _derived_field
+    #
+    #            _norm_derived_f = _make_derived_field(f)
+    #            self.ds.add_field(("gas", fname_norm), function=_norm_derived_f, sampling_type="local", units="auto", dimensions=dimensions.dimensionless)
 
     def fourier(self, field_Re, field_Im=None, nproc=None):
         if field_Im:

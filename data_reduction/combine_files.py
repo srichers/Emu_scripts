@@ -3,16 +3,16 @@ import h5py
 import numpy as np
 import sys
 
-if(len(sys.argv) != 2):
+if(len(sys.argv) != 3):
     print()
-    print("Usage: [combine_files.py filename], where filename is contained in each of the run* subdirectories")
+    print("Usage: [combine_files.py filename_base filename_tail], where filename is contained in each of the run* subdirectories")
     print()
     exit()
 
-base_filename = sys.argv[1]
-print(base_filename)
+filename_base = sys.argv[1]
+filename_tail = sys.argv[2]
 
-file_list = sorted(glob.glob("plt*/"+base_filename))
+file_list = sorted(glob.glob(filename_base+"*"+filename_tail))
 
 # get the number of datasets in the file
 f = h5py.File(file_list[0],"r")
@@ -33,8 +33,8 @@ for filename in file_list:
 # concatenate the arrays together
 # output to file
 print()
-print("Outputting datasets to "+base_filename)
-f = h5py.File(base_filename,"w")
+print("Outputting datasets to "+filename_base+filename_tail)
+f = h5py.File(filename_base+filename_tail,"w")
 for i, key in enumerate(keylist):
     if key=="k" or key=="phat":
         datasets[i] = datasets[i][0]
