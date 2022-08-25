@@ -26,12 +26,14 @@ import scipy.special
 ##########
 nproc = 4
 do_average = True
-do_fft     = True
+do_fft     = False
+
 do_angular = False
+nl = 0 # number of spherical harmonics to evaluate
 
 do_MPI = False
 
-data_format = "FLASH" # "FLASH" or "Emu"
+data_format = "Emu" # "FLASH" or "Emu"
 
 ########################
 # format peculiarities #
@@ -52,17 +54,7 @@ if(data_format=="FLASH"):
 if(data_format=="Emu"):
     yt_descriptor = "boxlib"
     convert_N_to_inv_ccm = 1.0
-
-    # get the number of spherical harmonics to evaluate
-    paramfile = open("inputs","r")
-    for line in paramfile:
-        line_without_comments = line.split("#")[0]
-        if "nphi_equator" in line_without_comments:
-            nl = int(line_without_comments.split("=")[1]) // 2
-    paramfile.close()
-    nl += 1
-
-    directories = sorted(glob.glob("plt*"))
+    directories = sorted(glob.glob("plt?????"))
 
 def dataset_name(moment, nu_nubar, i, j, ReIm):
     # make sure the inputs make sense
