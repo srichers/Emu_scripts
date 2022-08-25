@@ -11,8 +11,8 @@ from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLoca
 
 
 base=["N","Fx","Fy","Fz"]
-diag_flavor=["00","11","22"]
-offdiag_flavor=["01","02","12"]
+diag_flavor=["00","11"]#,"22"]
+offdiag_flavor=["01"]#,"02","12"]
 re=["Re","Im"]
 # real/imag
 R=0
@@ -30,8 +30,8 @@ def offdiagMag(f):
 ######################
 def plotdata(filename,a,b):
     avgData = h5py.File(filename,"r")
-    t=np.array(avgData["t"])*1e9
-    N=np.array(avgData["N_avg_mag"])[:,a,b]
+    t=np.array(avgData["t(s)"])*1e9
+    N=np.array(avgData["N_avg_mag(1|ccm)"])[:,a,b]
     avgData.close()
     return t, N
 
@@ -70,7 +70,7 @@ ax.grid(which='both')
 #############
 # plot data #
 #############
-filename = "reduced_data.h5"
+filename = "plt_reduced_data.h5"
 t,N = plotdata(filename,0,0)
 ax.plot(t, N)
 
