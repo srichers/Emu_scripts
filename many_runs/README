@@ -1,0 +1,10 @@
+generate_
+
+multiple_nodes_many_tasks_parallel.sh
+	submit script. Run as "sbatch multiple_nodes_many_tasks_parallel.sh input_list.txt". Gets a list of all of the runnable directories in run/*
+
+payload.sh
+	script that takes the input list and selects the chunk of the input list belonging to the node it is running on. Uses GNU parallel to run one instance of task.sh for each input line
+
+task.sh
+	List of commands to be run for each element on the task list
