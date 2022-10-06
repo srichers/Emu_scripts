@@ -9,13 +9,15 @@ infilename = "../../orthonormal_distributions/model_rl0_orthonormal.h5"
 slicedir = 'none' # 'x', 'y', 'z', 'none'
 sliceind = 100
 stepsize = 4
-run_directory = "../RUN_lowres_sqrt2"
-reference_domainsize = 16.0 / np.sqrt(2.) # cm
+reference_domainsize = 16.0    # cm
 reference_phi0 = 4.89e32 * 2.    # 1/ccm
 reference_phi1 = 4.89e32 * 2./3. # 1/ccm
 exist_ok = False
 do_only_crossings = True
 only_counting = False
+zero_density = True
+run_directory = "../RUN_standard_2F_nuonly"
+executable = "../main3d.gnu.haswell.TPROF.2F.ex"
 
 #############
 # constants #
@@ -71,6 +73,10 @@ nnet = n_e+n_a+n_x
 Jnet = J_e+J_a+J_x
 print("There are",len(np.where(descriminant>0)[0]),"data points with crossings.")
 
+# zero out density
+if zero_density:
+    rho = rho * 0
+
 # get list of indices to loop over
 datashape = np.shape(J_e)
 print("data shape = ", datashape)
@@ -97,7 +103,7 @@ if not only_counting:
     os.makedirs(run_directory, exist_ok=exist_ok)
     for filename in copy_list:
         shutil.copy(filename,run_directory+"/"+filename)
-    shutil.copy("../main3d.gnu.haswell.TPROF.ex", run_directory+"/main3d.gnu.haswell.TPROF.ex")
+    shutil.copy(executable, run_directory+"/main3d.gnu.haswell.TPROF.ex")
 
 # set up each simulation within run_directory
 count = 0
