@@ -17,9 +17,9 @@ N_Nbar_tolerance = 1e-3
 # read in the database from the previous script #
 #===============================================#
 f_in = h5py.File(input_filename,"r")
-ijkList_growthrate = np.array(f_in["ijk_growthrate"])
+#ijkList_growthrate = np.array(f_in["ijk_growthrate"])
 growthRateList     = np.array(f_in["growthrate(1|s)"])
-ijkList_F4         = np.array(f_in["ijk_F4"])
+#ijkList_F4         = np.array(f_in["ijk_F4"])
 F4_initial_list    = np.array(f_in["F4_initial_Nsum1"]) # [ind, xyzt, nu/nubar, flavor]
 F4_final_list      = np.array(f_in["F4_final_Nsum1"])
 f_in.close()
@@ -82,7 +82,8 @@ def run_ML_model(estimator, param_grid, label):
     grid_search = GridSearchCV(estimator=estimator,
                                param_grid=param_grid,
                                scoring=custom_scoring,
-                               cv=5)
+                               cv=5,
+                               verbose=3)
 
     # run the grid search
     StartTime = time.time()
@@ -107,16 +108,6 @@ def run_ML_model(estimator, param_grid, label):
     print("Fx After :", after[0].flatten(), np.sum(after[0]))
     print()
 
-#==========================#
-# SUPPORT VECTOR REGRESSOR #
-#==========================#
-from sklearn.svm import SVR
-from sklearn.multioutput import MultiOutputRegressor
-estimator = MultiOutputRegressor(SVR())
-param_grid = {}
-
-run_ML_model(estimator, param_grid, "Support Vector")
-
 #=========================#
 # DECISION TREE REGRESSOR #
 #=========================#
@@ -128,7 +119,7 @@ param_grid={'n_estimators':[1,5,10]}
 run_ML_model(estimator, param_grid, "Decision Tree")
 
 #=========================#
-# DECISION TREE REGRESSOR #
+# RANDOM FOREST REGRESSOR #
 #=========================#
 from sklearn.ensemble import RandomForestRegressor
 estimator = RandomForestRegressor()
@@ -146,5 +137,15 @@ param_grid={
     'solver':['adam', 'sgd'],
     'hidden_layer_sizes':[(16,16,16)],
 }
+
+#==========================#
+# SUPPORT VECTOR REGRESSOR #
+#==========================#
+from sklearn.svm import SVR
+from sklearn.multioutput import MultiOutputRegressor
+estimator = MultiOutputRegressor(SVR())
+param_grid = {}
+
+run_ML_model(estimator, param_grid, "Support Vector")
 
 run_ML_model(estimator, param_grid, "Artificial Neural Network")
