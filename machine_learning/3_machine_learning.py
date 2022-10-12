@@ -108,24 +108,15 @@ def run_ML_model(estimator, param_grid, label):
     print("Fx After :", after[0].flatten(), np.sum(after[0]))
     print()
 
-#=========================#
-# DECISION TREE REGRESSOR #
-#=========================#
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import BaggingRegressor
-estimator = BaggingRegressor(DecisionTreeRegressor())
-param_grid={'n_estimators':[1,5,10]}
+#==================#
+# LINEAR REGRESSOR #
+#==================#
+from sklearn.linear_model import LinearRegression
+#from sklearn.multioutput import MultiOutputRegressor
+estimator = LinearRegression()
+param_grid = {}
 
-run_ML_model(estimator, param_grid, "Decision Tree")
-
-#=========================#
-# RANDOM FOREST REGRESSOR #
-#=========================#
-from sklearn.ensemble import RandomForestRegressor
-estimator = RandomForestRegressor()
-param_grid={'max_depth':[1,2,5]}
-
-run_ML_model(estimator, param_grid, "Random Forest")
+run_ML_model(estimator, param_grid, "Linear")
 
 #===========================#
 # ARTIFICIAL NEURAL NETWORK #
@@ -133,19 +124,43 @@ run_ML_model(estimator, param_grid, "Random Forest")
 from sklearn.neural_network import MLPRegressor
 estimator = MLPRegressor()
 param_grid={
-    'max_iter':[200],
-    'solver':['adam', 'sgd'],
-    'hidden_layer_sizes':[(16,16,16)],
+    'max_iter':[2000],
+    'solver':['lbfgs'], # 'adam'
+    'activation':['relu','identity'],
+    'hidden_layer_sizes':[(8),(16),(32),(16,16)],
 }
+
+run_ML_model(estimator, param_grid, "Artificial Neural Network")
 
 #==========================#
 # SUPPORT VECTOR REGRESSOR #
 #==========================#
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputRegressor
-estimator = MultiOutputRegressor(SVR())
+estimator = MultiOutputRegressor(SVR(kernel='linear',epsilon=0.01,C=100))
 param_grid = {}
 
 run_ML_model(estimator, param_grid, "Support Vector")
 
-run_ML_model(estimator, param_grid, "Artificial Neural Network")
+#=========================#
+# RANDOM FOREST REGRESSOR #
+#=========================#
+from sklearn.ensemble import RandomForestRegressor
+estimator = RandomForestRegressor()
+param_grid={'max_depth':[5,10],
+            'n_estimators':[50,100]}
+
+run_ML_model(estimator, param_grid, "Random Forest")
+
+#=========================#
+# DECISION TREE REGRESSOR #
+#=========================#
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import BaggingRegressor
+estimator = BaggingRegressor(DecisionTreeRegressor(max_depth=5, min_samples_leaf=3))
+param_grid={'n_estimators':[10,50],
+            'bootstrap': [False,True]}
+
+run_ML_model(estimator, param_grid, "Decision Tree")
+
+
