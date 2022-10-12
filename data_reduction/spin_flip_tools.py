@@ -21,13 +21,13 @@ pi=np.pi
 G=1.1663787*10**(-23) # eV^-2
 c=29979245800         # cm/s
 hbar=6.582119569e-16  # erg s
-#mixing angles (rad): (different values on wikipedia?)
-a12=1e-6*np.pi*2/360
-a13=48.3*np.pi*2/360
-a23=8.61*np.pi*2/360
+#mixing angles (rad): (values from NuFit)
+a12=33.4*np.pi*2/360
+a13=49.2*np.pi*2/360
+a23=8.57*np.pi*2/360
 
 #CP phase:
-delta=222*np.pi*2/360
+delta=194*np.pi*2/360
 #majorana angles are all 0 and dont influence the matrix
 
 #masses (eV) (Negative mass? 0 mass?)
@@ -235,7 +235,7 @@ def dot(potential,vector):
 	projection=-vector[0]*potential[0]
 	for k in range(1,4):
 		projection=projection+vector[k]*potential[k]
-	return projection
+	return -projection
 
 def plus(potential, basis): #(3,3,nz)
 	vector=0.5*(basis.x1+1j*basis.x2)
@@ -251,17 +251,31 @@ def kappa(potential, basis):
 	return dot(potential,basis.n_vector)
 	
 ## Mass Matrix ##	
-m23=np.array([[1,0*1j,0],[0,cos(a23),sin(a23)],[0,-sin(a23),cos(a23)]])
-m13=np.array([[cos(a13),0,sin(a13)*exp(-1j*delta)],[0,1,0],[-sin(a13)*exp(1j*delta),0,cos(a13)]])
-m12=np.array([[cos(a12),sin(a12),0],[-sin(a12),cos(a12),0],[0,0*1j,1]])
-m=np.matmul(m23,m13,m12)
-#m is the mass mixing (MNS) matrix--I think what the paper wants is a matrix M that evaluates the mass of the particle
+m23=np.array([[1,0*1j,0],
+              [0,cos(a23),sin(a23)],
+              [0,-sin(a23),cos(a23)]])
+
+m13=np.array([[cos(a13),0,sin(a13)*exp(-1j*delta)],
+              [0,1,0],
+              [-sin(a13)*exp(1j*delta),0,cos(a13)]])
+
+m12=np.array([[cos(a12),sin(a12),0],
+              [-sin(a12),cos(a12),0],
+              [0,0*1j,1]])
+
+m=m23 @ m13 @ m12
+#m is the mass mixing (MNS) matrix -- m*(1,2,3)=(e,mu,tau)
 M_mass_basis=([[m_1,0*1j,0],[0,m_2,0],[0,0,m_3]])
-M1 = np.matmul(m,M_mass_basis)
-M_3flavor = np.matmul(M1,conj(m)) #(3,3)
-M_2flavor = np.array([[M_3flavor[j,i] for i in range(0,2)] for j in range(0,2)])
+M_3flavor = m @ M_mass_basis @ conj(m) #(3,3)
 M=M_3flavor
-    
+
+m2 = np.array([[cos(a12),sin(a12)],[-sin(a12),cos(a12)]])
+M_mass_basis_2 =([[m_1,0*1j],[0,m_2]])
+M_2flavor = m2 @ M_mass_basis_2 @ conj(m2)
+                                    
+                
+
+        
 
 #### PLOTS ####
 def zplot(funcs,scale):
@@ -432,7 +446,7 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     append_to_hdf5_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
     append_to_hdf5_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
-    ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
+    ## Helicity-Flip Hamiltonian ## [f1, f2, z]
     MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,n]) for n in range(nz) ])
     SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
