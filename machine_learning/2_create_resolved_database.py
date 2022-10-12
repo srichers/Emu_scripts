@@ -161,18 +161,19 @@ stable_locs = np.where(dtheta != dtheta)
 n_e = np.array(f["n_e(1|ccm)"])[stable_locs]
 n_a = np.array(f["n_a(1|ccm)"])[stable_locs]
 n_x = np.array(f["n_x(1|ccm)"])[stable_locs]
-ntot = n_e+n_a+n_x
-n_e /= ntot
-n_a /= ntot
-n_x /= ntot
 
 fn_e = np.array(f["fn_e(1|ccm)"])
 fn_a = np.array(f["fn_a(1|ccm)"])
 fn_x = np.array(f["fn_x(1|ccm)"])
-fn_e = np.transpose(np.array([fn_e[i][stable_locs] for i in range(3)] )) # [ind, xyz]
-fn_a = np.transpose(np.array([fn_a[i][stable_locs] for i in range(3)] ))
-fn_x = np.transpose(np.array([fn_x[i][stable_locs] for i in range(3)] ))
+fn_e = np.transpose(np.array([fn_e[i][stable_locs] for i in range(3)] ))/n_e[:,np.newaxis] # [ind, xyz]
+fn_a = np.transpose(np.array([fn_a[i][stable_locs] for i in range(3)] ))/n_a[:,np.newaxis]
+fn_x = np.transpose(np.array([fn_x[i][stable_locs] for i in range(3)] ))/n_x[:,np.newaxis]
 f.close()
+
+ntot = n_e+n_a+n_x
+n_e /= ntot
+n_a /= ntot
+n_x /= ntot
 
 nunstable = len(F4_final_list)
 print("# simulations w/ resolved UNSTABLE final state:", nunstable)
@@ -199,6 +200,7 @@ print("# simulations (lo):", len(ilo))
 print("# simulations (hi):", len(ihi))
 print("# simulations w/ resolved growth rate:", len(growthRateList))
 print("# simulations w/ resolved final state:", len(F4_final_list))
+print("# F4_final_list:",np.min(F4_final_list),np.max(F4_final_list))
 
 # write data to file
 f_out = h5py.File(output_filename,"w")
