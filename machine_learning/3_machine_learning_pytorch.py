@@ -95,39 +95,37 @@ optimizer = torch.optim.Adam(model.parameters())
 
 # create list of equivalent simulations
 # X = [isim, xyzt, nu/nubar, flavor]
-flip_antimatter_list = [True, False] # possible orderings of neutrinos and antineutrinos
 def augment_data(X,y):
     Xlist = torch.zeros_like(X[0:0])
     ylist = torch.zeros_like(y[0:0])
     for reflect0 in [-1,1]:
         for reflect1 in [-1,1]:
             for reflect2 in [-1,1]:
-                for flip_antimatter in flip_antimatter_list:
+                for mperm in permutations(range(2)):
                     for dperm in permutations([0,1,2]):
                         for fperm in permutations(range(NF)):
                             thisX = copy.deepcopy(X)
                             thisy = copy.deepcopy(y)
                         
                             # permute which direction is which
-                            thisX[0,0:3] = thisX[0,dperm]
-                            thisy[0,0:3] = thisy[0,dperm]
+                            thisX[:,0:3] = thisX[:,dperm]
+                            thisy[:,0:3] = thisy[:,dperm]
                         
                             # permute which flavor is which
-                            thisX[0] = thisX[0,:,:,fperm]
-                            thisy[0] = thisy[0,:,:,fperm]
+                            thisX = thisX[:,:,:,fperm]
+                            thisy = thisy[:,:,:,fperm]
                         
                             # perform nu/nubar reordering
-                            if flip_antimatter:
-                                thisX = torch.flip(thisX, [2])
-                                thisX = torch.flip(thisy, [2])
+                            thisX = thisX[:,:,mperm]
+                            thisy = thisy[:,:,mperm]
                     
                             # perform reflection operations
-                            thisX[0,0] *= reflect0
-                            thisX[0,1] *= reflect1
-                            thisX[0,2] *= reflect2
-                            thisy[0,0] *= reflect0
-                            thisy[0,1] *= reflect1
-                            thisy[0,2] *= reflect2
+                            thisX[:,0] *= reflect0
+                            thisX[:,1] *= reflect1
+                            thisX[:,2] *= reflect2
+                            thisy[:,0] *= reflect0
+                            thisy[:,1] *= reflect1
+                            thisy[:,2] *= reflect2
                             Xlist = torch.cat((Xlist, thisX))
                             ylist = torch.cat((ylist, thisy))
                             
