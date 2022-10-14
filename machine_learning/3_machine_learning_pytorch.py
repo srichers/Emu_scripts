@@ -95,6 +95,12 @@ optimizer = torch.optim.Adam(model.parameters())
 # create list of equivalent simulations
 # X = [isim, xyzt, nu/nubar, flavor]
 flip_antimatter_list = [True, False] # possible orderings of neutrinos and antineutrinos
+direction_permutations = [[0,1,2],
+                          [0,2,1],
+                          [1,0,2],
+                          [1,2,0],
+                          [2,0,1],
+                          [2,1,0]]
 def augment_data(X,y):
     Xlist = torch.zeros_like(X)
     ylist = torch.zeros_like(y)
@@ -102,23 +108,29 @@ def augment_data(X,y):
         for reflect1 in [-1,1]:
             for reflect2 in [-1,1]:
                 for flip_antimatter in flip_antimatter_list:
-                    thisX = copy.deepcopy(X)
-                    thisy = copy.deepcopy(y)
-
-                    # perform nu/nubar reordering
-                    if flip_antimatter:
-                        thisX = torch.flip(thisX, [2])
-                        thisX = torch.flip(thisy, [2])
+                    for dperm in direction_permutations:
+                        thisX = copy.deepcopy(X)
+                        thisy = copy.deepcopy(y)
+                        
+                        # permute which direction is which
+                        thisX[0,0:3] = thisX[0,dperm]
+                        thisy[0,0:3] = thisy[0,dperm]
+                        
+                        # perform nu/nubar reordering
+                        if flip_antimatter:
+                            thisX = torch.flip(thisX, [2])
+                            thisX = torch.flip(thisy, [2])
                     
-                    # perform reflection operations
-                    thisX[0,0,:,:] *= reflect0
-                    thisX[0,1,:,:] *= reflect1
-                    thisX[0,2,:,:] *= reflect2
-                    thisy[0,0,:,:] *= reflect0
-                    thisy[0,1,:,:] *= reflect1
-                    thisy[0,2,:,:] *= reflect2
-                    Xlist = torch.cat((Xlist, thisX))
-                    ylist = torch.cat((ylist, thisy))
+                        # perform reflection operations
+                        thisX[0,0] *= reflect0
+                        thisX[0,1] *= reflect1
+                        thisX[0,2] *= reflect2
+                        thisy[0,0] *= reflect0
+                        thisy[0,1] *= reflect1
+                        thisy[0,2] *= reflect2
+                        Xlist = torch.cat((Xlist, thisX))
+                        ylist = torch.cat((ylist, thisy))
+
 
     # flatten the input/output. Torch expects the last dimension size to be the number of features.
     Xlist = torch.flatten(Xlist,start_dim=1)
@@ -128,6 +140,8 @@ def augment_data(X,y):
     Xlist = Xlist[1:]
     ylist = ylist[1:]
 
+    print(Xlist.shape)
+    
     return Xlist, ylist
     
 # function to train the dataset
