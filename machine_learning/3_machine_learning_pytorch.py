@@ -102,8 +102,8 @@ direction_permutations = [[0,1,2],
                           [2,0,1],
                           [2,1,0]]
 def augment_data(X,y):
-    Xlist = torch.zeros_like(X)
-    ylist = torch.zeros_like(y)
+    Xlist = torch.zeros_like(X[0:0])
+    ylist = torch.zeros_like(y[0:0])
     for reflect0 in [-1,1]:
         for reflect1 in [-1,1]:
             for reflect2 in [-1,1]:
@@ -135,10 +135,6 @@ def augment_data(X,y):
     # flatten the input/output. Torch expects the last dimension size to be the number of features.
     Xlist = torch.flatten(Xlist,start_dim=1)
     ylist = torch.flatten(ylist,start_dim=1)
-
-    # remove first element (which is just zeros - should make this more elegant)
-    Xlist = Xlist[1:]
-    ylist = ylist[1:]
 
     print(Xlist.shape)
     
