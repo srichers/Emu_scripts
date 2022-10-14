@@ -166,7 +166,7 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
         loss.backward()
         optimizer.step()
 
-        training_loss = max(training_loss, loss)
+        training_loss = max(training_loss, loss.item())
     print(f"Training Error: {training_loss:>7f}")
 
 # function to test the model performance
@@ -175,7 +175,7 @@ def test(Xlist,ylist, model, loss_fn):
     model.eval()
     with torch.no_grad():
         pred = model(Xlist)
-        test_loss = loss_fn(pred,ylist).item() / nsims
+        test_loss = loss_fn(pred,ylist).item()
         print(f"Test Error: {test_loss:>8f}")
 
 # augment both datasets
