@@ -147,7 +147,7 @@ def augment_data(X,y):
     return Xaugmented, yaugmented
 
 # function to train the dataset
-def train(Xlist,ylist, model, loss_fn, optimizer):
+def train_chunked(Xlist,ylist, model, loss_fn, optimizer):
     nsims = Xlist.shape[0]
     model.train()
 
@@ -167,6 +167,23 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
         optimizer.step()
 
         training_loss = max(training_loss, loss.item())
+    print(f"Training Error: {training_loss:>7f}")
+
+# function to train the dataset
+def train(Xlist,ylist, model, loss_fn, optimizer):
+    nsims = Xlist.shape[0]
+    model.train()
+
+    # compute the prediction error
+    pred = model(Xlist)
+    loss = loss_fn(pred, ylist)
+
+    # backpropagation
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    training_loss = loss.item()
     print(f"Training Error: {training_loss:>7f}")
 
 # function to test the model performance
@@ -189,6 +206,7 @@ print("augmented testing data shape:",X_test.shape)
 for t in range(epochs):
     print("----------------------------------")
     print(f"Epoch {t+1}")
+    #train_chunked(X_train, y_train, model, loss_fn, optimizer)
     train(X_train, y_train, model, loss_fn, optimizer)
     test(X_test, y_test, model, loss_fn)
 print("Done!")
