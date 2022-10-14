@@ -136,25 +136,26 @@ def augment_data(X,y):
                             yaugmented[iaug,:,1] *= reflect1
                             yaugmented[iaug,:,2] *= reflect2
                             
-                            
     # flatten the input/output. Torch expects the last dimension size to be the number of features.
     Xaugmented = torch.flatten(Xaugmented,start_dim=2)
     yaugmented = torch.flatten(yaugmented,start_dim=2)
 
-    print(Xaugmented.shape)
-    
+    # switch the array index order to the simulation index is first and the augmentation index is second
+    Xaugmented = torch.transpose(Xaugmented,0,1)
+    yaugmented = torch.transpose(yaugmented,0,1)
+
     return Xaugmented, yaugmented
 
 # function to train the dataset
 def train(Xlist,ylist, model, loss_fn, optimizer):
-    nsims = Xlist.shape[1]
+    nsims = Xlist.shape[0]
     model.train()
 
     training_loss = 0
     for isim in range(nsims):
         # select a single simulation, including all augmentations
-        X = Xlist[:,isim]
-        y = ylist[:,isim]
+        X = Xlist[isim]
+        y = ylist[isim]
 
         # compute the prediction error
         pred = model(X)
@@ -170,7 +171,7 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
 
 # function to test the model performance
 def test(Xlist,ylist, model, loss_fn):
-    nsims = Xlist.shape[1]
+    nsims = Xlist.shape[0]
     model.eval()
     with torch.no_grad():
         pred = model(Xlist)
@@ -180,6 +181,9 @@ def test(Xlist,ylist, model, loss_fn):
 # augment both datasets
 X_train, y_train = augment_data(X_train, y_train)
 X_test,  y_test  = augment_data(X_test,  y_test )
+print("augmented training data shape:",X_train.shape)
+print("augmented testing data shape:",X_test.shape)
+
 
 # training loop
 for t in range(epochs):
