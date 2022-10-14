@@ -5,12 +5,14 @@ import h5py
 import re
 import numpy as np
 import time
+import copy
 from sklearn.model_selection import train_test_split
 import torch
 from torch import nn
 
 input_filename = "many_sims_database_RUN_lowres_sqrt2_RUN_standard.h5"
 N_Nbar_tolerance = 1e-3
+NF=2
 
 #===============================================#
 # read in the database from the previous script #
@@ -34,15 +36,11 @@ assert(N_Nbar_error < N_Nbar_tolerance)
 nsims = F4_initial_list.shape[0]
 IO_shape = F4_initial_list.shape[1:]
 number_predictors = np.product(IO_shape)
-X = F4_initial_list.reshape((nsims, number_predictors))
-y = F4_final_list.reshape((nsims, number_predictors))
+X = F4_initial_list
+y = F4_final_list
 
 # split the data into training and testing data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train = torch.Tensor(X_train)
-y_train = torch.Tensor(y_train)
-X_test = torch.Tensor(X_test)
-y_test = torch.Tensor(y_test)
 print("X_train:", X_train.shape)
 print("y_train:", y_train.shape)
 print("X_test:", X_test.shape)
@@ -58,10 +56,13 @@ F4_test[2,0,0] = 1/3
 F4_test[2,1,0] = -1/3
 F4_test /= np.sum(F4_test[3])
 
-
 # use a GPU if available
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using {device} device")
+X_train = torch.Tensor(X_train).to(device)
+y_train = torch.Tensor(y_train).to(device)
+X_test = torch.Tensor(X_test).to(device)
+y_test = torch.Tensor(y_test).to(device)
 
 # define the NN model
 class NeuralNetwork(nn.Module):
@@ -91,6 +92,31 @@ loss_fn = nn.MSELoss(reduction='sum')
 # use the adam optimizer
 optimizer = torch.optim.Adam(model.parameters())
 
+# create list of equivalent simulations
+# X = [isim, xyzt, nu/nubar, flavor]
+def augment_data(X,y):
+    Xlist = torch.zeros_like(X)
+    ylist = torch.zeros_like(y)
+    for reflect0 in [-1,1]:
+        for reflect1 in [-1,1]:
+            for reflect2 in [-1,1]:
+                thisX = copy.deepcopy(X)
+                thisy = copy.deepcopy(y)
+                thisX[0,0,:,:] *= reflect0
+                thisX[0,1,:,:] *= reflect1
+                thisX[0,2,:,:] *= reflect2
+                thisy[0,0,:,:] *= reflect0
+                thisy[0,1,:,:] *= reflect1
+                thisy[0,2,:,:] *= reflect2
+                Xlist = torch.cat((Xlist, thisX))
+                ylist = torch.cat((ylist, thisy))
+
+    # flatten the input/output. Torch expects the last dimension size to be the number of features.
+    Xlist = torch.flatten(Xlist,start_dim=1)
+    ylist = torch.flatten(ylist,start_dim=1)
+
+    return Xlist, ylist
+    
 # function to train the dataset
 def train(Xlist,ylist, model, loss_fn, optimizer):
     nsims = len(Xlist)
@@ -99,14 +125,13 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
     training_loss = 0
     for isim in range(nsims):
         # select a single data point (batch size 1)
-        X = Xlist[isim]
-        y = ylist[isim]
+        loc = isim
+        X = Xlist[loc:loc+1]
+        y = ylist[loc:loc+1]
 
         # AUGMENT DATA HERE
-
-        # move the data to the device
-        X, y = X.to(device), y.to(device)
-
+        X,y = augment_data(X,y)
+        
         # compute the prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
@@ -123,23 +148,18 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
 def test(Xlist,ylist, model, loss_fn):
     nsims = len(Xlist)
     model.eval()
-    test_loss = 0
     with torch.no_grad():
-        for isim in range(nsims):
-            X = Xlist[isim]
-            y = ylist[isim]
-            X = X.to(device)
-            y = y.to(device)
-            pred = model(X)
-            test_loss = max(test_loss, loss_fn(pred,y).item())
-        #test_loss /= nsims
+        X = torch.flatten(Xlist, start_dim=1)
+        y = torch.flatten(ylist, start_dim=1)
+        pred = model(X)
+        test_loss = loss_fn(pred,y).item() / nsims
         print(f"Test Error: {test_loss:>8f}")
 
 # training loop
 epochs = 20
 for t in range(epochs):
-    print(f"Epoch {t+1}")
     print("----------------------------------")
+    print(f"Epoch {t+1}")
     train(X_train, y_train, model, loss_fn, optimizer)
     test(X_test, y_test, model, loss_fn)
 print("Done!")
