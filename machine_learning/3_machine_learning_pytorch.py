@@ -94,26 +94,39 @@ optimizer = torch.optim.Adam(model.parameters())
 
 # create list of equivalent simulations
 # X = [isim, xyzt, nu/nubar, flavor]
+flip_antimatter_list = [True, False] # possible orderings of neutrinos and antineutrinos
 def augment_data(X,y):
     Xlist = torch.zeros_like(X)
     ylist = torch.zeros_like(y)
     for reflect0 in [-1,1]:
         for reflect1 in [-1,1]:
             for reflect2 in [-1,1]:
-                thisX = copy.deepcopy(X)
-                thisy = copy.deepcopy(y)
-                thisX[0,0,:,:] *= reflect0
-                thisX[0,1,:,:] *= reflect1
-                thisX[0,2,:,:] *= reflect2
-                thisy[0,0,:,:] *= reflect0
-                thisy[0,1,:,:] *= reflect1
-                thisy[0,2,:,:] *= reflect2
-                Xlist = torch.cat((Xlist, thisX))
-                ylist = torch.cat((ylist, thisy))
+                for flip_antimatter in flip_antimatter_list:
+                    thisX = copy.deepcopy(X)
+                    thisy = copy.deepcopy(y)
+
+                    # perform nu/nubar reordering
+                    if flip_antimatter:
+                        thisX = torch.flip(thisX, [2])
+                        thisX = torch.flip(thisy, [2])
+                    
+                    # perform reflection operations
+                    thisX[0,0,:,:] *= reflect0
+                    thisX[0,1,:,:] *= reflect1
+                    thisX[0,2,:,:] *= reflect2
+                    thisy[0,0,:,:] *= reflect0
+                    thisy[0,1,:,:] *= reflect1
+                    thisy[0,2,:,:] *= reflect2
+                    Xlist = torch.cat((Xlist, thisX))
+                    ylist = torch.cat((ylist, thisy))
 
     # flatten the input/output. Torch expects the last dimension size to be the number of features.
     Xlist = torch.flatten(Xlist,start_dim=1)
     ylist = torch.flatten(ylist,start_dim=1)
+
+    # remove first element (which is just zeros - should make this more elegant)
+    Xlist = Xlist[1:]
+    ylist = ylist[1:]
 
     return Xlist, ylist
     
