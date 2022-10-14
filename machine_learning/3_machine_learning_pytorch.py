@@ -14,6 +14,7 @@ from itertools import permutations
 input_filename = "many_sims_database_RUN_lowres_sqrt2_RUN_standard.h5"
 N_Nbar_tolerance = 1e-3
 NF=2
+epochs = 20
 
 #===============================================#
 # read in the database from the previous script #
@@ -96,63 +97,65 @@ optimizer = torch.optim.Adam(model.parameters())
 # create list of equivalent simulations
 # X = [isim, xyzt, nu/nubar, flavor]
 def augment_data(X,y):
-    Xlist = torch.zeros_like(X[0:0])
-    ylist = torch.zeros_like(y[0:0])
+    # number of augmentations
+    # 2 reflections in each direction
+    # permutations for anti/matter, direction, and flavor
+    matter_permutations    = list(permutations(range(2)))
+    direction_permutations = list(permutations(range(3)))
+    flavor_permutations    = list(permutations(range(NF)))
+    n_augment = 2**3 * len(matter_permutations) * len(direction_permutations) * len(flavor_permutations)
+
+    # augmented arrays. [iaug, isim, xyzt, nu/nubar, flavor]
+    Xaugmented = X.repeat(n_augment,1,1,1,1)
+    yaugmented = y.repeat(n_augment,1,1,1,1)
+
+    iaug = 0
     for reflect0 in [-1,1]:
         for reflect1 in [-1,1]:
             for reflect2 in [-1,1]:
-                for mperm in permutations(range(2)):
-                    for dperm in permutations([0,1,2]):
-                        for fperm in permutations(range(NF)):
-                            thisX = copy.deepcopy(X)
-                            thisy = copy.deepcopy(y)
-                        
+                for mperm in matter_permutations:
+                    for dperm in direction_permutations:
+                        for fperm in flavor_permutations:
                             # permute which direction is which
-                            thisX[:,0:3] = thisX[:,dperm]
-                            thisy[:,0:3] = thisy[:,dperm]
+                            Xaugmented[iaug,:,0:3] = Xaugmented[iaug,:,dperm]
+                            yaugmented[iaug,:,0:3] = yaugmented[iaug,:,dperm]
                         
                             # permute which flavor is which
-                            thisX = thisX[:,:,:,fperm]
-                            thisy = thisy[:,:,:,fperm]
+                            Xaugmented[iaug] = Xaugmented[iaug,:,:,:,fperm]
+                            yaugmented[iaug] = yaugmented[iaug,:,:,:,fperm]
                         
                             # perform nu/nubar reordering
-                            thisX = thisX[:,:,mperm]
-                            thisy = thisy[:,:,mperm]
+                            Xaugmented[iaug] = Xaugmented[iaug,:,:,mperm]
+                            yaugmented[iaug] = yaugmented[iaug,:,:,mperm]
                     
                             # perform reflection operations
-                            thisX[:,0] *= reflect0
-                            thisX[:,1] *= reflect1
-                            thisX[:,2] *= reflect2
-                            thisy[:,0] *= reflect0
-                            thisy[:,1] *= reflect1
-                            thisy[:,2] *= reflect2
-                            Xlist = torch.cat((Xlist, thisX))
-                            ylist = torch.cat((ylist, thisy))
+                            Xaugmented[iaug,:,0] *= reflect0
+                            Xaugmented[iaug,:,1] *= reflect1
+                            Xaugmented[iaug,:,2] *= reflect2
+                            yaugmented[iaug,:,0] *= reflect0
+                            yaugmented[iaug,:,1] *= reflect1
+                            yaugmented[iaug,:,2] *= reflect2
                             
                             
     # flatten the input/output. Torch expects the last dimension size to be the number of features.
-    Xlist = torch.flatten(Xlist,start_dim=1)
-    ylist = torch.flatten(ylist,start_dim=1)
+    Xaugmented = torch.flatten(Xaugmented,start_dim=2)
+    yaugmented = torch.flatten(yaugmented,start_dim=2)
 
-    print(Xlist.shape)
+    print(Xaugmented.shape)
     
-    return Xlist, ylist
-    
+    return Xaugmented, yaugmented
+
 # function to train the dataset
 def train(Xlist,ylist, model, loss_fn, optimizer):
-    nsims = len(Xlist)
+    nsims = Xlist.shape[1]
     model.train()
 
     training_loss = 0
     for isim in range(nsims):
-        # select a single data point (batch size 1)
-        loc = isim
-        X = Xlist[loc:loc+1]
-        y = ylist[loc:loc+1]
+        # select a single simulation, including all augmentations
+        X = Xlist[:,isim]
+        y = ylist[:,isim]
 
-        # AUGMENT DATA HERE
-        X,y = augment_data(X,y)
-        
         # compute the prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
@@ -167,17 +170,18 @@ def train(Xlist,ylist, model, loss_fn, optimizer):
 
 # function to test the model performance
 def test(Xlist,ylist, model, loss_fn):
-    nsims = len(Xlist)
+    nsims = Xlist.shape[1]
     model.eval()
     with torch.no_grad():
-        X = torch.flatten(Xlist, start_dim=1)
-        y = torch.flatten(ylist, start_dim=1)
-        pred = model(X)
-        test_loss = loss_fn(pred,y).item() / nsims
+        pred = model(Xlist)
+        test_loss = loss_fn(pred,ylist).item() / nsims
         print(f"Test Error: {test_loss:>8f}")
 
+# augment both datasets
+X_train, y_train = augment_data(X_train, y_train)
+X_test,  y_test  = augment_data(X_test,  y_test )
+
 # training loop
-epochs = 20
 for t in range(epochs):
     print("----------------------------------")
     print(f"Epoch {t+1}")
