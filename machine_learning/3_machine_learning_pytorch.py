@@ -219,7 +219,7 @@ def F4_from_y(F4_initial, y):
     iystart = diy*3
     delta_F4[3,0,:NF-1] = y[iystart:iystart+(NF-1)]
     delta_F4[3,0,NF-1] = -torch.sum(delta_F4[3,0,0:NF-1])
-    delta_F4[3,1,:] = -delta_F4[3,0,:]
+    delta_F4[3,1,:] = delta_F4[3,0,:]
 
     F4_final = F4_initial + delta_F4
     return F4_final
@@ -239,6 +239,8 @@ class NeuralNetwork(nn.Module):
         #self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(16, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU(),
