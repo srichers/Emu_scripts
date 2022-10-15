@@ -14,7 +14,7 @@ from itertools import permutations
 input_filename = "many_sims_database_RUN_lowres_sqrt2_RUN_standard.h5"
 N_Nbar_tolerance = 1e-3
 NF=2
-epochs = 5
+epochs = 1000
 
 #===============================================#
 # read in the database from the previous script #
@@ -176,7 +176,7 @@ def cyclic_permute(A, steps):
 Ny = (NF-1)*7
 def y_from_F4(F4_initial, F4_final):
     # take the difference between the final and initial solutions
-    delta_F4 = F4_final - F4_initial # [isim1, isim2,..., xyzt, nu/nubar, flavor]
+    delta_F4 = (F4_final - F4_initial) # [isim1, isim2,..., xyzt, nu/nubar, flavor]
 
     # permute the indices so the sample indices are at the end and we can use the same expressions for one data point and many data points
     input_rank = len(delta_F4.shape)
@@ -185,9 +185,9 @@ def y_from_F4(F4_initial, F4_final):
     shift = input_rank - single_element_rank
     delta_F4 = cyclic_permute(delta_F4, shift) # [xyzt, nu/nubar, flavor, isim1, isim2, ...]
 
-    # calculate the flow from one flavor to the next
-    delta_F4_flow = delta_F4[:,:,1:NF] - delta_F4[:,:,0:NF-1]
-
+    # shorten by one flavor because it can be determined via conservation
+    delta_F4 = delta_F4[:,:,0:NF-1]
+    
     # create y array of correct size
     # [iy, isim1, isim2, ...]
     shape = [Ny]
@@ -200,18 +200,29 @@ def y_from_F4(F4_initial, F4_final):
     diy = (NF-1)*2
     for i in range(3):
         iystart = diy*i
-        y[iystart:iystart+diy] = delta_F4_flow[i].flatten(start_dim=0, end_dim=1)
+        y[iystart:iystart+diy] = delta_F4[i].flatten(start_dim=0, end_dim=1)
     iystart = diy*3
-    y[iystart:iystart+(NF-1)] = delta_F4_flow[3,0]
+    y[iystart:iystart+(NF-1)] = delta_F4[3,0]
 
     # shift back to have simulation index first
     y = cyclic_permute(y,-shift) # [isim1, isim1, ... , iy]
     return y
 
-#def F4_from_y(F4_initial, y):
-#    F4_final = copy.deepcopy(F4_initial)
+def F4_from_y(F4_initial, y):
+    diy = (NF-1)*2
+    delta_F4 = torch.zeros(4,2,NF).to(device)
+    for i in range(3):
+        iystart = diy*i
+        delta_F4[i,:,0:NF-1] = torch.reshape(y[iystart:iystart+diy], (2,NF-1))
+        delta_F4[i,:,NF-1] = -torch.sum(delta_F4[i,:,0:NF-1],dim=1)
 
-#    F4_final[]
+    iystart = diy*3
+    delta_F4[3,0,:NF-1] = y[iystart:iystart+(NF-1)]
+    delta_F4[3,0,NF-1] = -torch.sum(delta_F4[3,0,0:NF-1])
+    delta_F4[3,1,:] = -delta_F4[3,0,:]
+
+    F4_final = F4_initial + delta_F4
+    return F4_final
 
 y_train = y_from_F4(X_train, y_train)
 y_test = y_from_F4(X_test, y_test)
@@ -273,7 +284,8 @@ F4_test /= np.sum(F4_test[3])
 before = torch.Tensor(F4_test).to(device)
 shape = F4_test.shape
 print("before:",before.shape)
-after = model(before.flatten(start_dim=0)).reshape(shape)
+after = model(before.flatten(start_dim=0))
+after = F4_from_y(before, after)
 print("after:",after.shape)
 
 
