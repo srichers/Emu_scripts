@@ -84,13 +84,19 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #############
 # plot data #
 #############
-filename_emu_2f = "/global/project/projectdirs/m3761/Evan/merger_2F/reduced_data.h5"
-filename_emu_2f_lowres = "/global/project/projectdirs/m3761/Evan/merger_2F_lowres/reduced_data.h5"
-filename_emu_3f = "/global/project/projectdirs/m3761/Evan/merger_3F/reduced_data.h5"
-filename_emu_3f_lowres = "/global/project/projectdirs/m3761/Evan/merger_3F_lowres/reduced_data.h5"
-filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/sim1/reduced_data_NSM_sim_hdf5_chk.h5"
-filename_bang_res1 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/res_test1/from_payne/v0/reduced_data_NSM_sim.h5"
-filename_bang_res3 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/res_test3/v0/reduced_data_NSM_sim.h5"
+#filename_emu_2f = "/global/project/projectdirs/m3761/Evan/merger_2F/reduced_data.h5"
+#filename_emu_2f_lowres = "/global/project/projectdirs/m3761/Evan/merger_2F_lowres/reduced_data.h5"
+filename_emu_2f = "/global/project/projectdirs/m3761/FLASH/Emu/merger_2F/reduced_data_normalized.h5"
+filename_emu_2f_lowres = "/global/cfs/projectdirs/m3761/FLASH/Emu/merger_2F_lowres/reduced_data.h5"
+
+#filename_emu_3f = "/global/project/projectdirs/m3761/Evan/merger_3F/reduced_data.h5"
+#filename_emu_3f_lowres = "/global/project/projectdirs/m3761/Evan/merger_3F_lowres/reduced_data.h5"
+filename_emu_3f = "/global/project/projectdirs/m3761/FLASH/Emu/merger_3F/reduced_data.h5"
+filename_emu_3f_lowres = "/global/project/projectdirs/m3761/FLASH/Emu/merger_3F_lowres/reduced_data.h5"
+
+filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM_1/sim1/reduced_data_NSM_sim_hdf5_chk.h5"
+filename_bang_res1 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM_1/res_test1/from_payne/v0/reduced_data_NSM_sim.h5"
+filename_bang_res3 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM_1/res_test3/reduced_data.h5"
 
 t,Nee = plotdata(filename_emu_2f_lowres,0,0)
 tex,Nex = plotdata(filename_emu_2f_lowres,0,1)
@@ -103,6 +109,9 @@ tex,Nex = plotdata(filename_emu_2f,0,1)
 tmax = t[np.argmax(Nex)]
 axes[0].plot(t-tmax, mfact * Nee * n_2F, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
 axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
+a_time = min(range(len(t)), key=lambda i: abs(t[i]-2.0))
+print('EMU (2F)')
+print('N_ee:', n_2F*Nee[a_time], 'N_ex:', n_2F*Nex[np.argmax(Nex)])
 
 
 t,Nee = plotdata(filename_emu_3f_lowres,0,0)
@@ -116,6 +125,9 @@ tex,Nex = plotdata(filename_emu_3f,0,1)
 tmax = t[np.argmax(Nex)]
 axes[0].plot(t-tmax, mfact * N * n_tot, 'k--', label=r'${\rm {\tt EMU}\,\,(3f)}$')
 axes[1].semilogy(t-tmax, mfact * Nex * n_tot, 'k--', label=r'${\rm {\tt EMU}\,\,(3f)}$')
+a_time = min(range(len(t)), key=lambda i: abs(t[i]-2.0))
+print('EMU (3F)')
+print('N_ee:', n_tot*Nee[a_time], 'N_ex:', n_tot*Nex[np.argmax(Nex)])
 
 
 t,Nee = plotdata(filename_bang_res3,0,0)
@@ -136,6 +148,9 @@ tex,Nex = plotdata(filename_bang,0,1)
 tmax = t[np.argmax(Nex)]
 axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', label=r'${\rm{\tt FLASH}\,\,(2f)}$')
 axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-', label=r'${\rm{\tt FLASH}\,\,(2f)}$')
+a_time = min(range(len(t)), key=lambda i: abs(t[i]-2.0))
+print('FLASH')
+print('N_ee:', n_2F*Nee[a_time], 'N_ex:', n_2F*Nex[np.argmax(Nex)])
 
 
 axes[0].legend(loc=(0.43,0.6), frameon=False)

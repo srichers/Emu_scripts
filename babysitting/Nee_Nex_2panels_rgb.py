@@ -8,14 +8,14 @@ import matplotlib as mpl
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator)
 
 #NSM_1:
-#n_nue0 = 1.421954234999705e+33     # 1/ccm
-#n_nux0 = 1.9645407875568215e+33/4. # 1/ccm, each flavor
+n_nue0 = 1.421954234999705e+33     # 1/ccm
+n_nux0 = 1.9645407875568215e+33/4. # 1/ccm, each flavor
 #NSM_2:
 #n_nue0 = 2.3293607911671233e+33    # 1/ccm
 #n_nux0 = 1.5026785300973756e+33 # 1/ccm, each flavor
 #NSM_3:
-n_nue0 = 2.8800567085107055e+33    # 1/ccm
-n_nux0 = 4.831622183948198e+32 # 1/ccm, each flavor
+#n_nue0 = 2.8800567085107055e+33    # 1/ccm
+#n_nux0 = 4.831622183948198e+32 # 1/ccm, each flavor
 n_tot = n_nue0 + 2.*n_nux0
 n_2F = n_nue0 + n_nux0
 n_tot_eq = n_tot/3.0
@@ -112,7 +112,7 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #try_dir = 't4'
 
 #NSM_3:
-NSM_dir = 'NSM_3/'
+#NSM_dir = 'NSM_3/'
 #t1
 #box_length = 5.803047682077095
 #n_grid = 128
@@ -134,14 +134,21 @@ NSM_dir = 'NSM_3/'
 #n_grid = 512
 #try_dir = 't5'
 #t6
-box_length = 5.803047682077095
-n_grid = 512
-try_dir = 't6'
+#box_length = 5.803047682077095
+#n_grid = 512
+#try_dir = 't6'
+
+#NSM_1_homogeneous
+NSM_dir = 'NSM_1_homogeneous/'
+box_length = 7.865243034321406
+n_grid = 128
+try_dir = ''
 
 filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/sim/reduced_data.h5"
-filename_bang_res1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/res_a/reduced_data.h5"
-filename_bang_res2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/res_b/reduced_data.h5"
-plot_dir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/sim_res_comp/"
+#filename_bang_res1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/res_a/reduced_data.h5"
+#filename_bang_res2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/res_b/reduced_data.h5"
+#plot_dir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/" + NSM_dir + try_dir + "/sim_res_comp/"
+plot_dir = "./"
 
 t,Nee = plotdata(filename_bang,0,0)
 tex,Nex = plotdata(filename_bang,0,1)
@@ -149,22 +156,22 @@ tmax = t[np.argmax(Nex)]
 axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', label = r'$N_{{gp}}/L={}/{:.3f}\,{{\rm cm}}$'.format(n_grid,box_length))
 axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-')
 
-t,Nee = plotdata(filename_bang_res1,0,0)
-tex,Nex = plotdata(filename_bang_res1,0,1)
-tmax = t[np.argmax(Nex)]
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'g--', label = r'$N_{{gp}}/L={}/{:.3f}\,{{\rm cm}}$'.format(n_grid/2,box_length/2.0))
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'g--')
-
-t,Nee = plotdata(filename_bang_res2,0,0)
-tex,Nex = plotdata(filename_bang_res2,0,1)
-tmax = t[np.argmax(Nex)]
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'b-', label = r'$N_{{gp}}/L={}/{:.3f}\,{{\rm cm}}$'.format(n_grid/2,box_length))
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'b-')
+#t,Nee = plotdata(filename_bang_res1,0,0)
+#tex,Nex = plotdata(filename_bang_res1,0,1)
+#tmax = t[np.argmax(Nex)]
+#axes[0].plot(t-tmax, mfact * Nee * n_2F, 'g--', label = r'$N_{{gp}}/L={}/{:.3f}\,{{\rm cm}}$'.format(n_grid/2,box_length/2.0))
+#axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'g--')
+#
+#t,Nee = plotdata(filename_bang_res2,0,0)
+#tex,Nex = plotdata(filename_bang_res2,0,1)
+#tmax = t[np.argmax(Nex)]
+#axes[0].plot(t-tmax, mfact * Nee * n_2F, 'b-', label = r'$N_{{gp}}/L={}/{:.3f}\,{{\rm cm}}$'.format(n_grid/2,box_length))
+#axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'b-')
 
 
 #fig.text(0.5, 0.82, r'$L_s={:.3f}\,{{\rm cm}}$'.format(box_length))
 #fig.text(0.5, 0.77, r'$N_{{gp,s}}={}^3$'.format(n_grid))
 
-axes[0].legend(loc=(0.43,0.6), fontsize=14, frameon=False)
+#axes[0].legend(loc=(0.43,0.6), fontsize=14, frameon=False)
 plotfile = plot_dir + "Nee_Nex_2panels_rgb.pdf"
 plt.savefig(plotfile, bbox_inches="tight")

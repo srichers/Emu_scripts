@@ -98,12 +98,10 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #box_length = 4.132703957221158
 #n_grid = 256
 #t3
-#box_length = 8.265407914442315
-#n_grid = 256
-#t4
-box_length = 16.53081582888463
-n_grid = 512
-try_dir = 't4'
+box_length = 8.265407914442315
+n_grid = 256
+try_dir = 't3'
+
 filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/sim/reduced_data.h5"
 filename_bang_res1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/res_a/reduced_data.h5"
 filename_bang_res2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/res_b/reduced_data.h5"

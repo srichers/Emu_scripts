@@ -30,7 +30,8 @@ nproc = 2
 do_average = True
 do_fft     = True
 
-do_MPI = True
+#do_MPI = True
+do_MPI = False
 
 if(len(sys.argv) != 2):
     print()
