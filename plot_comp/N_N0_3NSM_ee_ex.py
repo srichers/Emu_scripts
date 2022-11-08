@@ -132,6 +132,7 @@ for i in range(3):
     # plot data #
     #############
     for j in range(3):
+
         #if i == 0 and j < 2:
         #    if j == 1:
         #        if j == 0:
@@ -191,11 +192,11 @@ for i in range(3):
         tmax = t[np.argmax(N_ex)]
         #special cases:
         if i == 0 and j == 1:
-            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j],  label=None)
+            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j], label=None)
         elif i == 0 and j == 2:
-            ax.plot(t-tmax, N/N[0], 'r--', alpha=aval[j],  label=None)
+            ax.plot(t-tmax, N/N[0], 'r--', alpha=aval[j], label=None)
         else:
-            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j],  label=None)
+            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j], label=None)
         ax.text(x=1.5, y=0.9, s=test_fig_labels[i], fontsize=12)
         if j == 0:
             ax_ex.semilogy(t-tmax, N_ex/N[0], 'r-', alpha=aval[j], label=r'${\rm {\tt FLASH}\,\,(2f)}$')
