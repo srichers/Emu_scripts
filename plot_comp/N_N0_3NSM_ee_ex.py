@@ -63,6 +63,13 @@ def plotdata(filename,a,b):
     avgData.close()
     return t, N
 
+def plotdata_new_format(filename,a,b):
+    avgData = h5py.File(filename,"r")
+    t=np.array(avgData["t(s)"])*1e9
+    N=np.array(avgData["N_avg_mag(1|ccm)"])[:,a,b]
+    avgData.close()
+    return t, N
+
 ################
 # plot options #
 ################
@@ -86,8 +93,8 @@ fig = plt.figure(figsize=(12,6))
 
 emu_2f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
 
-emu_2f_sims = ['NSM_1/']
-#emu_2f_sims = ['NSM_1/', 'NSM_2/32dir/', 'NSM_3/32dir/']
+#emu_2f_sims = ['NSM_1/']
+emu_2f_sims = ['NSM_1/', 'NSM_2/32dir/', 'NSM_3/32dir/']
 emu_2f_res = ['merger_2F/', 'merger_2F_lowres/']
 
 
@@ -125,19 +132,26 @@ for i in range(3):
     # plot data #
     #############
     for j in range(3):
-        if i == 0 and j < 2:
-            if j == 1:
-                if j == 0:
-                    h5_filename = h5_filename_emu
-                else:
-                    h5_filename = h5_filename_orig
-        #if j < 2:
-            #h5_filename = h5_filename_emu
-            # i == 0 and j == 1:
-                #h5_filename = h5_filename_orig
+        #if i == 0 and j < 2:
+        #    if j == 1:
+        #        if j == 0:
+        #            h5_filename = h5_filename_emu
+        #        else:
+        #            h5_filename = h5_filename_orig
+        if j < 2:
+            h5_filename = h5_filename_emu
+            if i == 0 and j == 1:
+                h5_filename = h5_filename_orig
+            if i == 0 and j == 0:
+                print("no permissions")
+            else:
                 filename_emu_2f = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
-                t,N = plotdata(filename_emu_2f,0,0)
-                t_ex,N_ex = plotdata(filename_emu_2f,0,1)
+                if i == 0:
+                    t,N = plotdata(filename_emu_2f,0,0)
+                    t_ex,N_ex = plotdata(filename_emu_2f,0,1)
+                else:
+                    t,N = plotdata_new_format(filename_emu_2f,0,0)
+                    t_ex,N_ex = plotdata_new_format(filename_emu_2f,0,1)
                 tmax = t[np.argmax(N_ex)]
                 ax.plot(t-tmax, N/N[0], 'k-', alpha=aval[j], label=None)
                 if j == 0:
