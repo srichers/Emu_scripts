@@ -143,22 +143,22 @@ for i in range(3):
             h5_filename = h5_filename_emu
             if i == 0 and j == 1:
                 h5_filename = h5_filename_orig
-            if i == 0 and j == 0:
-                print("no permissions")
+            #if i == 0 and j == 0:
+            #    print("no permissions")
+            #else:
+            filename_emu_2f = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
+            if i == 0 and j == 1:
+                t,N = plotdata(filename_emu_2f,0,0)
+                t_ex,N_ex = plotdata(filename_emu_2f,0,1)
             else:
-                filename_emu_2f = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
-                if i == 0:
-                    t,N = plotdata(filename_emu_2f,0,0)
-                    t_ex,N_ex = plotdata(filename_emu_2f,0,1)
-                else:
-                    t,N = plotdata_new_format(filename_emu_2f,0,0)
-                    t_ex,N_ex = plotdata_new_format(filename_emu_2f,0,1)
-                tmax = t[np.argmax(N_ex)]
-                ax.plot(t-tmax, N/N[0], 'k-', alpha=aval[j], label=None)
-                if j == 0:
-                    ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=r'${\rm {\tt EMU}\,\,(2f)}$')
-                else:
-                    ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=None)
+                t,N = plotdata_new_format(filename_emu_2f,0,0)
+                t_ex,N_ex = plotdata_new_format(filename_emu_2f,0,1)
+            tmax = t[np.argmax(N_ex)]
+            ax.plot(t-tmax, N/N[0], 'k-', alpha=aval[j], label=None)
+            if j == 0:
+                ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=r'${\rm {\tt EMU}\,\,(2f)}$')
+            else:
+                ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=None)
 
         if i == 0 and j < 2:
             if j == 0:
