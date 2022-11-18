@@ -197,7 +197,7 @@ for i in range(3):
             ax.plot(t-tmax, N/N[0], 'r--', alpha=aval[j], label=None)
         else:
             ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j], label=None)
-        ax.text(x=1.5, y=0.9, s=test_fig_labels[i], fontsize=12)
+        #ax.text(x=1.5, y=0.9, s=test_fig_labels[i], fontsize=12)
         if j == 0:
             ax_ex.semilogy(t-tmax, N_ex/N[0], 'r-', alpha=aval[j], label=r'${\rm {\tt FLASH}\,\,(2f)}$')
         elif i == 0 and j == 2:
@@ -232,6 +232,7 @@ for i in range(3):
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.minorticks_on()
+    ax.set_title(r'${{\rm NSM}}\,\,{}$'.format(i+1))
 
     ax_ex.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax_ex.set_xlim([-0.5,2.0])

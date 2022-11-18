@@ -91,9 +91,9 @@ axes[0].set_xlim(0,8.0*2.0*np.pi)
 axes[1].set_xlim(0.01,8.0*2.0*np.pi)
 axes[2].set_xlim(0.01,2.0*2.0*np.pi)
 axes[0].set_ylim(1.e-20,1.0)
-axes[0].text(6.5, 1.e-3, r"${\rm Fiducial}$")
-axes[1].text(6.5, 1.e-3, r"${\rm 90Degree}$")
-axes[2].text(3.0, 1.e-3, r"${\rm TwoThirds}$")
+#axes[0].text(6.5, 1.e-3, r"${\rm Fiducial}$")
+#axes[1].text(6.5, 1.e-3, r"${\rm 90Degree}$")
+#axes[2].text(3.0, 1.e-3, r"${\rm TwoThirds}$")
 
 #############
 # plot data #
@@ -106,23 +106,25 @@ simlist_fid = ["Fiducial_3D_2F", "Fiducial_3D_3F", "fid"]
 simlist_90deg = ["90Degree_3D_2F", "90Degree_3D_3F", "90d"]
 simlist_23 = ["TwoThirds_3D_2F", "TwoThirds_3D_3F", "2_3"]
 
+test_titles = [r'${\rm Fiducial}$', r'${\rm 90Degree}$', r'${\rm TwoThirds}$']
+
 def makeplot(ax, simlist, ind):
     tplot = tplot_list[ind]
 
     filename_emu_2f = basedirs[0]+simlist[0]+"/reduced_data_fft_power.h5"
     filename_emu_2f_avg = basedirs[0]+simlist[0]+"/reduced_data.h5"
     k1,N1 = plotdata(filename_emu_2f,filename_emu_2f_avg,tplot)
-    ax.semilogy(k1, N1, 'k-', label=r'${\rm Emu\,\,(2f)}$')
+    ax.semilogy(k1, N1, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
 
     filename_emu_3f = basedirs[1]+simlist[1]+"_reduced_data_fft_power.h5"
     filename_emu_3f_avg = basedirs[1]+simlist[1]+"_reduced_data.h5"
     k2,N2 = plotdata(filename_emu_3f,filename_emu_3f_avg,tplot)
-    ax.semilogy(k2, N2, 'k--', label=r'${\rm Emu\,\,(3f)}$')
+    ax.semilogy(k2, N2, 'k--', label=r'${\rm {\tt EMU}\,\,(3f)}$')
 
     filename_bang   = basedirs[2]+simlist[2]+"/sim1/reduced_data_fft_power_nov4_test_hdf5_chk.h5"
     filename_bang_avg   = basedirs[2]+simlist[2]+"/sim1/reduced_data_nov4_test_hdf5_chk.h5"
     k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
-    ax.semilogy(k3, N3, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
+    ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
 
     filename_bang   = basedirs[2]+simlist[2]+"/res_test1/reduced_data_fft_power_nov4_test_hdf5_chk.h5"
     filename_bang_avg   = basedirs[2]+simlist[2]+"/res_test1/reduced_data_nov4_test_hdf5_chk.h5"
@@ -134,13 +136,15 @@ def makeplot(ax, simlist, ind):
     k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
     ax.semilogy(k3, N3, 'r-', alpha=0.25, label=None)
 
+    ax.set_title(test_titles[ind])
+
 makeplot(axes[0],simlist_fid, 0)
 makeplot(axes[1],simlist_90deg, 1)
 makeplot(axes[2],simlist_23, 2)
 
-axes[0].axvline(3.75, color='green', label=None)
-axes[1].axvline(2.84, color='green', label=None)
-axes[2].axvline(1.50, color='green', label=None)
+#axes[0].axvline(3.75, color='green', label=None)
+#axes[1].axvline(2.84, color='green', label=None)
+#axes[2].axvline(1.50, color='green', label=None)
     
 axes[0].legend(loc='upper right', frameon=False)
 plt.savefig("N_ex_FFT_3tests.pdf", bbox_inches="tight")
