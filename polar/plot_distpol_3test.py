@@ -193,12 +193,12 @@ def makepolar(N,Nbar,f,fbar, label):
     #print("Fbar_rotated = ",fbar)
     #print("ELN_rotated = ",eln)
 
-    f = -f
-    fbar = -fbar
-    eln = N*f - Nbar*fbar
-    fhat = -fhat
-    fhatbar = -fhatbar
-    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
+    #f = -f
+    #fbar = -fbar
+    #eln = N*f - Nbar*fbar
+    #fhat = -fhat
+    #fhatbar = -fhatbar
+    #theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
 
     print()
     print("descriminant = ",descriminant)
@@ -296,7 +296,7 @@ for i in range(test_np):
                 ax2_shared = ax2
 
 
-plt.savefig("polar_comp_3test_eln.pdf", bbox_inches="tight")
+plt.savefig("plot_distpol_3test.pdf", bbox_inches="tight")
 
 plt.clf()
 

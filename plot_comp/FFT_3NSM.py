@@ -60,8 +60,6 @@ def plotdata(filename_FFT, filename_avg, t_in, ind_FFT, ind_avg):
     # get time closest to t
     dt = np.abs(t-t_in)
     it = np.argmin(dt)
-    #probably a bug here: Nex -> Nxx
-    #trace = Nee[it,0]+Nex[it,0]
     trace = Nee[it,0]+Nxx[it,0]
     print(it,t[it])
     return k, (Nex/trace)[it, :-1]
@@ -98,9 +96,9 @@ for ax in axes.flatten():
     #ax.grid(which='both')
     ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
 axes[0].set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
-axes[0].set_xlim(0,8.0*2.0*np.pi)
-axes[1].set_xlim(0.01,8.0*2.0*np.pi)
-axes[2].set_xlim(0.01,2.0*2.0*np.pi)
+#axes[0].set_xlim(0,8.0*2.0*np.pi)
+#axes[1].set_xlim(0.01,8.0*2.0*np.pi)
+#axes[2].set_xlim(0.01,2.0*2.0*np.pi)
 axes[0].set_ylim(1.e-20,1.0)
 
 
@@ -135,7 +133,9 @@ h5_filename_emu = "plt_reduced_data.h5"
 h5_pow_filename_orig = "reduced_data_fft_power.h5"
 h5_pow_filename_emu = "plt_reduced_data_fft_power.h5"
 
-tplot = -0.1e-9
+#tplot = -0.1e-9
+tplot_e = [-0.1e-9,-0.5e-9, -0.15e-9]
+tplot_f = [-0.1e-9,-0.1e-9, -0.05e-9]
 
 for i in range(3):
 
@@ -147,24 +147,23 @@ for i in range(3):
     #############
     for j in range(1):
 
-        if i == 0:
-            if j < 2:
-                h5_filename = h5_filename_emu
-                ind_avg = 1
-                h5_pow_filename = h5_pow_filename_emu
-                ind_pow = 1
-                if i == 0 and j == 0:
-                    h5_pow_filename = h5_pow_filename_orig
-                    ind_pow = 0
-                if i == 0 and j == 1:
-                    h5_filename = h5_filename_orig
-                    ind_avg = 0
-                    h5_pow_filename = h5_pow_filename_orig
-                    ind_pow = 0
-                filename_emu_2f_avg = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
-                filename_emu_2f_pow = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_pow_filename
-                k1,N1 = plotdata(filename_emu_2f_pow,filename_emu_2f_avg,tplot,ind_pow,ind_avg)
-                ax.semilogy(k1, N1, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
+        if j < 2:
+            h5_filename = h5_filename_emu
+            ind_avg = 1
+            h5_pow_filename = h5_pow_filename_emu
+            ind_pow = 1
+            if i == 0 and j == 0:
+                h5_pow_filename = h5_pow_filename_orig
+                ind_pow = 0
+            if i == 0 and j == 1:
+                h5_filename = h5_filename_orig
+                ind_avg = 0
+                h5_pow_filename = h5_pow_filename_orig
+                ind_pow = 0
+            filename_emu_2f_avg = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
+            filename_emu_2f_pow = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_pow_filename
+            k1,N1 = plotdata(filename_emu_2f_pow,filename_emu_2f_avg,tplot_e[i],ind_pow,ind_avg)
+            ax.semilogy(k1, N1, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
 
         if i == 0 and j < 2:
             if j == 0:
@@ -179,7 +178,7 @@ for i in range(3):
                 ind_pow = 0
             filename_emu_3f_avg = emu_3f_pre + emu_3f_sims[i] + emu_3f_res[j] + h5_filename
             filename_emu_3f_pow = emu_3f_pre + emu_3f_sims[i] + emu_3f_res[j] + h5_pow_filename
-            k2,N2 = plotdata(filename_emu_3f_pow,filename_emu_3f_avg,tplot,ind_pow,ind_avg)
+            k2,N2 = plotdata(filename_emu_3f_pow,filename_emu_3f_avg,tplot_e[i],ind_pow,ind_avg)
             ax.semilogy(k2, N2, 'k--', label=r'${\rm {\tt EMU}\,\,(3f)}$')
 
         h5_filename = h5_filename_orig
@@ -193,11 +192,11 @@ for i in range(3):
         else:
             filename_bang_avg = bang_pre + bang_sims[i] + bang_res[j] + h5_filename
             filename_bang_pow = bang_pre + bang_sims[i] + bang_res[j] + h5_pow_filename
-        k3,N3 = plotdata(filename_bang_pow,filename_bang_avg,tplot,ind_pow,ind_avg)
+        k3,N3 = plotdata(filename_bang_pow,filename_bang_avg,tplot_f[i],ind_pow,ind_avg)
         ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
 
     if i == 0:
-        ax.set_ylabel(r"$\langle N_{ee}(t)/N_{ee}(0)\rangle$")
+        ax.set_ylabel(r"$\widetilde{N}_{ex}/{\rm Tr}(N)$")
         #ytick_vals = [1.e-7, 1.e-5, 1.e-3, 1.e-1]
         #ytick_labs = [r'$10^{{{}}}$'.format(num) for num in [-7, -5, -3, -1]]
         ax.legend(loc='upper right', frameon=False)
@@ -214,6 +213,11 @@ for i in range(3):
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.minorticks_on()
     ax.set_title(r'${{\rm NSM}}\,\,{}$'.format(i+1))
+
+    if i == 1:
+        #EG 18Nov2022: will throw a warning, but seems to work:
+        ax.set_xticklabels([r'', r'$0$', r'$25$', r'$50$', r'$75$'])
+
 
 #Vertical line from LSA for fastet growing mode
 #ax.axvline(5.64, color='g', label=None)
