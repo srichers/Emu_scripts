@@ -83,7 +83,9 @@ def get_rotation_matrix(fn_e, fn_a):
     
     # get axis of rotation (the axis normal to the e and a fluxes)
     u = np.cross(fn_eln, np.array([0,0,1]))
-    u /= mag(u)
+    #u /= mag(u)
+    if mag(u) != 0.0:
+        u /= mag(u)
     
     # get rotation quaternion
     q = np.array([costheta_2,
@@ -102,6 +104,7 @@ def get_rotation_matrix(fn_e, fn_a):
         
         for j in range(3):
             R[i,j] += 2.*q[i+1]*q[j+1] # indexing = q is size 4
+
     R[0,1] -= 2.*q[0]*q[2+1]
     R[1,0] += 2.*q[0]*q[2+1]
     R[0,2] += 2.*q[0]*q[1+1]
@@ -180,18 +183,27 @@ def makepolar(N,Nbar,f,fbar, label):
     eln = N*f - Nbar*fbar
     theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
     print("theta_eln = ",theta_eln)
-    
+
     # get rotation matrix for plotting
-    #R = get_rotation_matrix(f*N, fbar*Nbar)
-    #print()
-    #print("Rotation matrix:")
-    #print(R)
-    #f = -rotate(R, f)
-    #fbar = -rotate(R, fbar)
-    #eln = N*f - Nbar*fbar
-    #print("F_rotated    = ",f)
-    #print("Fbar_rotated = ",fbar)
-    #print("ELN_rotated = ",eln)
+    R = get_rotation_matrix(f*N, fbar*Nbar)
+    print()
+    print("Rotation matrix:")
+    print(R)
+    f = -rotate(R, f)
+    fbar = -rotate(R, fbar)
+    eln = N*f - Nbar*fbar
+    print("F_rotated    = ",f)
+    print("Fbar_rotated = ",fbar)
+    print("ELN_rotated = ",eln)
+    if fluxfac != 0.0:
+        fhat = f / mag(f)
+    else:
+        fhat = f
+    if fluxfacbar != 0.0:
+        fhatbar = fbar / mag(fbar)
+    else:
+        fhatbar = fbar
+    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
 
     #f = -f
     #fbar = -fbar
@@ -249,7 +261,7 @@ for i in range(test_np):
         fee = arr_fee[i,:]
         feebar = arr_feebar[i,:]
         
-        th_r, th_max_nu, th_max_bnu, th_eln, fa_nu, fa_bnu, ff_nu, ff_bnu, eln = makepolar(Nee, Neebar, fee, feebar, "eebar")
+        th_r, th_max_nu, th_max_bnu, th_eln, fa_nu, fa_bnu, ff_nu, ff_bnu, eln = makepolar(Nee, Neebar, fee, feebar, "eebar " + str(i))
         
         ax1.plot(th_r, fa_nu, color='blue', label=r"$\nu_e$")
         ax1.scatter(th_max_nu, np.max(fa_nu), color='blue')
@@ -274,7 +286,8 @@ for i in range(test_np):
         
         ax2.axhline(0,color="k",linestyle="--")
         if i == 0:
-                ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90)
+                #ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90)
+                ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
         ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$f_{\nu_e}$")
         ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-f_{\bar{\nu}_e}$")
         ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$f_{\nu_e} - f_{\bar{\nu}_e}$")
@@ -299,6 +312,3 @@ for i in range(test_np):
 plt.savefig("plot_distpol_3test.pdf", bbox_inches="tight")
 
 plt.clf()
-
-
-
