@@ -275,7 +275,7 @@ for i in range(test_np):
         ax2.axhline(0,color="k",linestyle="--")
         if i == 0:
                 ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90)
-        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$f_{\nu_e}$")
+        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$n_{\nu_e}$")
         ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-f_{\bar{\nu}_e}$")
         ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$f_{\nu_e} - f_{\bar{\nu}_e}$")
         ax2.axvline(th_eln/np.pi, color="purple")
