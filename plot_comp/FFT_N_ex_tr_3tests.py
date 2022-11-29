@@ -162,4 +162,4 @@ makeplot(axes[2],simlist_23, 2, ind_pow[2,:], ind_avg[2,:])
 #axes[2].axvline(1.50, color='green', label=None)
     
 axes[0].legend(loc='upper right', frameon=False)
-plt.savefig("N_ex_FFT_3tests.pdf", bbox_inches="tight")
+plt.savefig("FFT_N_ex_tr_3tests.pdf", bbox_inches="tight")

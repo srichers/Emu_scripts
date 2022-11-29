@@ -159,4 +159,4 @@ for i,test in enumerate(test_list):
     ax_ex.minorticks_on()
 
 plt.subplots_adjust(wspace=0, hspace=0)
-plt.savefig("N_ee_ex_tr_3tests.pdf", bbox_inches="tight")
+plt.savefig("avg_N_ee_ex_tr_3tests.pdf", bbox_inches="tight")
