@@ -86,7 +86,7 @@ def get_rotation_matrix(fn_e, fn_a):
     #u /= mag(u)
     if mag(u) != 0.0:
         u /= mag(u)
-    
+
     # get rotation quaternion
     q = np.array([costheta_2,
                   sintheta_2 * u[0],
@@ -205,13 +205,6 @@ def makepolar(N,Nbar,f,fbar, label):
         fhatbar = fbar
     theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
 
-    #f = -f
-    #fbar = -fbar
-    #eln = N*f - Nbar*fbar
-    #fhat = -fhat
-    #fhatbar = -fhatbar
-    #theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
-
     print()
     print("descriminant = ",descriminant)
 
@@ -268,12 +261,13 @@ for i in range(test_np):
         ax1.plot(th_r, fa_bnu, color='red', label=r"$\bar{\nu}_e$")
         ax1.scatter(th_max_bnu, np.max(fa_bnu), color='red')
         
-        ax1.arrow(th_max_nu,0,0,Nee*ff_nu, color='blue')
-        ax1.arrow(th_max_bnu+np.pi,0,0, Neebar*ff_bnu, color='red')
-        ax1.arrow(th_eln+np.pi, 0,0,np.abs(eln[2]), color="purple", linewidth=2)
+        ax1.arrow(th_max_nu,0,0,Nee*ff_nu, color='blue', linewidth=1.5)
+        ax1.arrow(th_max_bnu+np.pi,0,0, Neebar*ff_bnu, color='red', linewidth=1.5)
+        ax1.arrow(th_eln+np.pi, 0,0,np.abs(eln[2]), color="purple", linewidth=1.5)
         
         ax1.get_xaxis().set_ticklabels([])
         ax1.get_yaxis().set_ticklabels([])
+        ax1.set_axisbelow(True)
         
         lim = np.max([Neebar*ff_bnu,Nee*ff_nu, np.max(fa_nu),np.max(fa_bnu)]) * 1.05
         ax1.set_ylim(0,lim)
@@ -286,11 +280,11 @@ for i in range(test_np):
         
         ax2.axhline(0,color="k",linestyle="--")
         if i == 0:
-                #ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90)
-                ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
-        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$f_{\nu_e}$")
-        ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-f_{\bar{\nu}_e}$")
-        ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$f_{\nu_e} - f_{\bar{\nu}_e}$")
+                ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+                #ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$n_{ee}$")
+        ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{n}_{ee}$")
+        ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$n_{ee} - \overline{n}_{ee}$")
         ax2.axvline(th_eln/np.pi, color="purple")
         ax2.set_xlim(0,2)
         ax2.set_xlabel(r"$\theta/\pi$")
@@ -305,7 +299,9 @@ for i in range(test_np):
                 ax2.get_xaxis().set_ticklabels([r'$0.0$', r'$0.5$', r'$1.0$', r'$1.5$'])
 
         if i == 0:
-                ax2.legend(loc='lower right')
+                ax2.legend(loc='lower right', fontsize=20)
+                #ax2.set_ylabel(r'$dn/d\Omega/(N_{ee}+\overline{N}_{ee})$')
+                ax2.set_ylabel(r'$\frac{1}{N_{ee}+\overline{N}_{ee}}\,\frac{dn}{d\Omega}$', fontsize=30)
                 ax2_shared = ax2
 
 
