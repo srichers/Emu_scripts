@@ -139,6 +139,17 @@ def scalarfunc(array):
 #like scalarfunc, but takes in time dependent arrays (nt, nF, nF, nz) and applies scalarfunc at every time point
 def scalarfunc_time(array):
     return np.array([scalarfunc(array[t]) for t in range(0,np.shape(array)[0])])
+
+#like scalarfunc but just squares all the entries in the array and adds them. Ideal for finding mag of HLR
+def scalarfunc_sum(M):
+    size=M.shape[0]
+    nz=M.shape[2]
+    return np.array([np.linalg.norm(M[:,:,n].reshape(size**2)) for n in np.arange(0,nz)])
+
+#same difference as scalarfunc_time.
+def scalarfunc_sum_time(array):
+    return np.array([scalarfunc_sum(array[t]) for t in range(0,np.shape(array)[0])])
+
 # Save data to hdf5 dataset
 # f is the hdf5 file we are writing to
 def append_to_hdf5(f, datasetname, data):
@@ -350,7 +361,7 @@ def four_current_h5(h5_dict):
 
  #different operation for if the dataset d is an h5py file, which has the time dependence already encoded in the objects (d is the location of the h5 file, time is the timestep (integer) at which we process the data)
     
-def calculator_h5(d, outputfilename, basis_theta, basis_phi, time):
+def calculator_h5(d, outputfilename, time):
     
     # Read in the data
     data = extract_time(d, time)
@@ -372,7 +383,7 @@ def calculator_h5(d, outputfilename, basis_theta, basis_phi, time):
     return nz, t, z, J_p, J_a, J, nF
     
 
-def calculator_eds(d, outputfilename, basis_theta, basis_phi):
+def calculator_eds(d, outputfilename):
     
     # Read in the data
     eds = emu.EmuDataset(d)
@@ -395,12 +406,12 @@ def calculator_eds(d, outputfilename, basis_theta, basis_phi):
 
 #version of interact that just outputs the flux, from which all other quantities can be calculated, to save storage space.
 
-def interact_J(d, outputfilename, basis_theta, basis_phi, time=0):
+def interact_J(d, outputfilename, time=0):
     #extract the data, depending on type
     if d[-3:]=='.h5':
-        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, basis_theta, basis_phi, time)
+        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, time)
     else:
-        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename, basis_theta, basis_phi)
+        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename)
         
     # open the hdf5 destination file
     outputfile = h5py.File(outputfilename, "a")
@@ -431,9 +442,9 @@ def interact_J(d, outputfilename, basis_theta, basis_phi, time=0):
 def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     #extract the data, depending on type
     if d[-3:]=='.h5':
-        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, basis_theta, basis_phi, time)
+        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, time)
     else:
-        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename, basis_theta, basis_phi)
+        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename)
         
     # open the hdf5 destination file
     outputfile = h5py.File(outputfilename, "a")
@@ -488,7 +499,7 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     append_to_hdf5(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
-    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,n]) for n in range(nz) ])
+    MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
     SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
     H_LR = H_LR.transpose((1,2,0))
@@ -571,7 +582,7 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     append_to_hdf5_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian ## [f1, f2, z]
-    MSl = np.array([ np.matmul(conj(M),S_L_minus[:,:,n]) for n in range(nz) ])
+    MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
     SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
     H_LR = H_LR.transpose((1,2,0))
