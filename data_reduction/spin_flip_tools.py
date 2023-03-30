@@ -6,7 +6,7 @@ import os
 import sys
 import yt
 import numpy as np
-from np import sin, cos, exp, pi
+from numpy import sin, cos, exp, pi
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import scipy
@@ -22,7 +22,6 @@ from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLoca
 from matplotlib import cm, colors
 import matplotlib.axes as ax
 from mpl_toolkits.mplot3d import Axes3D
-import latex
 from itertools import product
 
 ###### Parameters ######
