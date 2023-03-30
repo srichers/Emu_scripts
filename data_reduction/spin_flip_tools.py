@@ -784,19 +784,7 @@ class Merger_Grid:
         plt.scatter(self.x_km[95,123],self.y_km[95,123])
         if savefig ==True:
             plt.savefig('../'+'adiabaticity_plot_'+str(zval)+'.png', dpi=300)
-      
-Htest= np.zeros((6,6))
-Htest[3,0]=1
-Htest[0,3]=1
-
-Htest_2f= np.zeros((4,4))
-Htest_2f[2,0]=1
-Htest_2f[0,2]=1
-
-Diagonalizer(H = Htest).state_evolution_plotter( 2*pi*6.582119569E-16, init_array = np.diag((1,0,0,0,0,0)))
-Diagonalizer(H=Htest_2f).state_evolution_plotter(1E1, init_array = np.diag((1,0,0,0)))
-Diagonalizer( H= np.array([[0,1],[1,0]])).state_evolution_plotter(2*pi*6.582119569E-16, init_array = np.diag((1,0)))
-
+ 
 
                 
 #unitary trace matrix
