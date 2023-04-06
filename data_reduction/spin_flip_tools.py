@@ -279,8 +279,8 @@ class Diagonalizer:
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
 
 class SpinParams:
-    def __init__(self, t_sim, data_loc, merger_data_loc, 
-                 p_abs=10**7, location = None):
+    def __init__(self, t_sim, data_loc, merger_data_loc, location,
+                 p_abs=10**7):
         
         self.data_loc = data_loc
         self.h5file = h5py.File(self.data_loc, "r")
@@ -290,15 +290,12 @@ class SpinParams:
          
         #Grid-dependent stuff: Electron fraction, baryon n density
         self.location=location
-        if location != None:   
-            self.merger_grid = h5py.File(merger_data_loc, 'r')
-            self.rho = np.array(self.merger_grid['rho(g|ccm)'])[location[0],location[1],location[2]] #g/cm^3 (baryon mass density)
-            self.Ye = np.array(self.merger_grid['Ye'])[location[0],location[1],location[2]]
-            self.n_b = self.rho/M_p*(hbar**3 * c**3)#eV^3 (baryon number density)
-        else: 
-            self.Ye = 0.21690808855662308
-            self.rho = 50091419880.43257
-            self.n_b = self.rho/M_p*(hbar**3 * c**3)
+          
+        self.merger_grid = h5py.File(merger_data_loc, 'r')
+        self.rho = np.array(self.merger_grid['rho(g|ccm)'])[location[0],location[1],location[2]] #g/cm^3 (baryon mass density)
+        self.Ye = np.array(self.merger_grid['Ye'])[location[0],location[1],location[2]]
+        self.n_b = self.rho/M_p*(hbar**3 * c**3)#eV^3 (baryon number density)
+    
             
         #Flux (spacetime, F, F, z)
         self.J = sft.total(self.h5file, 'J(eV^3)')[self.t_sim]
@@ -439,10 +436,10 @@ class SpinParams:
                                                 (J_avg[1]**2+J_avg[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
         
         #add (electron) neutrino direction point
-        if self.location != None:
-            flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
-            direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
-        else: direction_point = flux_point
+        
+        flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
+        direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
+ 
             
         
         
@@ -483,8 +480,8 @@ class SpinParams:
         
 #generates plots vs time of spin parameters in fast flavor instability simulation
 class TimePlots:
-    def __init__(self, data_loc,  merger_data_loc,
-           p_abs=10**7, location = None):
+    def __init__(self, data_loc,  merger_data_loc, location,
+           p_abs=10**7):
         
         self.precision = 1
         
