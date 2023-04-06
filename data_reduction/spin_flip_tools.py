@@ -6,7 +6,7 @@ import os
 import sys
 import yt
 import numpy as np
-from np import sin, cos, exp, pi
+from numpy import sin, cos, exp, pi
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import scipy
@@ -28,11 +28,10 @@ from itertools import product
 ###### Parameters ######
 ########################
 
-#fermi coupling constant: G/(c*hbar_erg)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar_erg=1)
+#fermi coupling constant: G/(c*hbar)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar=1)
 pi=np.pi
 G=1.1663787*10**(-23) # eV^-2
 c=29979245800         # cm/s
-hbar_erg=6.582119569e-16  # erg s
 hbar =6.582119569E-16 #eV s
 M_p=1.6726219*10**(-24)#grams (Proton mass)
 
@@ -191,7 +190,13 @@ class Diagonalizer:
         
         #list of eigenvalues 
         self.eigenvals = (1+0*1j)*np.real(np.linalg.eig(self.H)[0] )
-
+        
+        #find timescale for plot
+        self.eigenval_differences = np.array([abs(np.real(lambda_1) - np.real(lambda_2)) for lambda_1 in self.eigenvals
+                                      for lambda_2 in self.eigenvals if lambda_1!=lambda_2]).flatten()
+        self.timescale = max(2*pi*hbar/self.eigenval_differences)
+        
+    
         #(inverted) array of normalized eigenvectors
         #a.k.a. change of basis matrix from Energy to flavor/spin
         #ket_f = f_to_e(ket_e)
@@ -222,10 +227,14 @@ class Diagonalizer:
         else:
             return hbar/differences
         
-    def state_evolution_plotter(self, t_lim, resolution=500, quantity = 'state_right', ylim = None, init_array = np.diag((1,0,0,0,0,0)), savefig = False):
+    def state_evolution_plotter(self, t_lim = 'timescale', resolution=500, quantity = 'state_right', ylim = None, init_array = np.diag((1,0,0,0,0,0)), savefig = False):
+        if t_lim == 'timescale':
+           t_lim = self.timescale
+           print('Largest timescale = '+str(t_lim)+ ' s')
+        
         flavornum = self.Hsize//2
         #s_vs_t.shape = t,2nf,2nf
-        state_vs_time = self.state_evolution(resolution, t_lim, init_array)
+        state_vs_time = np.real(self.state_evolution(resolution, t_lim, init_array))
         
         state_left = np.trace(state_vs_time[:,0:flavornum,0:flavornum], axis1= 1, axis2 = 2)
         state_right = np.trace(state_vs_time[:,flavornum:2*flavornum,flavornum:2*flavornum], axis1= 1, axis2 = 2)
@@ -254,18 +263,24 @@ class Diagonalizer:
 
         plt.legend()
         
-        print(hbar/np.real(np.linalg.eig(self.H)[0]))
         
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('../evolvedstate.png', dpi=300)
     
         
+        
+        
+        
 #Given a spinflip dataset, finds the hamiltonian at some angle. Can also check resonant direction
-#location is where to evaluate stuff like Ye, rho 
+#t_sim is ffi simulation timestep to calculate parameters at
+#data_loc is the spinflip file to compute
+#merger_data_loc is the merger grid data location
+#location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
+
 class SpinParams:
-    def __init__(self, t_sim = 0, data_loc = '/mnt/scratch/henrypurcell/N3AS/data/i106_j136_k099_highres_sfm_J.h5', 
-                 p_abs=10**7, location = [106,136,99], merger_data_loc = "/mnt/scratch/henrypurcell/N3AS/data/merger_grid.h5"):
+    def __init__(self, t_sim, data_loc, merger_data_loc, 
+                 p_abs=10**7, location = None):
         
         self.data_loc = data_loc
         self.h5file = h5py.File(self.data_loc, "r")
@@ -465,8 +480,8 @@ class SpinParams:
         
 #generates plots vs time of spin parameters in fast flavor instability simulation
 class TimePlots:
-    def __init__(self, data_loc = '/mnt/scratch/henrypurcell/N3AS/data/i106_j136_k099_highres_sfm_J.h5', 
-           p_abs=10**7, location = [106,136,99], merger_data_loc = "/home/henryrpg/Desktop/N3AS/data/merger_grid.h5"):
+    def __init__(self, data_loc,  merger_data_loc,
+           p_abs=10**7, location = None):
         
         self.precision = 1
         
@@ -563,9 +578,10 @@ class TimePlots:
 
         
 #Calculates values from merger data, and generates adiabaticity / resonance contour plots.
+#data_loc, unrotated_data_loc is the location for the merger data and unrotated merger data
 class Merger_Grid:
-    def __init__(self, zval, data_loc = "/mnt/scratch/henrypurcell/N3AS/data/merger_grid.h5", 
-                unrotated_data_loc = "/mnt/scratch/henrypurcell/N3AS/data/merger_grid_unrotated.h5",
+    def __init__(self, zval, data_loc, 
+                unrotated_data_loc,
                 p_abs=10**7, theta=0, phi=0,
                 rotate = True):
         
@@ -1072,7 +1088,6 @@ def extract_time(h5_directory, t):
 #Returns (4, nF, nF, nz)
 def four_current_h5(h5_dict):
     
-     #this is kind of janky but I'm going to figure out how many flavors there are by finding the maximum value of the third letter in the keys, which is always a flavor number
         
     num_flavors=max([int(key[2]) for key in list(h5_dict.keys()) if key[0]=='F'])+1
     component_shape=np.shape(h5_dict['N00_Re(1|ccm)'])
@@ -1093,7 +1108,7 @@ def four_current_h5(h5_dict):
     J = (1+0*1j)*J_Re + 1j*J_Im
     Jbar = (1+0*1j)*J_Re_bar + 1j*J_Im_bar
     
-    return (c**3*hbar_erg**3)*J, (c**3*hbar_erg**3)*Jbar
+    return (c**3*hbar**3)*J, (c**3*hbar**3)*Jbar
                     
 
  #different operation for if the dataset d is an h5py file, which has the time dependence already encoded in the objects (d is the location of the h5 file, time is the timestep (integer) at which we process the data)
