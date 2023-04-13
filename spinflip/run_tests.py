@@ -57,6 +57,13 @@ plt.show()
 mpl.rcParams['axes.facecolor'] = 'white'
 mpl.rcParams['figure.facecolor'] = 'white'
 
+
+#process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
+#outputs h5 files in directory output_loc/output_name
+sft.Multipoint_interact(inputdatafile, output_loc, output_name)
+
+
+
 Htest= np.zeros((6,6))
 Htest[3,0]=1
 Htest[0,3]=1
