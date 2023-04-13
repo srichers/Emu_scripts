@@ -1361,4 +1361,90 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     return
          
 
-         
+        
+#data_base_directory is the .h5 file with the raw simulation data in it
+#output_name is the name of the output if you want a specific one, otherwise it gives it the same name as the input h5 file and appends output_append at the end (so ijk.h5 becomes ijk_sfm.h5 by default)
+class Interact:
+    def __init__(self, data_base_directory, output_name = None, output_append = '_sfm_'):
+        self.data_base_directory = data_base_directory
+        
+        if output_name == None:
+            self.output_filename = data_base_directory[0:-3] + output_append
+        else: 
+            self.output_filename = output_name + output_append
+    
+    def is_h5(self):
+        if self.data_base_directory[-3:]=='.h5':
+            return True
+        else: 
+            return False
+    
+    #old interact function (computes everything that SpinParams computes and stores all of it instead of just storing J. theta, phi specify the direction for computations of , for example, \Sigma_\kappa
+    def run(self, anglename, theta=0, phi=0,):
+      
+        if self.is_h5() == True:      
+        #runs interact for h5 files, outputs [filename]_spin_flip_matrices.h5 in same location
+       
+        #find number of time intervals
+            File=h5py.File(self.data_base_directory,"r")
+            nt=len(np.array(File["t(s)"]))
+            File.close()
+
+            for t in range(0,nt):
+                interact(self.data_base_directory, self.output_filename + anglename + '.h5', theta, phi, t)
+        
+        else: #runs interact, for plt files. outputs h5 'spin_flip_matrices' file inside of data_base_directory
+            directory_list = sorted(glob.glob(self.data_base_directory+"plt*"))
+           
+            if os.path.exists(self.output_filename):
+                os.remove(self.output_filename)
+
+            for d in directory_list:
+                print(d)
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+                    executor.submit(interact, d, self.output_filename + anglename + '.h5', theta, phi)
+    
+    #interact_J, which just outputs the flux to save space
+    def run_J(self):
+      
+        if self.is_h5() == True:      
+        #runs interact for h5 files, outputs [filename]_spin_flip_matrices.h5 in same location
+       
+        #find number of time intervals
+            File=h5py.File(self.data_base_directory,"r")
+            nt=len(np.array(File["t(s)"]))
+            File.close()
+
+            for t in range(0,nt):
+                interact_J(self.data_base_directory, self.output_filename+'J.h5', t)
+        
+        else: #runs interact, for plt files. outputs h5 'spin_flip_matrices' file inside of data_base_directory
+            directory_list = sorted(glob.glob(self.data_base_directory+"plt*"))
+           
+            if os.path.exists(self.output_filename):
+                os.remove(self.output_filename)
+
+            for d in directory_list:
+                print(d)
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+                    executor.submit(interact_J, d, self.output_filename)
+          
+        
+    
+        
+#inputdatafile carries files of the form /i*j*k*/allData.h5. output_loc + output_name is the file where you want to store the output h5 files
+class Multipoint_interact:
+    def __init__(self, inputdatafile, output_loc, output_name):
+        self.inputdatafile = inputdatafile
+        self.filelist = glob.glob(self.inputdatafile + "/i*j*k*/allData.h5")
+        self.outputdatafile = output_loc + output_name
+        
+    def interact(self):
+        os.mkdir(self.outputdatafile)
+        
+        for h5file in self.filelist:
+            coords = h5file[-26:-11] #just the coordinate part
+            Interact(h5file, output_name = self.outputdatafile + coords, output_append = '_sfm').run_J()
+        
+               
+    
