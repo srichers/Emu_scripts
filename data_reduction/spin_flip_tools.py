@@ -802,7 +802,45 @@ class Merger_Grid:
             plt.savefig('../'+'adiabaticity_plot_'+str(zval)+'.png', dpi=300)
  
 
-                
+
+# i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
+#append is the end of the filenames
+class Multipoint:
+    def __init__(self, i, j, k, sfm_file,
+                xmin, xmax, ymin, ymax,
+                append = '_sfmJ'):
+        self.sfm_file = sfm_file
+        self.filelist = glob.glob(self.sfm_file + "/i*j*k*.h5")
+        
+        self.xmin = xmin
+        self.xmax = xmax
+        self.ymin = ymin
+        self.ymax = ymax
+        
+        self.i = i
+        self.j = j
+        self.k = k
+        self.chosenfile = self.sfm_file + '/i' + f"{i:03d}" + "_j" + f"{j:03d}" + "_k" + f"{k:03d}" + append + ".h5"
+        
+        self.MG = Merger_Grid(zval = self.k)
+        
+    def angularPlot(self, t):
+        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, location = [self.i,self.j,self.k])
+        SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False)
+    def pointPlots(self, t, plot_tlim='timescale'):
+        self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
+        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, location = [self.i,self.j,self.k])
+        SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False)
+        H_resonant = SP.resonant_Hamiltonian()
+        D = Diagonalizer(H_resonant)
+
+        D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)))
+        visualizer(H_resonant, traceless=True)
+        
+        
+        
+        
+        
 #unitary trace matrix
 def trace_matrix(data):#takes in (nF,nF,nz)
         nz = data.shape[2]
