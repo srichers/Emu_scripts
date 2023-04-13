@@ -57,13 +57,53 @@ plt.show()
 mpl.rcParams['axes.facecolor'] = 'white'
 mpl.rcParams['figure.facecolor'] = 'white'
 
+##########
+# STEP 1 #
+##########
+# basic merger data located in 1-Francois_data
 
+##########
+# STEP 2 #
+##########
+# Generate the orthonormal distribution file in 2-orthonormal_distributions
+# python3 orthonormal_distributions_unrotated.py
+sft.Merger_Grid().contour_plot()
+
+##########
+# STEP 3 #
+##########
+# Run Emu simulations in 3-Henry_NSM_box
+# Henry specifies i,j,k range
+# python3 setup_runs.sh
+# bash run_all.sh
+# then run again for data analysis step (should be automated)
+
+##########
+# STEP 4 #
+##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory output_loc/output_name
-sft.Multipoint_interact(inputdatafile, output_loc, output_name)
+sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/","4-Multipoint_interact")
+
+##########
+# STEP 5 #
+##########
+# For one grid cell, calculate all spin transformation quantities at each timestep
+sft.SpinParams(t_sim = 100,
+               data_loc='/mnt/scratch/shared/spinflip/4-Multipoint_interact/i106_j136_k099_sfm_JJ.h5',
+               merger_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5",
+               location=[106,136,99]).angularPlot(100,100)
+
+# Draw adiabaticity/resonance for many points
+# Draw angular distribution at one point
+# Draw diagonalizer sinusoidal distribution
+# Draw Hamiltonian matrix
+sft.Multipoint(80,73,99).pointPlots(0,1E-8)
 
 
-
+######################
+# Diagonalizer Tests #
+######################
 Htest= np.zeros((6,6))
 Htest[3,0]=1
 Htest[0,3]=1
@@ -75,10 +115,3 @@ Htest_2f[0,2]=1
 sft.Diagonalizer(H = Htest).state_evolution_plotter(init_array = np.diag((1,0,0,0,0,0)))
 sft.Diagonalizer(H=Htest_2f).state_evolution_plotter(init_array = np.diag((1,0,0,0)))
 sft.Diagonalizer( H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))
-
-sft.SpinParams(t_sim = 100, data_loc='/mnt/scratch/shared/spinflip/sfm/i106_j136_k099_sfm_JJ.h5', merger_data_loc="/mnt/scratch/shared/spinflip/merger_grid.h5").angularPlot(100,100)
-
-
-Multipoint(80,73,99).pointPlots(0,1E-8)
-
-Merger_Grid().contour_plot()
