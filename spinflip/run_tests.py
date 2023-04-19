@@ -82,8 +82,8 @@ sft.Merger_Grid().contour_plot()
 # STEP 4 #
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
-#outputs h5 files in directory output_loc/output_name
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/","4-Multipoint_interact")
+#outputs h5 files in directory outputpath
+sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact")
 
 ##########
 # STEP 5 #

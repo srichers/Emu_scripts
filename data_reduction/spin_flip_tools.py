@@ -1470,19 +1470,20 @@ class Interact:
         
     
         
-#inputdatafile carries files of the form /i*j*k*/allData.h5. output_loc + output_name is the file where you want to store the output h5 files
+#inputpath carries files of the form /i*j*k*/allData.h5. outputpath is the file where you want to store the output h5 files. output_append is an appended string to the name of the individual h5 files inside outputpath; default is _sfm (so files inside outputpath have filename i*j*k*_sfm.h5)
 class Multipoint_interact:
-    def __init__(self, inputdatafile, output_loc, output_name):
-        self.inputdatafile = inputdatafile
-        self.filelist = glob.glob(self.inputdatafile + "/i*j*k*/allData.h5")
-        self.outputdatafile = output_loc + output_name
+    def __init__(self, inputpath, outputpath, output_append = '_sfm'):
+        self.inputpath = inputpath
+        self.filelist = glob.glob(self.inputpath + "/i*j*k*/allData.h5")
+        self.outputpath = outputpath
+        self.output_append = output_append
         
     def interact(self):
-        os.mkdir(self.outputdatafile)
+        os.mkdir(self.outputpath)
         
         for h5file in self.filelist:
             coords = h5file[-26:-11] #just the coordinate part
-            Interact(h5file, output_name = self.outputdatafile + coords, output_append = '_sfm').run_J()
+            Interact(h5file, output_name = self.outputpath + coords, output_append = self.output_append).run_J()
         
                
     
