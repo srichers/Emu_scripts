@@ -67,7 +67,7 @@ mpl.rcParams['figure.facecolor'] = 'white'
 ##########
 # Generate the orthonormal distribution file in 2-orthonormal_distributions
 # python3 orthonormal_distributions.py
-sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", unrotated_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").contour_plot()
+#sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", unrotated_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").contour_plot()
 
 ##########
 # STEP 3 #
@@ -83,16 +83,16 @@ sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributio
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").run_many_interact()
+#sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact").run_many_interact()
 
 ##########
 # STEP 5 #
 ##########
 # For one grid cell, calculate all spin transformation quantities at each timestep
 sft.SpinParams(t_sim = 100,
-               data_loc='/mnt/scratch/shared/spinflip/4-Multipoint_interact/i106_j136_k099_sfm_JJ.h5',
+               data_loc='/mnt/scratch/shared/4-Multipoint_interact/i077_j070_k097sfmJ.h5',
                merger_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5",
-               location=[106,136,99]).angularPlot(100,100)
+               location=[77,70,97]).angularPlot(100,100)
 
 # Draw adiabaticity/resonance for many points
 # Draw angular distribution at one point
