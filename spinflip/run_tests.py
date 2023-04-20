@@ -83,7 +83,7 @@ sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributio
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").interact()
+sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").run_many_interact()
 
 ##########
 # STEP 5 #

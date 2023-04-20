@@ -24,6 +24,7 @@ import matplotlib.axes as ax
 from mpl_toolkits.mplot3d import Axes3D
 import latex
 from itertools import product
+from multiprocessing import Pool
 
 ###### Parameters ######
 ########################
@@ -1481,12 +1482,15 @@ class Multipoint_interact:
         self.filelist = glob.glob(self.inputpath + "/i*j*k*/allData.h5")
         self.outputpath = outputpath
         
-    def interact(self):
+    def run_single_interact(self,h5file):
+        coords = h5file[-26:-11] #just the coordinate part
+        Interact(h5file, output_name = self.outputpath + coords).run_J()
+         
+    def run_many_interact(self):
         os.mkdir(self.outputpath)
-        
-        for h5file in self.filelist:
-            coords = h5file[-26:-11] #just the coordinate part
-            Interact(h5file, output_name = self.outputpath + coords).run_J()
+
+        with Pool() as p:
+             p.map(self.run_single_interact,self.filelist)
         
                
     
