@@ -31,7 +31,7 @@ from itertools import product
 #fermi coupling constant: G/(c*hbar)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar=1)
 pi=np.pi
 G=1.1663787*10**(-23) # eV^-2
-c=29979245800         # cm/s
+c=299792458         # cm/s
 hbar =6.582119569E-16 #eV s
 M_p=1.6726219*10**(-24)#grams (Proton mass)
 
@@ -141,7 +141,7 @@ def angularArray(func, theta_res, phi_res):
 def rm_trace(M):
     return np.array(M) - np.trace(M)*np.identity(np.array(M).shape[0])/np.array(M).shape[0]
 
-def visualizer(M, log=True, text=False, traceless = False, vmin=1E-15,vmax=1E-6):
+def visualizer(M, log=True, text='mag', traceless = False, vmin=1E-15,vmax=1E-6):
     if traceless ==True:
         M=rm_trace(M)
     else:
@@ -808,8 +808,11 @@ class Merger_Grid:
 class Multipoint:
     def __init__(self, i, j, k, sfm_file,
                 xmin, xmax, ymin, ymax,
+                merger_data_loc, unrotated_merger_data_loc,
                 append = '_sfmJ'):
         self.sfm_file = sfm_file
+        self.merger_data_loc = merger_data_loc
+        self.unrotated_merger_data_loc = unrotated_merger_data_loc
         self.filelist = glob.glob(self.sfm_file + "/i*j*k*.h5")
         
         self.xmin = xmin
@@ -822,14 +825,14 @@ class Multipoint:
         self.k = k
         self.chosenfile = self.sfm_file + '/i' + f"{i:03d}" + "_j" + f"{j:03d}" + "_k" + f"{k:03d}" + append + ".h5"
         
-        self.MG = Merger_Grid(zval = self.k)
+        self.MG = Merger_Grid(self.k, self.merger_data_loc, self.unrotated_merger_data_loc)
         
     def angularPlot(self, t):
-        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, location = [self.i,self.j,self.k])
+        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False)
     def pointPlots(self, t, plot_tlim='timescale'):
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
-        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, location = [self.i,self.j,self.k])
+        SP = SpinParams(t_sim = t, data_loc = self.chosenfile, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
         SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False)
         H_resonant = SP.resonant_Hamiltonian()
         D = Diagonalizer(H_resonant)
