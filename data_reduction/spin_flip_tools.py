@@ -738,7 +738,7 @@ class Merger_Grid:
         return xlist,ylist
     
     
-    def contour_plot(self, savefig = True, x = 0, y = 0, xmin = 0, xmax = 200, ymin = 0, ymax = 200):
+    def contour_plot(self, savefig = False, x = 0, y = 0, xmin = 0, xmax = 200, ymin = 0, ymax = 200):
         zval = self.zval
         
         f, ax = plt.subplots()

@@ -67,8 +67,8 @@ mpl.rcParams['figure.facecolor'] = 'white'
 ##########
 # Generate the orthonormal distribution file in 2-orthonormal_distributions
 # python3 orthonormal_distributions.py
-#sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", unrotated_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").contour_plot()
-
+sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", unrotated_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").contour_plot(savefig = True)
+exit()
 ##########
 # STEP 3 #
 ##########
