@@ -66,8 +66,8 @@ mpl.rcParams['figure.facecolor'] = 'white'
 # STEP 2 #
 ##########
 # Generate the orthonormal distribution file in 2-orthonormal_distributions
-# python3 orthonormal_distributions_unrotated.py
-sft.Merger_Grid().contour_plot()
+# python3 orthonormal_distributions.py
+sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", unrotated_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").contour_plot()
 
 ##########
 # STEP 3 #
@@ -83,7 +83,7 @@ sft.Merger_Grid().contour_plot()
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact")
+sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").interact()
 
 ##########
 # STEP 5 #

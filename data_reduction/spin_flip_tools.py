@@ -601,8 +601,8 @@ class Merger_Grid:
         self.n_b=self.rho/M_p*(hbar**3 * c**3)#eV^3 (baryon number density)
 
         #x,y axes
-        self.x_km = np.array(self.merger_grid['x(km)'])[0][:,:,0]
-        self.y_km = np.array(self.merger_grid['y(km)'])[0][:,:,0]
+        self.x_km = np.array(self.merger_grid['x(cm)'])[:,:,0] / 1e5
+        self.y_km = np.array(self.merger_grid['y(cm)'])[:,:,0] / 1e5
        
         
         #basis
@@ -611,7 +611,7 @@ class Merger_Grid:
         self.p_abs = p_abs
         
         #discriminant condition
-        self.discriminant = np.array(self.merger_grid['crossing_descriminant'])[:,:,self.zval]
+        self.discriminant = np.array(self.merger_grid['crossing_discriminant'])[:,:,self.zval]
         self.positive = np.where(self.discriminant>=0)
         self.negative = np.where(self.discriminant<0)
         self.discriminant_sign=np.zeros_like(self.discriminant)
@@ -737,7 +737,7 @@ class Merger_Grid:
         return xlist,ylist
     
     
-    def contour_plot(self, savefig = False, x = 0, y = 0, xmin = 0, xmax = 200, ymin = 0, ymax = 200):
+    def contour_plot(self, savefig = True, x = 0, y = 0, xmin = 0, xmax = 200, ymin = 0, ymax = 200):
         zval = self.zval
         
         f, ax = plt.subplots()
@@ -763,14 +763,14 @@ class Merger_Grid:
         ax.set_ylabel('y (km)')
         plt.scatter(self.x_km[x,y],self.y_km[x,y], color = 'red')
         
-        ax.set_ylim(self.y_km[xmin,ymin-3],self.y_km[xmax,ymax+3])
-        ax.set_xlim(self.x_km[xmin-3,ymin],self.x_km[xmax+3,ymax])
+        ax.set_ylim(self.y_km[xmin,ymin],self.y_km[xmax,ymax])
+        ax.set_xlim(self.x_km[xmin,ymin],self.x_km[xmax,ymax])
         ax.add_patch(plt.Rectangle((self.x_km[xmin,ymin],self.y_km[xmin,ymin]),self.x_km[xmax,ymax]-self.x_km[xmin,ymin],self.y_km[xmax,ymax]-self.y_km[xmin,ymin],
                              linewidth=1,edgecolor='magenta',facecolor='none'))
         #plt.contour(x[:,:,zval],y[:,:,zval],resonance_val_max[:,:,zval], levels=[0], colors=['blue'] )
         #plt.title('Resonance Conditions and ELN Crossing Regions')
         if savefig ==True:
-            plt.savefig('../'+'contour_plot_'+str(zval)+'.png', dpi=300)
+            plt.savefig('contour_plot_'+str(zval)+'.png', dpi=300)
         else:
             pass
 
