@@ -83,7 +83,7 @@ sft.Merger_Grid(zval=98, data_loc="/mnt/scratch/shared/2-orthonormal_distributio
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").run_many_interact()
+sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact").run_many_interact()
 
 ##########
 # STEP 5 #
@@ -98,7 +98,7 @@ sft.SpinParams(t_sim = 100,
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.Multipoint(80,73,99).pointPlots(0,1E-8)
+sft.Multipoint(80,73,99,"/mnt/scratch/shared/4-Multipoint_interact", 75,80,73,78,"/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5", "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5").pointPlots(0,savefig=True)
 
 
 ######################

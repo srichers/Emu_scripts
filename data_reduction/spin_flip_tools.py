@@ -142,7 +142,7 @@ def angularArray(func, theta_res, phi_res):
 def rm_trace(M):
     return np.array(M) - np.trace(M)*np.identity(np.array(M).shape[0])/np.array(M).shape[0]
 
-def visualizer(M, log=True, text='mag', traceless = False, vmin=1E-15,vmax=1E-6):
+def visualizer(M, log=True, text='mag', traceless = False, vmin=1E-15,vmax=1E-6, savefig=False):
     if traceless ==True:
         M=rm_trace(M)
     else:
@@ -180,6 +180,10 @@ def visualizer(M, log=True, text='mag', traceless = False, vmin=1E-15,vmax=1E-6)
                 xcoord = (n)*grid_subdivisions
                 ycoord = 1 - (m+1/2)*grid_subdivisions
                 ax.text(xcoord, ycoord, str(round(np.real(M[m,n]/np.abs(M[m,n])), ndigits=1))+'+'+str(round(np.imag(M[m,n])/np.abs(M[m,n]), ndigits=2))+'i', color='cyan', size=9)
+
+    if savefig == True: 
+        plt.tight_layout()
+        plt.savefig('visualizer.png', dpi=300)
 
                 
 #This class takes a constant hamiltonian and evolves density matrices, generates plots
@@ -267,7 +271,7 @@ class Diagonalizer:
         
         if savefig == True: 
             plt.tight_layout()
-            plt.savefig('../evolvedstate.png', dpi=300)
+            plt.savefig('evolvedstate.png', dpi=300)
     
         
         
@@ -450,7 +454,7 @@ class SpinParams:
             
         if savefig == True: 
             plt.tight_layout()
-            plt.savefig('../angularPlot.png', dpi=300)
+            plt.savefig('angularPlot.png', dpi=300)
         
          
         
@@ -570,7 +574,7 @@ class TimePlots:
 
         if savefig == True: 
             plt.tight_layout()
-            plt.savefig('../'+quantity+'.png', dpi=300)
+            plt.savefig(quantity+'.png', dpi=300)
 
         else: pass
 
@@ -800,7 +804,7 @@ class Merger_Grid:
         plt.tight_layout()
         plt.scatter(self.x_km[95,123],self.y_km[95,123])
         if savefig ==True:
-            plt.savefig('../'+'adiabaticity_plot_'+str(zval)+'.png', dpi=300)
+            plt.savefig('adiabaticity_plot_'+str(zval)+'.png', dpi=300)
  
 
 
@@ -810,7 +814,7 @@ class Multipoint:
     def __init__(self, i, j, k, sfm_file,
                 xmin, xmax, ymin, ymax,
                 merger_data_loc, unrotated_merger_data_loc,
-                append = '_sfmJ'):
+                append = 'sfmJ', savefig=False):
         self.sfm_file = sfm_file
         self.merger_data_loc = merger_data_loc
         self.unrotated_merger_data_loc = unrotated_merger_data_loc
@@ -828,18 +832,18 @@ class Multipoint:
         
         self.MG = Merger_Grid(self.k, self.merger_data_loc, self.unrotated_merger_data_loc)
         
-    def angularPlot(self, t):
+    def angularPlot(self, t, savefig=False):
         SP = SpinParams(t_sim = t, data_loc = self.chosenfile, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
-        SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False)
-    def pointPlots(self, t, plot_tlim='timescale'):
+        SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
+    def pointPlots(self, t, plot_tlim='timescale', savefig=False):
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
         SP = SpinParams(t_sim = t, data_loc = self.chosenfile, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
-        SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False)
+        SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
         H_resonant = SP.resonant_Hamiltonian()
         D = Diagonalizer(H_resonant)
 
-        D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)))
-        visualizer(H_resonant, traceless=True)
+        D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
+        visualizer(H_resonant, traceless=True, savefig=savefig)
         
         
         
