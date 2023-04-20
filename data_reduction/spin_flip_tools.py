@@ -1406,9 +1406,10 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
 #data_base_directory is the .h5 file with the raw simulation data in it
 #output_name is the name of the output if you want a specific one, otherwise it gives it the same name as the input h5 file and appends output_append at the end (so ijk.h5 becomes ijk_sfm.h5 by default)
 class Interact:
-    def __init__(self, data_base_directory, output_name = None, output_append = '_sfm_'):
+    def __init__(self, data_base_directory, output_name = None):
         self.data_base_directory = data_base_directory
         
+        output_append = '_sfm'
         if output_name == None:
             self.output_filename = data_base_directory[0:-3] + output_append
         else: 
@@ -1475,18 +1476,17 @@ class Interact:
         
 #inputpath carries files of the form /i*j*k*/allData.h5. outputpath is the file where you want to store the output h5 files. output_append is an appended string to the name of the individual h5 files inside outputpath; default is _sfm (so files inside outputpath have filename i*j*k*_sfm.h5)
 class Multipoint_interact:
-    def __init__(self, inputpath, outputpath, output_append = '_sfm'):
+    def __init__(self, inputpath, outputpath):
         self.inputpath = inputpath
         self.filelist = glob.glob(self.inputpath + "/i*j*k*/allData.h5")
         self.outputpath = outputpath
-        self.output_append = output_append
         
     def interact(self):
         os.mkdir(self.outputpath)
         
         for h5file in self.filelist:
             coords = h5file[-26:-11] #just the coordinate part
-            Interact(h5file, output_name = self.outputpath + coords, output_append = self.output_append).run_J()
+            Interact(h5file, output_name = self.outputpath + coords).run_J()
         
                
     
