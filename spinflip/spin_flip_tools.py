@@ -226,7 +226,7 @@ class SpinParams:
         
         #Mass part
         self.M = M_3flavor
-        self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,conj(self.M))
+        self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,dagger(self.M))
         
         
 
@@ -271,8 +271,8 @@ class SpinParams:
         
        # MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
        # SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
-        MSl = np.array(np.matmul(conj(self.M),S_L_plus))
-        SrM = np.array(np.matmul(S_R_plus,conj(self.M)))
+        MSl = np.array(np.matmul(dagger(self.M),S_L_plus))
+        SrM = np.array(np.matmul(S_R_plus,dagger(self.M)))
         return (-1/self.p_abs)*(SrM-MSl)
 
 
@@ -765,7 +765,7 @@ def trace_matrix(data):#takes in (nF,nF,nz)
         return matrix
 	
 #conjugate a matrix
-def conj(matrix):
+def dagger(matrix):
 	conjugate=np.transpose(np.conjugate(matrix))
 	return conjugate
 	
@@ -955,20 +955,20 @@ m12=np.array([[np.cos(a12),np.sin(a12),0],
 m=m23 @ m13 @ m12
 #m is the mass mixing (MNS) matrix -- m*(1,2,3)=(e,mu,tau)
 M_mass_basis=([[m_1,0*1j,0],[0,m_2,0],[0,0,m_3]])
-M_3flavor = m @ M_mass_basis @ conj(m) #(3,3)
+M_3flavor = m @ M_mass_basis @ dagger(m) #(3,3)
 M=M_3flavor
 
 m2 = np.array([[np.cos(a12),np.sin(a12)],[-np.sin(a12),np.cos(a12)]])
 M_mass_basis_2 =([[m_1,0*1j],[0,m_2]])
-M_2flavor = m2 @ M_mass_basis_2 @ conj(m2)
+M_2flavor = m2 @ M_mass_basis_2 @ dagger(m2)
                                     
                 
 ## Non-Interacting Term ## [f1, f2]
 
 def H_R_free(M):
-    return 0.5*(1/p_abs)*np.matmul(M,conj(M))
+    return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
 def H_L_free(M):
-    return 0.5*(1/p_abs)*np.matmul(M,conj(M))
+    return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
 
 H_R_free_3flavor = H_R_free(M_3flavor)
 H_L_free_3flavor = H_L_free(M_3flavor)
@@ -1191,8 +1191,8 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     append_to_hdf5(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
-    MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
-    SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
+    MSl = np.array([ np.matmul(dagger(M),S_L_plus[:,:,n]) for n in range(nz) ])
+    SrM = np.array([ np.matmul(S_R_plus[:,:,n],dagger(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
     H_LR = H_LR.transpose((1,2,0))
     append_to_hdf5(outputfile, "H_LR(eV)", H_LR)    
@@ -1274,8 +1274,8 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     append_to_hdf5_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
     
     ## Helicity-Flip Hamiltonian ## [f1, f2, z]
-    MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
-    SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
+    MSl = np.array([ np.matmul(dagger(M),S_L_plus[:,:,n]) for n in range(nz) ])
+    SrM = np.array([ np.matmul(S_R_plus[:,:,n],dagger(M))  for n in range(nz) ])
     H_LR = (-1/p_abs)*(SrM-MSl)
     H_LR = H_LR.transpose((1,2,0))
     append_to_hdf5_scalar(outputfile, "H_LR(eV)", H_LR)    
