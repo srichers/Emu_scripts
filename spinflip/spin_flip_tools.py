@@ -23,33 +23,7 @@ import matplotlib.axes as ax
 from mpl_toolkits.mplot3d import Axes3D
 import latex
 from multiprocessing import Pool
-
-###### Parameters ######
-########################
-
-#fermi coupling constant: G/(c*hbar)^3=1.166 378 7(6)×10−5 GeV−2 --> G=1.166 378 7×10−23 eV^−2 (natural units:c=hbar=1)
-pi=np.pi
-G=1.1663787*10**(-23) # eV^-2
-c=299792458         # cm/s
-hbar =6.582119569E-16 #eV s
-M_p=1.6726219*10**(-24)#grams (Proton mass)
-
-#mixing angles (rad): (values from NuFit)
-a12=33.4*np.pi*2/360
-a13=49.2*np.pi*2/360
-a23=8.57*np.pi*2/360
-
-#CP phase:
-delta=194*np.pi*2/360
-#majorana angles are all 0 and dont influence the matrix
-
-#masses (eV) (Negative mass? 0 mass?)
-m_1=0.608596511
-m_2=0.608
-m_3=0.649487372
-
-#test neutrino momentum:
-p_abs=10**7#eV
+from constants import a12, a23, a13, delta, m_1, m_2, m_3, p_abs, M_p, hbar, c, G
 
 # set of orthonormal vectors, where n_vector is pointed along theta,phi
 class Basis:
@@ -62,8 +36,8 @@ class Basis:
     
 #takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
 def angularArray(func, theta_res, phi_res):   
-    return np.array([[func(theta, phi) for phi in np.linspace(0, 2*pi, phi_res)]
-                                      for theta in np.linspace(0, pi, theta_res)])
+    return np.array([[func(theta, phi) for phi in np.linspace(0, 2*np.pi, phi_res)]
+                                      for theta in np.linspace(0, np.pi, theta_res)])
 
 def rm_trace(M):
     return np.array(M) - np.trace(M)*np.identity(np.array(M).shape[0])/np.array(M).shape[0]
@@ -125,7 +99,7 @@ class Diagonalizer:
         #find timescale for plot
         self.eigenval_differences = np.array([abs(np.real(lambda_1) - np.real(lambda_2)) for lambda_1 in self.eigenvals
                                       for lambda_2 in self.eigenvals if lambda_1!=lambda_2]).flatten()
-        self.timescale = max(2*pi*hbar/self.eigenval_differences)
+        self.timescale = max(2*np.pi*hbar/self.eigenval_differences)
         
     
         #(inverted) array of normalized eigenvectors
@@ -330,17 +304,17 @@ class SpinParams:
             
         if use_gm==True:
             H_LR_array = np.array([[np.abs(np.trace(self.H_LR(theta, phi))) 
-                                   for phi in np.linspace(0, 2*pi, phi_res)]
-                                   for theta in np.linspace(0, pi, theta_res)])
+                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
+                                   for theta in np.linspace(0, np.pi, theta_res)])
         else: 
             H_LR_array = np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
-                                   for phi in np.linspace(0, 2*pi, phi_res)]
-                                   for theta in np.linspace(0, pi, theta_res)])
+                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
+                                   for theta in np.linspace(0, np.pi, theta_res)])
 
         
         resonance_array = np.array([[self.resonance_old(theta,phi)
-                                   for phi in np.linspace(0, 2*pi, phi_res)]
-                                   for theta in np.linspace(0, pi, theta_res)]) 
+                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
+                                   for theta in np.linspace(0, np.pi, theta_res)]) 
 
         f = plt.figure()
         ax = f.add_subplot(projection = 'mollweide')
@@ -395,7 +369,7 @@ class SpinParams:
     
     def resonant_theta(self, phi=0):
         res_function = self.resonance_old
-        return opt.bisect(res_function,0,pi,args = (phi))
+        return opt.bisect(res_function,0,np.pi,args = (phi))
     
     #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
     def resonant_Hamiltonian(self, phi=0):
@@ -404,8 +378,8 @@ class SpinParams:
     
     def H_array(self):
         return np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
-                                   for phi in np.linspace(0, 2*pi, 50)]
-                                   for theta in np.linspace(0, pi, 50)])
+                                   for phi in np.linspace(0, 2*np.pi, 50)]
+                                   for theta in np.linspace(0, np.pi, 50)])
        
         
         
@@ -706,7 +680,7 @@ class Merger_Grid:
             pass
 
     #Adiabaticity Colorplot
-    def adiab_plot(self, minval = 1E-5, crit_region = False, savefig = False, theta_res = pi, phi_res = 0, ):
+    def adiab_plot(self, minval = 1E-5, crit_region = False, savefig = False, theta_res = np.pi, phi_res = 0, ):
         zval = self.zval
         adiabaticity = self.adiabaticity(self.basis)
         plt.grid(False)
