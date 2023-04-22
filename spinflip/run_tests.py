@@ -11,11 +11,6 @@ import spin_flip_tools as sft
 import importlib
 importlib.reload(sft)
 
-c = 299792458 #m/s
-hbar =6.582119569E-16 #eV s
-G=1.1663787E-23 # eV^-2 (fermi constant)
-M_p=1.6726219*10**(-24)#grams (Proton mass)
-
 ##########
 # STEP 1 #
 ##########
