@@ -25,16 +25,9 @@ import latex
 from multiprocessing import Pool
 from constants import a12, a23, a13, delta, m_1, m_2, m_3, p_abs, M_p, hbar, c, G
 from diagonalizer import Diagonalizer
+from basis import Basis, plus, minus, kappa
 
-# set of orthonormal vectors, where n_vector is pointed along theta,phi
-class Basis:
-        def __init__(self, theta, phi): #theta is polar, phi is azimuthal
-            self.phi=phi
-            self.n_vector=np.array([1,np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)])
-            self.x1=np.array([0,np.cos(phi)*np.cos(theta),np.sin(phi)*np.cos(theta),(-1)*np.sin(theta)])
-            self.x2=np.array([0,-np.sin(phi),np.cos(phi),0])
-            
-    
+
 #takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
 def angularArray(func, theta_res, phi_res):   
     return np.array([[func(theta, phi) for phi in np.linspace(0, 2*np.pi, phi_res)]
@@ -834,26 +827,6 @@ def sigma(flux):
         Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,2,1,3)) #for majorana 
         return Sigma_R, Sigma_L
 
-#potential projected onto the basis
-def dot(potential,vector):
-	projection=-vector[0]*potential[0]
-	for k in range(1,4):
-		projection=projection+vector[k]*potential[k]
-	return -projection
-
-def plus(potential, basis): #(3,3,nz)
-	vector=0.5*(basis.x1+1j*basis.x2)
-	plus=np.exp(1j*basis.phi)*dot(potential,vector)
-	return plus
-
-def minus(potential, basis): #(3,3,nz)
-	vector=0.5*(basis.x1-1j*basis.x2)
-	minus=np.exp(-1j*basis.phi)*dot(potential,vector)
-	return minus
-	
-def kappa(potential, basis):
-	return dot(potential,basis.n_vector)
-	
 ## Mass Matrix ##	
 m23=np.array([[1,0*1j,0],
               [0,np.cos(a23),np.sin(a23)],
