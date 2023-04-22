@@ -8,38 +8,29 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
 import emu_yt_module as emu
-import matplotlib.pyplot as plt
 import h5py
-import gellmann as gm
 import glob
 import concurrent
-import matplotlib as mpl
 from multiprocessing import Pool
-from constants import p_abs, M_p, hbar, c, G, M_3flavor, M_2flavor
+from constants import p_abs, M_3flavor, M_2flavor
 from diagonalizer import Diagonalizer
 from basis import Basis
-from matrix import visualizer, dagger, trace_matrix
-from four_current import calculator_h5, calculator_eds, four_current_h5, four_current_eds
+from matrix import visualizer, dagger
+from four_current import calculator_h5, calculator_eds, four_current_eds
 from spin_params import SpinParams, sigma
 from merger_grid import Merger_Grid
 from hdf5_io import append_to_hdf5, append_to_hdf5_1D_scalar, append_to_hdf5_scalar
 
-
-#takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
-def angularArray(func, theta_res, phi_res):   
-    return np.array([[func(theta, phi) for phi in np.linspace(0, 2*np.pi, phi_res)]
-                                      for theta in np.linspace(0, np.pi, theta_res)])
 
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
 #append is the end of the filenames
 class Multipoint:
     def __init__(self, i, j, k, sfm_file,
                 xmin, xmax, ymin, ymax,
-                merger_data_loc, unrotated_merger_data_loc,
+                merger_data_loc,
                 append = 'sfmJ', savefig=False):
         self.sfm_file = sfm_file
         self.merger_data_loc = merger_data_loc
-        self.unrotated_merger_data_loc = unrotated_merger_data_loc
         self.filelist = glob.glob(self.sfm_file + "/i*j*k*.h5")
         
         self.xmin = xmin
@@ -52,7 +43,7 @@ class Multipoint:
         self.k = k
         self.chosenfile = self.sfm_file + '/i' + f"{i:03d}" + "_j" + f"{j:03d}" + "_k" + f"{k:03d}" + append + ".h5"
         
-        self.MG = Merger_Grid(self.k, self.merger_data_loc, self.unrotated_merger_data_loc)
+        self.MG = Merger_Grid(self.k, self.merger_data_loc)
         
     def angularPlot(self, t, savefig=False):
         SP = SpinParams(t_sim = t, data_loc = self.chosenfile, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
@@ -66,37 +57,14 @@ class Multipoint:
 
         D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
         visualizer(H_resonant, traceless=True, savefig=savefig)
-        
-        
-        
-        
-        
-	
-#z-derivative of (nF,nF,nz) matrix (returns nF,nF,nz)
-#TODO - needs to implement periodic boundary conditions.
-def der(data,ad):
-	dq=ad['index','dz'].d
-	shape=np.shape(data)
-	der=1j*np.zeros(shape)
-	for n in range(0,shape[2]):
-		der[:,:,n]=(data[:,:,n]-(1+0j)*data[:,:,n-1])/dq[n]
-	return der
 
-                                   
-                
 ## Non-Interacting Term ## [f1, f2]
-
 def H_R_free(M):
     return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
 def H_L_free(M):
     return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
 
-H_R_free_3flavor = H_R_free(M_3flavor)
-H_L_free_3flavor = H_L_free(M_3flavor)
-
-
 #version of interact that just outputs the flux, from which all other quantities can be calculated, to save storage space.
-
 def interact_J(d, outputfilename, time=0):
     #extract the data, depending on type
     if d[-3:]=='.h5':
@@ -124,12 +92,7 @@ def interact_J(d, outputfilename, time=0):
     outputfile.close()
 
     return
-            
-         
-        
-        
-        
-    
+
 def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     #extract the data, depending on type
     if d[-3:]=='.h5':
@@ -151,7 +114,6 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     else:
         print("unsupported flavor number.")
         return "unsupported flavor number."
-        
     
     # write the free Hamiltonians
     if "H_R_free(eV)" not in outputfile:
@@ -211,13 +173,6 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     outputfile.close()
 
     return
-            
-         
-        
-        
-        
-    
-    
     
 # Input: what folder do we want to process?
 def interact_scalar(d, outputfilename, basis_theta, basis_phi, time=0):
@@ -384,9 +339,6 @@ class Interact:
                 with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
                     executor.submit(interact_J, d, self.output_filename)
           
-        
-    
-        
 #inputpath carries files of the form /i*j*k*/allData.h5. outputpath is the file where you want to store the output h5 files. output_append is an appended string to the name of the individual h5 files inside outputpath; default is _sfm (so files inside outputpath have filename i*j*k*_sfm.h5)
 class Multipoint_interact:
     def __init__(self, inputpath, outputpath):
@@ -403,6 +355,3 @@ class Multipoint_interact:
 
         with Pool() as p:
              p.map(self.run_single_interact,self.filelist)
-        
-               
-    
