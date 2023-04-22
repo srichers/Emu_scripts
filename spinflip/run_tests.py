@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append("/mnt/scratch/srichers/software/emu_scripts/data_reduction")
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import yt
 import numpy as np
 import matplotlib.pyplot as plt
