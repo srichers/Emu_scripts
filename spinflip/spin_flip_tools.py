@@ -4,24 +4,20 @@
 #CHDIR COMMAND ONLY FOR JUPYTER
 import os
 import sys
-import yt
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import scipy
 from scipy import optimize as opt
 import h5py
-import amrex_plot_tools as amrex
 import emu_yt_module as emu
+import reduce_data as rd
 import gellmann as gm
 import glob
 import concurrent
 import matplotlib as mpl
-from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator)
 from matplotlib import cm, colors
-import matplotlib.axes as ax
-from mpl_toolkits.mplot3d import Axes3D
-import latex
 from multiprocessing import Pool
 from constants import a12, a23, a13, delta, m_1, m_2, m_3, p_abs, M_p, hbar, c, G
 from diagonalizer import Diagonalizer
@@ -476,7 +472,7 @@ class Merger_Grid:
     #returns the value of the resonance condition with the given basis at level zval
     def resonance_val(self, basis):
         S_R = 2**(1./2.)*G*np.transpose(np.array([[2*self.J,np.zeros_like(self.J)],[np.zeros_like(self.J),self.J]]),(2,0,1,3,4))
-        S_R_kappa = kappa(S_R,basis)
+        S_R_kappa = basis.kappa(S_R)
 
         return np.array(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+S_R_kappa[0,0])
 
@@ -496,7 +492,7 @@ class Merger_Grid:
         J = J_e - J_a
         
         S_R = 2**(1./2.)*G*np.transpose(np.array([[2*J,np.zeros_like(J)],[np.zeros_like(J),J]]),(2,0,1,3,4,5))
-        S_R_kappa = kappa(S_R,basis)
+        S_R_kappa = basis.kappa(S_R)
         
         resonance = np.array(2**(-1/2)*G*self.n_b[:,:,np.newaxis]*(3.*self.Ye[:,:,np.newaxis]-np.ones_like(self.Ye[:,:,np.newaxis]))+S_R_kappa[0,0])
 
@@ -513,8 +509,8 @@ class Merger_Grid:
                                                   [np.zeros_like(self.J),self.J]]),(2,0,1,3,4))
         S_L = -2**(1./2.)*G*np.transpose(np.array([[2*self.J,np.zeros_like(self.J)],
                                                    [np.zeros_like(self.J),self.J]]),(2,1,0,3,4))
-        S_L_minus = minus(S_L, basis)
-        S_R_plus = plus(S_R, basis)
+        S_L_minus = basis.minus(S_L)
+        S_R_plus = basis.plus(S_R)
 
         MSl = np.transpose(np.array([[ np.matmul(np.conj(M),S_L_minus[:,:,x,y]) 
                                                                                    for y in range(201)]
@@ -687,76 +683,6 @@ def der(data,ad):
 		der[:,:,n]=(data[:,:,n]-(1+0j)*data[:,:,n-1])/dq[n]
 	return der
 
-
-#Gell-Mann matrices (for scalarfunc)
-GM=np.array([[[0, 1, 0],
-              [1, 0, 0],
-              [0, 0, 0]],
-             
-             [[ 0, -1j, 0],
-              [1j,  0 , 0],
-              [ 0,  0 , 0]],
-             
-             [[1,  0, 0],
-              [0, -1, 0],
-              [0,  0, 0]],
-             
-             [[0, 0, 1],
-              [0, 0, 0],
-              [1, 0, 0]],
-             
-             [[0 , 0, -1j],
-              [0 , 0,  0 ],
-              [1j, 0,  0 ]],
-             
-             [[0, 0, 0],
-              [0, 0, 1],
-              [0, 1, 0]],
-             
-             [[0, 0 ,  0 ],
-              [0, 0 , -1j],
-              [0, 1j,  0 ]],
-             
-             [[3**(-1/2), 0        , 0           ],
-              [0        , 3**(-1/2), 0           ],
-              [0        , 0        , -2*3**(-1/2)]]
-])
-
-#scalarfunc: averages square magnitude of components for every location in nz and returns a list of these
-# input: array of shape (3,3,nz)
-# ouptut: array of length nz
-def scalarfunc(array):
-    nz = np.shape(array)[2]
-
-    # get the coefficients of each Gell-Mann matrix
-    # GM matrices are normalized so that Tr(G_a G_b) = 2 delta_ab
-    # result has shape (nz,8)
-    components = 0.5 * np.array([[
-            np.trace( np.matmul( GM[k], array[:,:,n] ) )
-            for k in range(8)] for n in range(nz)] )
-
-    # Construct a scalar out of the GM coefficients as sqrt(G.G) where G is the vector of GM matrix coefficients
-    # even though for a Hermitian matrix coefficients must be real, the input could be multiplied by an overall phase
-    # Return a real number by using a*conj(a)
-    # result has length nz
-    scalars = np.sqrt( np.sum( components*np.conj(components), axis=1) )
-
-    return np.real(scalars)
-
-#like scalarfunc, but takes in time dependent arrays (nt, nF, nF, nz) and applies scalarfunc at every time point
-def scalarfunc_time(array):
-    return np.array([scalarfunc(array[t]) for t in range(0,np.shape(array)[0])])
-
-#like scalarfunc but just squares all the entries in the array and adds them. Ideal for finding mag of HLR
-def scalarfunc_sum(M):
-    size=M.shape[0]
-    nz=M.shape[2]
-    return np.array([np.linalg.norm(M[:,:,n].reshape(size**2)) for n in np.arange(0,nz)])
-
-#same difference as scalarfunc_time.
-def scalarfunc_sum_time(array):
-    return np.array([scalarfunc_sum(array[t]) for t in range(0,np.shape(array)[0])])
-
 # Save data to hdf5 dataset
 # f is the hdf5 file we are writing to
 def append_to_hdf5(f, datasetname, data):
@@ -796,13 +722,13 @@ def append_to_hdf5_1D_scalar(outputfile, datasetname, data):
     nz = np.shape(data)[-1]
     scalar = np.zeros((n0,nz))
     for i0 in range(n0):
-            scalar[i0] = scalarfunc(data[i0])
+            scalar[i0] = gm.scalarfunc(data[i0])
     append_to_hdf5(outputfile, datasetname, scalar)
 
 
 def append_to_hdf5_scalar(outputfile, datasetname, data):
     nz = np.shape(data)[-1]
-    scalar = scalarfunc(data)
+    scalar = gm.scalarfunc(data)
     append_to_hdf5(outputfile, datasetname, scalar)
 
     #total takes in read-only h5 dataset and the array you want to compute and just adds the real and imaginary parts for the array
