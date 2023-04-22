@@ -14,6 +14,7 @@ from scipy import optimize as opt
 import h5py
 import amrex_plot_tools as amrex
 import emu_yt_module as emu
+import gellmann as gm
 import spin_flip_tools as sft
 import glob
 import concurrent
@@ -23,7 +24,6 @@ from matplotlib import cm, colors
 import matplotlib.axes as ax
 from mpl_toolkits.mplot3d import Axes3D
 import latex
-from itertools import product
 from multiprocessing import Pool
 
 ###### Parameters ######
@@ -61,78 +61,6 @@ class Basis:
             self.x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
             self.x2=np.array([0,-sin(phi),cos(phi),0])
             
-            
-#### Functions ####
-###################
-
-def gellmann(j, k, d):
-    r"""Returns a generalized Gell-Mann matrix of dimension d. According to the
-    convention in *Bloch Vectors for Qubits* by Bertlmann and Krammer (2008),
-    returns :math:`\Lambda^j` for :math:`1\leq j=k\leq d-1`,
-    :math:`\Lambda^{kj}_s` for :math:`1\leq k<j\leq d`,
-    :math:`\Lambda^{jk}_a` for :math:`1\leq j<k\leq d`, and
-    :math:`I` for :math:`j=k=d`.
-
-    :param j: First index for generalized Gell-Mann matrix
-    :type j:  positive integer
-    :param k: Second index for generalized Gell-Mann matrix
-    :type k:  positive integer
-    :param d: Dimension of the generalized Gell-Mann matrix
-    :type d:  positive integer
-    :returns: A genereralized Gell-Mann matrix.
-    :rtype:   numpy.array
-
-    """
-
-    if j > k:
-        gjkd = np.zeros((d, d), dtype=np.complex128)
-        gjkd[j - 1][k - 1] = 1
-        gjkd[k - 1][j - 1] = 1
-    elif k > j:
-        gjkd = np.zeros((d, d), dtype=np.complex128)
-        gjkd[j - 1][k - 1] = -1.j
-        gjkd[k - 1][j - 1] = 1.j
-    elif j == k and j < d:
-        gjkd = np.sqrt(2/(j*(j + 1)))*np.diag([1 + 0.j if n <= j
-                                               else (-j + 0.j if n == (j + 1)
-                                                     else 0 + 0.j)
-                                               for n in range(1, d + 1)])
-    else:
-        gjkd = np.diag([1 + 0.j for n in range(1, d + 1)])
-
-    return gjkd
-
-
-def get_GM(d):
-    r'''Return a basis of orthogonal Hermitian operators on a Hilbert space of
-    dimension d, with the identity element in the last place.
-
-    '''
-    return np.array([gellmann(j, k, d) for j, k in product(range(1, d + 1), repeat=2)])
-
-# finds Gell Mann projection vector of a matrix
-def GM_projection(M):
-    matrix_size = np.shape(M)[0]
-    GM_components = get_GM(matrix_size)
-    return np.array([np.trace(0.5*GM_components[n] @ M) for n in np.arange(0, matrix_size**2-1)])
-
-#scalar magnitude of GM projection
-def GM_magnitude(M):
-    return np.linalg.norm(GM_projection(M))
-
-#magnitude of array by just squaring and adding all components. this is equivalent to the above if you're looking at an off-diagonal subset of an array (eg HLR).
-def sum_magnitude(M):
-    size=M.shape[0]
-    M_flattened = M.reshape(size**2)
-    return np.linalg.norm(M_flattened)
-
-#returns H dot P as Gell Mann projection vectors. Resonance occurs when this is 0 
-def GM_dotprod(H, P):
-    if np.shape(H)[0] != np.shape(P)[0]:
-        raise TypeError('H and P have different dimensions')
-        return
-    else: 
-        return np.dot(np.real(GM_projection(H)),np.real(GM_projection(P)))
     
 #takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
 def angularArray(func, theta_res, phi_res):   
@@ -390,7 +318,7 @@ class SpinParams:
 
 
     def resonance_full(self, theta, phi):
-        return GM_dotprod(self.H(theta,phi),self.P(theta,phi))
+        return gm.dotprod(self.H(theta,phi),self.P(theta,phi))
     
     #checks resonance condition [H_L]_f1f1 = [H_R]_f2f2
     #equals resonance from tian et al if f1=f2=0 (electron)
@@ -407,7 +335,7 @@ class SpinParams:
                                    for phi in np.linspace(0, 2*pi, phi_res)]
                                    for theta in np.linspace(0, pi, theta_res)])
         else: 
-            H_LR_array = np.array([[sum_magnitude(self.H_LR(theta, phi)) 
+            H_LR_array = np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
                                    for phi in np.linspace(0, 2*pi, phi_res)]
                                    for theta in np.linspace(0, pi, theta_res)])
 
@@ -436,7 +364,7 @@ class SpinParams:
         h1,l1 = res_im.legend_elements()
 
         #add net flux point 
-        J_avg = np.array([GM_magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
+        J_avg = np.array([gm.magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
         flux_point = ax.scatter([np.arctan2(J_avg[2],J_avg[1])],[np.arctan2(J_avg[3],
                                                 (J_avg[1]**2+J_avg[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
         
@@ -465,7 +393,7 @@ class SpinParams:
     #Currently only works for the old resonance condition
     
     def J_avg(self): 
-        return np.array([sum_magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
+        return np.array([gm.sum_magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
     
     def resonant_theta(self, phi=0):
         res_function = self.resonance_old
@@ -477,7 +405,7 @@ class SpinParams:
         return self.H(theta,phi)
     
     def H_array(self):
-        return np.array([[sum_magnitude(self.H_LR(theta, phi)) 
+        return np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
                                    for phi in np.linspace(0, 2*pi, 50)]
                                    for theta in np.linspace(0, pi, 50)])
        
@@ -501,26 +429,26 @@ class TimePlots:
     #(spacetime, F, F, z)
     def J_spatial_flavoravg(self, avg_method = 'GM'): 
         if avg_method == 'GM':
-            return np.array([[GM_magnitude(np.average(SPclass.J[n], axis = 2)) 
+            return np.array([[gm.magnitude(np.average(SPclass.J[n], axis = 2)) 
                               for n in range(1,4)] for SPclass in self.spin_params_timearray])
         elif avg_method == 'sum':
-            return np.array([[sum_magnitude(np.average(SPclass.J[n], axis = 2)) 
+            return np.array([[gm.sum_magnitude(np.average(SPclass.J[n], axis = 2)) 
                               for n in range(1,4)] for SPclass in self.spin_params_timearray])
 
     def J_time_flavoravg(self, avg_method = 'GM'): 
         if avg_method == 'GM':
-            return np.array([GM_magnitude(np.average(SPclass.J[0], axis = 2)) 
+            return np.array([gm.magnitude(np.average(SPclass.J[0], axis = 2)) 
                                for SPclass in self.spin_params_timearray])
         elif avg_method == 'sum':
-            return np.array([sum_magnitude(np.average(SPclass.J[0], axis = 2)) 
+            return np.array([gm.sum_magnitude(np.average(SPclass.J[0], axis = 2)) 
                               for SPclass in self.spin_params_timearray])
         
     def H_LR(self, avg_method, theta, phi):
         if avg_method == 'GM':
-            return np.array([GM_magnitude(SPclass.H_LR(theta,phi)) 
+            return np.array([gm.magnitude(SPclass.H_LR(theta,phi)) 
                                for SPclass in self.spin_params_timearray])
         elif avg_method == 'sum':
-            return np.array([sum_magnitude(SPclass.H_LR(theta,phi)) 
+            return np.array([gm.sum_magnitude(SPclass.H_LR(theta,phi)) 
                                for SPclass in self.spin_params_timearray])
         
 
@@ -1004,12 +932,6 @@ def total(d, array):
 def J(d):
     return total(d,'J(eV^3)')
 
-#GM gets the 8 GM components of the flux matrix
-def GM_components(d):
-    flux=J(d)
-    return np.array([[[[np.trace( np.matmul( GM[k], flux[t,x,:,:,n] ) ) 
-                        for k in range (0,8)] for n in range (0,np.shape(flux)[-1])]
-                        for x in range (0,4)] for t in range (0,np.shape(flux)[0])])
 
 ###################
 ###################
