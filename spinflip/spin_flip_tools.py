@@ -7,19 +7,15 @@ import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
-import emu_yt_module as emu
 import h5py
 import glob
-import concurrent
 from multiprocessing import Pool
 from constants import p_abs, M_3flavor, M_2flavor
 from diagonalizer import Diagonalizer
-from basis import Basis
-from matrix import visualizer, dagger
-from four_current import calculator_h5, calculator_eds, four_current_eds
-from spin_params import SpinParams, sigma
+from matrix import visualizer
+from constants import c, hbar
 from merger_grid import Merger_Grid
-from hdf5_io import append_to_hdf5, append_to_hdf5_1D_scalar, append_to_hdf5_scalar
+from spin_params import SpinParams
 
 
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
@@ -28,7 +24,7 @@ class Multipoint:
     def __init__(self, i, j, k, sfm_file,
                 xmin, xmax, ymin, ymax,
                 merger_data_loc,
-                append = 'sfmJ', savefig=False):
+                append = '_sfmJ', savefig=False):
         self.sfm_file = sfm_file
         self.merger_data_loc = merger_data_loc
         self.filelist = glob.glob(self.sfm_file + "/i*j*k*.h5")
@@ -58,300 +54,99 @@ class Multipoint:
         D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
         visualizer(H_resonant, traceless=True, savefig=savefig)
 
-## Non-Interacting Term ## [f1, f2]
-def H_R_free(M):
-    return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
-def H_L_free(M):
-    return 0.5*(1/p_abs)*np.matmul(M,dagger(M))
+#returns J, Jbar like the above function but this one works on h5 files (takes in the dictionary outputed by extract)
+#keys must be of the form ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', ... 'N00_Re', 'N00_Rebar', ... 'dz(cm)', 'it', 't(s)']>
+#where the numbers denote flavor components       
+#number of flavors is variable. 
+#Returns (4, nF, nF, nz)
+def four_current(h5_dict):
+    num_flavors=max([int(key[2]) for key in list(h5_dict.keys()) if key[0]=='F'])+1
+    component_shape=np.shape(h5_dict['N00_Re(1|ccm)'])
+    components=['N', 'Fx', 'Fy', 'Fz']
 
-#version of interact that just outputs the flux, from which all other quantities can be calculated, to save storage space.
-def interact_J(d, outputfilename, time=0):
-    #extract the data, depending on type
-    if d[-3:]=='.h5':
-        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, time)
-    else:
-        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename)
-        
-    # open the hdf5 destination file
-    outputfile = h5py.File(outputfilename, "a")
-    
-    #write the time
-    append_to_hdf5(outputfile,"t(s)",t)
-     
-    # write the z grid
-    if "z(cm)" not in outputfile:
-            outputfile["z(cm)"] = z
-            
-    #write the fluxes
-    append_to_hdf5(outputfile, "J_p(eV^3)", J_p)
-    append_to_hdf5(outputfile, "J_a(eV^3)", J_a)
-    append_to_hdf5(outputfile, "J(eV^3)", J)
-    
-     
-    # close the output file
-    outputfile.close()
+    J_Re=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re(1|ccm)'] 
+                     for i in range(0,num_flavors)] 
+                     for j in range (0, num_flavors)]
+                     for n in range(0,4)]) 
 
-    return
+    J_Im=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Im(1|ccm)']
+                     for i in range(0,num_flavors)]
+                     for j in range (0, num_flavors)]
+                     for n in range(0,4)])   
 
-def interact(d, outputfilename, basis_theta, basis_phi, time=0):
-    #extract the data, depending on type
-    if d[-3:]=='.h5':
-        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, time)
-    else:
-        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename)
-        
-    # open the hdf5 destination file
-    outputfile = h5py.File(outputfilename, "a")
-    
-    #write the time
-    append_to_hdf5(outputfile,"t(s)",t)
-    
-    #define the size of the mass matrices
-    if nF == 2:
-        M=M_2flavor
-    elif nF == 3:
-        M=M_3flavor
-    else:
-        print("unsupported flavor number.")
-        return "unsupported flavor number."
-    
-    # write the free Hamiltonians
-    if "H_R_free(eV)" not in outputfile:
-            outputfile["H_R_free(eV)"] = H_R_free(M)
-            outputfile["H_L_free(eV)"] = H_L_free(M)
-            
-    # write the z grid
-    if "z(cm)" not in outputfile:
-            outputfile["z(cm)"] = z
-            
-    #write the fluxes
-    append_to_hdf5(outputfile, "J_p(eV^3)", J_p)
-    append_to_hdf5(outputfile, "J_a(eV^3)", J_a)
-    append_to_hdf5(outputfile, "J(eV^3)", J)
-    
-    # [spacetime, f1, f2, z]
-    S_R,S_L=sigma(J)
-    append_to_hdf5(outputfile, "S_R(eV)", S_R)
-    append_to_hdf5(outputfile, "S_L(eV)", S_L)
+    J_Re_bar=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Rebar(1|ccm)']
+                         for i in range(0,num_flavors)]
+                         for j in range (0, num_flavors)]
+                         for n in range (0,4)]) 
 
-    # define the basis as along z
-    basis = Basis(basis_theta,basis_phi)
+    J_Im_bar=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Imbar(1|ccm)']
+                         for i in range(0,num_flavors)]
+                         for j in range (0, num_flavors)]
+                         for n in range(0,4)])
     
-    # precompute Sigma [f1, f2, z]
-    S_R_plus = basis.plus(S_R)
-    S_L_plus = basis.plus(S_L)
-    S_R_minus = basis.minus(S_R)
-    S_L_minus = basis.minus(S_L)
-    S_R_kappa = basis.kappa(S_R)
-    S_L_kappa = basis.kappa(S_L)
-    append_to_hdf5(outputfile, "S_R_plus(eV)", S_R_plus)
-    append_to_hdf5(outputfile, "S_L_plus(eV)", S_L_plus)
-    append_to_hdf5(outputfile, "S_R_minus(eV)", S_R_minus)
-    append_to_hdf5(outputfile, "S_L_minus(eV)", S_L_minus)
-    append_to_hdf5(outputfile, "S_R_kappa(eV)", S_R_kappa)
-    append_to_hdf5(outputfile, "S_L_kappa(eV)", S_L_kappa)
-    
-    ## Helicity-Flip Hamiltonian! ## [f1, f2, z]
-    MSl = np.array([ np.matmul(dagger(M),S_L_plus[:,:,n]) for n in range(nz) ])
-    SrM = np.array([ np.matmul(S_R_plus[:,:,n],dagger(M))  for n in range(nz) ])
-    H_LR = (-1/p_abs)*(SrM-MSl)
-    H_LR = H_LR.transpose((1,2,0))
-    append_to_hdf5(outputfile, "H_LR(eV)", H_LR)    
-    
-    # plusminus term [f1, f2, z]
-    H_R_plusminus = 2./p_abs * np.array([
-            np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
-            for z in range(nz)]).transpose((1,2,0))
-    H_L_minusplus = 2./p_abs * np.array([
-            np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
-            for z in range(nz)]).transpose((1,2,0))
-    append_to_hdf5(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
-    append_to_hdf5(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
-    
-  
-    # close the output file
-    outputfile.close()
+    #make sure J_Im is antisymmetric so J is Hermitian
+    for i in range(0,num_flavors):
+        for j in range(0,i):
+            J_Im_bar[:,i,j,:] = -J_Im_bar[:,i,j,:]
+            J_Im[    :,i,j,:] = -J_Im[    :,i,j,:]
 
-    return
-    
-# Input: what folder do we want to process?
-def interact_scalar(d, outputfilename, basis_theta, basis_phi, time=0):
-    # Read in the data
-    eds = emu.EmuDataset(d)
-    nz = eds.Nz
+    #store complex numbers
+    J    = (1+0*1j)*J_Re     + 1j*J_Im
+    Jbar = (1+0*1j)*J_Re_bar + 1j*J_Im_bar
 
-    #extract the data, depending on type
-    if d[-3:]=='.h5':
-        nz, t, z, J_p, J_a, J, nF = calculator_h5(d, outputfilename, time)
-    else:
-        nz, t, z, J_p, J_a, J, nF = calculator_eds(d, outputfilename)
-        
-    #define the size of the mass matrices
-    if nF == 2:
-        M=M_2flavor
-    elif nF == 3:
-        M=M_3flavor
-    else:
-        print("unsupported flavor number.")
-        return "unsupported flavor number."
+    # rearrange the order of indices so that the time index is first
+    J    = np.transpose(J,    (3,0,1,2,4))
+    Jbar = np.transpose(Jbar, (3,0,1,2,4))
 
-    # open the hdf5 file
-    outputfile = h5py.File(outputfilename, "a")
+    return (c**3*hbar**3)*J, (c**3*hbar**3)*Jbar
 
-    t = eds.ds.current_time
-    append_to_hdf5(outputfile,"t(s)",t)
 
-    # write the free Hamiltonians
-    if "H_R_free(eV)" not in outputfile:
-            outputfile["H_R_free(eV)"] = H_R_free(M)
-            outputfile["H_L_free(eV)"] = H_L_free(M)
-
-    # write the z grid
-    if "z(cm)" not in outputfile:
-            outputfile["z(cm)"] = np.arange(eds.dz/2., nz*eds.dz, eds.dz)
-    
-    # [spacetime component, f1, f2, z]
-    #particle, antiparticle and total neutrino four currents respectively
-    J_p = four_current_eds(eds)[0]
-    J_a = four_current_eds(eds)[1] 
-    J = J_p-np.conj(J_a)
-    
-    append_to_hdf5_1D_scalar(outputfile, "J_p(eV^3)", J_p)
-    append_to_hdf5_1D_scalar(outputfile, "J_a(eV^3)", J_a)
-    append_to_hdf5_1D_scalar(outputfile, "J(eV^3)", J)
-
-    # [spacetime, f1, f2, z]
-    S_R,S_L=sigma(J)
-    append_to_hdf5_1D_scalar(outputfile, "S_R(eV)", S_R)
-    append_to_hdf5_1D_scalar(outputfile, "S_L(eV)", S_L)
-
-    # define the basis as along z
-    basis = Basis(basis_theta,basis_phi)
-    
-    # precompute Sigma [f1, f2, z]
-    S_R_plus = basis.plus(S_R)
-    S_L_plus = basis.plus(S_L)
-    S_R_minus = basis.minus(S_R)
-    S_L_minus = basis.minus(S_L)
-    S_R_kappa = basis.kappa(S_R)
-    S_L_kappa = basis.kappa(S_L)
-    append_to_hdf5_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
-    append_to_hdf5_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
-    append_to_hdf5_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
-    append_to_hdf5_scalar(outputfile, "S_L_minus(eV)", S_L_minus)
-    append_to_hdf5_scalar(outputfile, "S_R_kappa(eV)", S_R_kappa)
-    append_to_hdf5_scalar(outputfile, "S_L_kappa(eV)", S_L_kappa)
-    
-    ## Helicity-Flip Hamiltonian ## [f1, f2, z]
-    MSl = np.array([ np.matmul(dagger(M),S_L_plus[:,:,n]) for n in range(nz) ])
-    SrM = np.array([ np.matmul(S_R_plus[:,:,n],dagger(M))  for n in range(nz) ])
-    H_LR = (-1/p_abs)*(SrM-MSl)
-    H_LR = H_LR.transpose((1,2,0))
-    append_to_hdf5_scalar(outputfile, "H_LR(eV)", H_LR)    
-    
-    # plusminus term [f1, f2, z]
-    H_R_plusminus = 2./p_abs * np.array([
-            np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
-            for z in range(nz)]).transpose((1,2,0))
-    H_L_minusplus = 2./p_abs * np.array([
-            np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
-            for z in range(nz)]).transpose((1,2,0))
-    append_to_hdf5_scalar(outputfile, "H_R_plusminus(eV)", H_R_plusminus)
-    append_to_hdf5_scalar(outputfile, "H_L_minusplus(eV)", H_L_minusplus)
-    
-    ##H_R/H_L in the (0,0,10**7) basis (derivatives along x1 and x2 are 0 for 1d setup)
-    H_Rz = S_R_kappa + H_R_free[:,:,np.newaxis] + H_R_plusminus
-    H_Lz = S_L_kappa + H_L_free[:,:,np.newaxis] + H_L_minusplus
-    append_to_hdf5_scalar(outputfile, "H_Rz(eV)", H_Rz)
-    append_to_hdf5_scalar(outputfile, "H_Lz(eV)", H_Lz)
-
-    # close the output file
-    outputfile.close()
-    return
-         
-
-        
 #data_base_directory is the .h5 file with the raw simulation data in it
 #output_name is the name of the output if you want a specific one, otherwise it gives it the same name as the input h5 file and appends output_append at the end (so ijk.h5 becomes ijk_sfm.h5 by default)
-class Interact:
-    def __init__(self, data_base_directory, output_name = None):
-        self.data_base_directory = data_base_directory
-        
-        output_append = '_sfm'
-        if output_name == None:
-            self.output_filename = data_base_directory[0:-3] + output_append
-        else: 
-            self.output_filename = output_name + output_append
-    
-    def is_h5(self):
-        if self.data_base_directory[-3:]=='.h5':
-            return True
-        else: 
-            return False
-    
-    #old interact function (computes everything that SpinParams computes and stores all of it instead of just storing J. theta, phi specify the direction for computations of , for example, \Sigma_\kappa
-    def run(self, anglename, theta=0, phi=0,):
-      
-        if self.is_h5() == True:      
-        #runs interact for h5 files, outputs [filename]_spin_flip_matrices.h5 in same location
-       
-        #find number of time intervals
-            File=h5py.File(self.data_base_directory,"r")
-            nt=len(np.array(File["t(s)"]))
-            File.close()
-
-            for t in range(0,nt):
-                interact(self.data_base_directory, self.output_filename + anglename + '.h5', theta, phi, t)
-        
-        else: #runs interact, for plt files. outputs h5 'spin_flip_matrices' file inside of data_base_directory
-            directory_list = sorted(glob.glob(self.data_base_directory+"plt*"))
-           
-            if os.path.exists(self.output_filename):
-                os.remove(self.output_filename)
-
-            for d in directory_list:
-                print(d)
-                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-                    executor.submit(interact, d, self.output_filename + anglename + '.h5', theta, phi)
-    
-    #interact_J, which just outputs the flux to save space
-    def run_J(self):
-      
-        if self.is_h5() == True:      
-        #runs interact for h5 files, outputs [filename]_spin_flip_matrices.h5 in same location
-       
-        #find number of time intervals
-            File=h5py.File(self.data_base_directory,"r")
-            nt=len(np.array(File["t(s)"]))
-            File.close()
-
-            for t in range(0,nt):
-                interact_J(self.data_base_directory, self.output_filename+'J.h5', t)
-        
-        else: #runs interact, for plt files. outputs h5 'spin_flip_matrices' file inside of data_base_directory
-            directory_list = sorted(glob.glob(self.data_base_directory+"plt*"))
-           
-            if os.path.exists(self.output_filename):
-                os.remove(self.output_filename)
-
-            for d in directory_list:
-                print(d)
-                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-                    executor.submit(interact_J, d, self.output_filename)
-          
+#interact_J, which just outputs the flux to save space
 #inputpath carries files of the form /i*j*k*/allData.h5. outputpath is the file where you want to store the output h5 files. output_append is an appended string to the name of the individual h5 files inside outputpath; default is _sfm (so files inside outputpath have filename i*j*k*_sfm.h5)
 class Multipoint_interact:
     def __init__(self, inputpath, outputpath):
-        self.inputpath = inputpath
-        self.filelist = glob.glob(self.inputpath + "/i*j*k*/allData.h5")
         self.outputpath = outputpath
-        
-    def run_single_interact(self,h5file):
-        coords = h5file[-26:-11] #just the coordinate part
-        Interact(h5file, output_name = self.outputpath + coords).run_J()
-         
-    def run_many_interact(self):
-        os.mkdir(self.outputpath)
+        self.filelist = glob.glob(inputpath + "/i*j*k*/allData.h5")
 
+    def run_single(self,infilename):
+        coords = infilename[-26:-11] #just the coordinate part
+        outputfilename = self.outputpath + "/"+ coords + '_sfmJ.h5'
+
+        #runs interact for h5 files, outputs [filename]_spin_flip_matrices.h5 in same location
+        # Read in the data
+        infile = h5py.File(infilename, "r")
+        data={key:np.array(infile[key]) for key in list(infile.keys())}
+        infile.close()
+
+        # get coordinages, times
+        nz = np.shape(data['N00_Re(1|ccm)'])[1]
+        z = np.arange(data['dz(cm)']/2., nz*data['dz(cm)'], data['dz(cm)'])
+        t = data['t(s)']
+    
+        # [spacetime component, f1, f2, z]
+        #particle, antiparticle and total neutrino four currents respectively
+        J_ab = four_current(data)
+        J_p = J_ab[0]
+        J_a = J_ab[1]
+        J = J_p-np.conj(J_a)
+
+        #write the time, fluxes, and tetrad
+        outputfile = h5py.File(outputfilename, "w")
+        outputfile["t(s)"      ] = t
+        outputfile["z(cm)"     ] = z
+        outputfile["J_p(eV^3)R"] = np.real(J_p)
+        outputfile["J_p(eV^3)I"] = np.imag(J_p)
+        outputfile["J_a(eV^3)R"] = np.real(J_a)
+        outputfile["J_a(eV^3)I"] = np.imag(J_a)
+        outputfile["J(eV^3)R"  ] = np.real(J)
+        outputfile["J(eV^3)I"  ] = np.imag(J)
+        outputfile.close()
+
+
+
+    def run_many(self):
+        os.mkdir(self.outputpath)
         with Pool() as p:
-             p.map(self.run_single_interact,self.filelist)
+             p.map(self.run_single,self.filelist)

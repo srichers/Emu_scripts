@@ -3,8 +3,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
-import amrex_plot_tools as amrex
-import emu_yt_module as emu
 import spin_flip_tools as sft
 
 # For ease of development, reload the relevant modules to make sure they are up to date.
@@ -38,14 +36,14 @@ sft.Merger_Grid(zval=98, data_loc=data_loc).contour_plot(savefig = True)
 ##########
 #process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
 #outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact").run_many_interact()
+#sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").run_many()
 
 ##########
 # STEP 5 #
 ##########
 # For one grid cell, calculate all spin transformation quantities at each timestep
 sft.SpinParams(t_sim = 100,
-               data_loc='/mnt/scratch/shared/4-Multipoint_interact/i077_j070_k097sfmJ.h5',
+               data_loc='/mnt/scratch/shared/4-Multipoint_interact/i077_j070_k097_sfmJ.h5',
                merger_data_loc=data_loc,
                location=[77,70,97]).angularPlot(100,100)
 
