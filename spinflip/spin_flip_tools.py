@@ -15,7 +15,6 @@ import h5py
 import amrex_plot_tools as amrex
 import emu_yt_module as emu
 import gellmann as gm
-import spin_flip_tools as sft
 import glob
 import concurrent
 import matplotlib as mpl
@@ -231,14 +230,14 @@ class SpinParams:
     
             
         #Flux (spacetime, F, F, z)
-        self.J = sft.total(self.h5file, 'J(eV^3)')[self.t_sim]
+        self.J = total(self.h5file, 'J(eV^3)')[self.t_sim]
        
         #length of 1d array 
         self.nz = self.J.shape[3]
         
         #neutrino part of Sigma
-        self.S_R_nu = sft.sigma(self.J)[0]
-        self.S_L_nu = sft.sigma(self.J)[1]
+        self.S_R_nu = sigma(self.J)[0]
+        self.S_L_nu = sigma(self.J)[1]
         
         #matter part of Sigma
         self.S_R_mat = np.zeros(np.shape(self.J))  
@@ -253,31 +252,31 @@ class SpinParams:
         self.S_L = self.S_L_nu + self.S_R_mat
         
         #Mass part
-        self.M = sft.M_3flavor
-        self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,sft.conj(self.M))
+        self.M = M_3flavor
+        self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,conj(self.M))
         
         
 
     def S_L_kappa(self, theta, phi):
-        basis = sft.Basis(theta,phi)
-        return np.average(sft.kappa(self.S_L, basis), axis = 2)
+        basis = Basis(theta,phi)
+        return np.average(kappa(self.S_L, basis), axis = 2)
 
     def S_R_kappa(self, theta, phi):
-        basis = sft.Basis(theta,phi)
-        return np.average(sft.kappa(self.S_R, basis), axis = 2)
+        basis = Basis(theta,phi)
+        return np.average(kappa(self.S_R, basis), axis = 2)
 
     def H_L_pm(self, theta, phi):
-        basis = sft.Basis(theta,phi)
-        S_L_minus = sft.minus(self.S_L, basis)
-        S_L_plus = sft.plus(self.S_L, basis)
+        basis = Basis(theta,phi)
+        S_L_minus = minus(self.S_L, basis)
+        S_L_plus = plus(self.S_L, basis)
         H_L_pm = 2./self.p_abs * np.array([np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return np.average(H_L_pm, axis=2)
 
     def H_R_pm(self, theta, phi):
-        basis = sft.Basis(theta,phi)
-        S_R_minus = sft.minus(self.S_R, basis)
-        S_R_plus = sft.plus(self.S_R, basis)
+        basis = Basis(theta,phi)
+        S_R_minus = minus(self.S_R, basis)
+        S_R_plus = plus(self.S_R, basis)
         H_R_pm = 2./self.p_abs * np.array([np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return  np.average(H_R_pm, axis = 2)
@@ -285,22 +284,22 @@ class SpinParams:
 
     #NO DERIVATIVE TERM
     def H_L(self, theta, phi):
-        basis = sft.Basis(theta,phi)
+        basis = Basis(theta,phi)
         return self.S_L_kappa(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
 
     def H_R(self, theta, phi):
-        basis = sft.Basis(theta,phi)
+        basis = Basis(theta,phi)
         return self.S_R_kappa(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
 
     def H_LR(self, theta, phi):          
-        basis = sft.Basis(theta, phi)
-        S_L_plus = np.average(sft.plus(self.S_L, basis), axis = 2)
-        S_R_plus = np.average(sft.plus(self.S_R, basis), axis = 2)
+        basis = Basis(theta, phi)
+        S_L_plus = np.average(plus(self.S_L, basis), axis = 2)
+        S_R_plus = np.average(plus(self.S_R, basis), axis = 2)
         
        # MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
        # SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
-        MSl = np.array(np.matmul(sft.conj(self.M),S_L_plus))
-        SrM = np.array(np.matmul(S_R_plus,sft.conj(self.M)))
+        MSl = np.array(np.matmul(conj(self.M),S_L_plus))
+        SrM = np.array(np.matmul(S_R_plus,conj(self.M)))
         return (-1/self.p_abs)*(SrM-MSl)
 
 
@@ -481,7 +480,7 @@ class TimePlots:
 
             #NOT ADAPTED THESE YET
   #      elif quantity == 'H_LR_00':
-  #          H_LR=sft.total(readdata,"H_LR(eV)")
+  #          H_LR=total(readdata,"H_LR(eV)")
   #          ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
   #          plt.semilogy(t_axis*1E9,np.average(H_LR[:,0,0,:], axis=1), label = 'electron component')
   #          plt.semilogy(t_axis*1E9,np.average(H_LR[:,1,1,:], axis=1), label = 'muon component')
@@ -490,7 +489,7 @@ class TimePlots:
   #          ax.set_ylim(1E-25,1E-15)
             
   #      elif  quantity == 'kappa':
-  #          kappa=sft.total(data,'S_R_kappa(eV)')
+  #          kappa=total(data,'S_R_kappa(eV)')
   #          ax.set_ylabel(r"$eV$")
   #         plt.plot(t*1E9,np.average(kappa[:,0,0,:], axis=1))
 
@@ -539,7 +538,7 @@ class Merger_Grid:
        
         
         #basis
-        self.basis = sft.Basis(theta,phi)
+        self.basis = Basis(theta,phi)
         #momentum
         self.p_abs = p_abs
         
@@ -596,7 +595,7 @@ class Merger_Grid:
     #returns the value of the resonance condition with the given basis at level zval
     def resonance_val(self, basis):
         S_R = 2**(1./2.)*G*np.transpose(np.array([[2*self.J,np.zeros_like(self.J)],[np.zeros_like(self.J),self.J]]),(2,0,1,3,4))
-        S_R_kappa = sft.kappa(S_R,basis)
+        S_R_kappa = kappa(S_R,basis)
 
         return np.array(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+S_R_kappa[0,0])
 
@@ -616,7 +615,7 @@ class Merger_Grid:
         J = J_e - J_a
         
         S_R = 2**(1./2.)*G*np.transpose(np.array([[2*J,np.zeros_like(J)],[np.zeros_like(J),J]]),(2,0,1,3,4,5))
-        S_R_kappa = sft.kappa(S_R,basis)
+        S_R_kappa = kappa(S_R,basis)
         
         resonance = np.array(2**(-1/2)*G*self.n_b[:,:,np.newaxis]*(3.*self.Ye[:,:,np.newaxis]-np.ones_like(self.Ye[:,:,np.newaxis]))+S_R_kappa[0,0])
 
@@ -627,14 +626,14 @@ class Merger_Grid:
 
     #gets H_LR
     def H_LRf(self, basis):
-        M=sft.M_2flavor
+        M=M_2flavor
         
         S_R = 2**(1./2.)*G*np.transpose(np.array([[2*self.J,np.zeros_like(self.J)],
                                                   [np.zeros_like(self.J),self.J]]),(2,0,1,3,4))
         S_L = -2**(1./2.)*G*np.transpose(np.array([[2*self.J,np.zeros_like(self.J)],
                                                    [np.zeros_like(self.J),self.J]]),(2,1,0,3,4))
-        S_L_minus = sft.minus(S_L, basis)
-        S_R_plus = sft.plus(S_R, basis)
+        S_L_minus = minus(S_L, basis)
+        S_R_plus = plus(S_R, basis)
 
         MSl = np.transpose(np.array([[ np.matmul(np.conj(M),S_L_minus[:,:,x,y]) 
                                                                                    for y in range(201)]
@@ -723,7 +722,7 @@ class Merger_Grid:
             proxy = [plt.Rectangle((1, 1), 2, 2, fc=pc.get_facecolor()[0]) for pc in
             contourf.collections]
         
-        plt.contour(self.x_km[:,:],self.y_km[:,:],self.resonance_val(sft.Basis(theta_res,phi_res)), levels=0)
+        plt.contour(self.x_km[:,:],self.y_km[:,:],self.resonance_val(Basis(theta_res,phi_res)), levels=0)
         #mpl.pyplot.tick_params(axis='both',which="both", direction="in",top=True,right=True)
         mpl.pyplot.minorticks_on()
         scatter=plt.scatter(self.coords(adiabaticity, minval)[0],self.coords(adiabaticity,minval)[1],color=[0,0.9,0], marker='x', label='Simulated Point')
