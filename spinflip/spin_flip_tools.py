@@ -6,7 +6,6 @@ import os
 import sys
 import yt
 import numpy as np
-from numpy import sin, cos, exp, pi
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import scipy
@@ -56,9 +55,9 @@ p_abs=10**7#eV
 class Basis:
         def __init__(self, theta, phi): #theta is polar, phi is azimuthal
             self.phi=phi
-            self.n_vector=np.array([1,cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)])
-            self.x1=np.array([0,cos(phi)*cos(theta),sin(phi)*cos(theta),(-1)*sin(theta)])
-            self.x2=np.array([0,-sin(phi),cos(phi),0])
+            self.n_vector=np.array([1,np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)])
+            self.x1=np.array([0,np.cos(phi)*np.cos(theta),np.sin(phi)*np.cos(theta),(-1)*np.sin(theta)])
+            self.x2=np.array([0,-np.sin(phi),np.cos(phi),0])
             
     
 #takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
@@ -138,7 +137,7 @@ class Diagonalizer:
         self.H_diag = self.f_to_e @ self.H @ np.linalg.inv(self.f_to_e)
     #Time evolution operator in energy basis
     def U_energy(self, t):
-        return np.diag([exp(-1j*eigenvalue*t/hbar) for eigenvalue in self.eigenvals])
+        return np.diag([np.exp(-1j*eigenvalue*t/hbar) for eigenvalue in self.eigenvals])
    
     def U_flavor(self, t):
         return np.linalg.inv(self.f_to_e) @ self.U_energy(t) @ self.f_to_e
@@ -453,7 +452,7 @@ class TimePlots:
 
     def plot(self, quantity, avg_method = 'GM', theta=0, phi=0, set_title = None, savefig = False):
 
-        direction = [cos(phi)*sin(theta),sin(phi)*sin(theta),cos(theta)]
+        direction = [np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)]
         f, ax = plt.subplots()
 
         if quantity == 'J_spatial': 
@@ -968,15 +967,15 @@ def kappa(potential, basis):
 	
 ## Mass Matrix ##	
 m23=np.array([[1,0*1j,0],
-              [0,cos(a23),sin(a23)],
-              [0,-sin(a23),cos(a23)]])
+              [0,np.cos(a23),np.sin(a23)],
+              [0,-np.sin(a23),np.cos(a23)]])
 
-m13=np.array([[cos(a13),0,sin(a13)*exp(-1j*delta)],
+m13=np.array([[np.cos(a13),0,np.sin(a13)*np.exp(-1j*delta)],
               [0,1,0],
-              [-sin(a13)*exp(1j*delta),0,cos(a13)]])
+              [-np.sin(a13)*np.exp(1j*delta),0,np.cos(a13)]])
 
-m12=np.array([[cos(a12),sin(a12),0],
-              [-sin(a12),cos(a12),0],
+m12=np.array([[np.cos(a12),np.sin(a12),0],
+              [-np.sin(a12),np.cos(a12),0],
               [0,0*1j,1]])
 
 m=m23 @ m13 @ m12
@@ -985,7 +984,7 @@ M_mass_basis=([[m_1,0*1j,0],[0,m_2,0],[0,0,m_3]])
 M_3flavor = m @ M_mass_basis @ conj(m) #(3,3)
 M=M_3flavor
 
-m2 = np.array([[cos(a12),sin(a12)],[-sin(a12),cos(a12)]])
+m2 = np.array([[np.cos(a12),np.sin(a12)],[-np.sin(a12),np.cos(a12)]])
 M_mass_basis_2 =([[m_1,0*1j],[0,m_2]])
 M_2flavor = m2 @ M_mass_basis_2 @ conj(m2)
                                     
