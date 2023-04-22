@@ -25,7 +25,7 @@ import latex
 from multiprocessing import Pool
 from constants import a12, a23, a13, delta, m_1, m_2, m_3, p_abs, M_p, hbar, c, G
 from diagonalizer import Diagonalizer
-from basis import Basis, plus, minus, kappa
+from basis import Basis
 
 
 #takes in value that depends on theta, phi and returns a theta_res by phi_res array of values 
@@ -140,24 +140,24 @@ class SpinParams:
 
     def S_L_kappa(self, theta, phi):
         basis = Basis(theta,phi)
-        return np.average(kappa(self.S_L, basis), axis = 2)
+        return np.average(basis.kappa(self.S_L), axis = 2)
 
     def S_R_kappa(self, theta, phi):
         basis = Basis(theta,phi)
-        return np.average(kappa(self.S_R, basis), axis = 2)
+        return np.average(basis.kappa(self.S_R), axis = 2)
 
     def H_L_pm(self, theta, phi):
         basis = Basis(theta,phi)
-        S_L_minus = minus(self.S_L, basis)
-        S_L_plus = plus(self.S_L, basis)
+        S_L_minus = basis.minus(self.S_L)
+        S_L_plus = basis.plus(self.S_L)
         H_L_pm = 2./self.p_abs * np.array([np.matmul(S_L_minus[:,:,z], S_L_plus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return np.average(H_L_pm, axis=2)
 
     def H_R_pm(self, theta, phi):
         basis = Basis(theta,phi)
-        S_R_minus = minus(self.S_R, basis)
-        S_R_plus = plus(self.S_R, basis)
+        S_R_minus = basis.minus(self.S_R)
+        S_R_plus = basis.plus(self.S_R)
         H_R_pm = 2./self.p_abs * np.array([np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return  np.average(H_R_pm, axis = 2)
@@ -174,8 +174,8 @@ class SpinParams:
 
     def H_LR(self, theta, phi):          
         basis = Basis(theta, phi)
-        S_L_plus = np.average(plus(self.S_L, basis), axis = 2)
-        S_R_plus = np.average(plus(self.S_R, basis), axis = 2)
+        S_L_plus = np.average(basis.plus(self.S_L), axis = 2)
+        S_R_plus = np.average(basis.plus(self.S_R), axis = 2)
         
        # MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
        # SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
@@ -1065,12 +1065,12 @@ def interact(d, outputfilename, basis_theta, basis_phi, time=0):
     basis = Basis(basis_theta,basis_phi)
     
     # precompute Sigma [f1, f2, z]
-    S_R_plus = plus(S_R, basis)
-    S_L_plus = plus(S_L, basis)
-    S_R_minus = minus(S_R, basis)
-    S_L_minus = minus(S_L, basis)
-    S_R_kappa = kappa(S_R, basis)
-    S_L_kappa = kappa(S_L, basis)
+    S_R_plus = basis.plus(S_R)
+    S_L_plus = basis.plus(S_L)
+    S_R_minus = basis.minus(S_R)
+    S_L_minus = basis.minus(S_L)
+    S_R_kappa = basis.kappa(S_R)
+    S_L_kappa = basis.kappa(S_L)
     append_to_hdf5(outputfile, "S_R_plus(eV)", S_R_plus)
     append_to_hdf5(outputfile, "S_L_plus(eV)", S_L_plus)
     append_to_hdf5(outputfile, "S_R_minus(eV)", S_R_minus)
@@ -1148,12 +1148,12 @@ def interact_scalar(d, outputfilename, basis_theta, basis_phi):
     basis = Basis(basis_theta,basis_phi)
     
     # precompute Sigma [f1, f2, z]
-    S_R_plus = plus(S_R, basis)
-    S_L_plus = plus(S_L, basis)
-    S_R_minus = minus(S_R, basis)
-    S_L_minus = minus(S_L, basis)
-    S_R_kappa = kappa(S_R, basis)
-    S_L_kappa = kappa(S_L, basis)
+    S_R_plus = basis.plus(S_R)
+    S_L_plus = basis.plus(S_L)
+    S_R_minus = basis.minus(S_R)
+    S_L_minus = basis.minus(S_L)
+    S_R_kappa = basis.kappa(S_R)
+    S_L_kappa = basis.kappa(S_L)
     append_to_hdf5_scalar(outputfile, "S_R_plus(eV)", S_R_plus)
     append_to_hdf5_scalar(outputfile, "S_L_plus(eV)", S_L_plus)
     append_to_hdf5_scalar(outputfile, "S_R_minus(eV)", S_R_minus)
