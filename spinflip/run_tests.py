@@ -41,12 +41,6 @@ sft.Merger_Grid(zval=98, data_loc=data_loc).contour_plot(savefig = True)
 ##########
 # STEP 5 #
 ##########
-# For one grid cell, calculate all spin transformation quantities at each timestep
-sft.SpinParams(t_sim = 100,
-               data_loc='/mnt/scratch/shared/4-Multipoint_interact/i077_j070_k097_sfmJ.h5',
-               merger_data_loc=data_loc,
-               location=[77,70,97]).angularPlot(100,100)
-
 # Draw adiabaticity/resonance for many points
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
