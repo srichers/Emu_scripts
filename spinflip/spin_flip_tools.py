@@ -58,12 +58,14 @@ class Multipoint:
 #keys must be of the form ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', ... 'N00_Re', 'N00_Rebar', ... 'dz(cm)', 'it', 't(s)']>
 #where the numbers denote flavor components       
 #number of flavors is variable. 
-#Returns (4, nF, nF, nz)
+#Returns (nt, 4, nF, nF, nz)
 def four_current(h5_dict):
     num_flavors=max([int(key[2]) for key in list(h5_dict.keys()) if key[0]=='F'])+1
     component_shape=np.shape(h5_dict['N00_Re(1|ccm)'])
     components=['N', 'Fx', 'Fy', 'Fz']
 
+    # component shape: [nt,nz]
+    # result: [4, nF, nF, nt, nz]
     J_Re=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re(1|ccm)'] 
                      for i in range(0,num_flavors)] 
                      for j in range (0, num_flavors)]
@@ -95,6 +97,7 @@ def four_current(h5_dict):
     Jbar = (1+0*1j)*J_Re_bar + 1j*J_Im_bar
 
     # rearrange the order of indices so that the time index is first
+    # indices: [time, component, flavor1, flavor2, z]
     J    = np.transpose(J,    (3,0,1,2,4))
     Jbar = np.transpose(Jbar, (3,0,1,2,4))
 
