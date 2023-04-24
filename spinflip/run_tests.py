@@ -34,18 +34,11 @@ sft.Merger_Grid(zval=98, data_loc=data_loc).contour_plot(savefig = True)
 ##########
 # STEP 4 #
 ##########
-#process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
-#outputs h5 files in directory outputpath
-#sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact/test").run_many()
-
-##########
-# STEP 5 #
-##########
 # Draw adiabaticity/resonance for many points
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.Multipoint(80,73,99,"/mnt/scratch/shared/4-Multipoint_interact", 75,80,73,78,data_loc).pointPlots(0,savefig=True)
+sft.Multipoint(80,73,99,"/mnt/scratch/shared/3-Henry_NSM_box/i080_j073_k099/allData.h5", 75,80,73,78,data_loc).pointPlots(0,savefig=True)
 
 
 ######################
