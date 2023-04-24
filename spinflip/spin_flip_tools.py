@@ -24,7 +24,7 @@ from scipy import optimize as opt
 
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
 #append is the end of the filenames
-class Multipoint:
+class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
                 merger_data_loc):

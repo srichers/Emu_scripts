@@ -9,7 +9,11 @@ import spin_flip_tools as sft
 import importlib
 importlib.reload(sft)
 
-data_loc = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5"
+location=[80,73,99]
+
+merger_data_filename = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5"
+emu_data_loc = "/mnt/scratch/shared/3-Henry_NSM_box/"
+emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
 
 ##########
 # STEP 1 #
@@ -21,7 +25,6 @@ data_loc = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonorma
 ##########
 # Generate the orthonormal distribution file in 2-orthonormal_distributions
 # python3 orthonormal_distributions.py
-sft.Merger_Grid(zval=98, data_loc=data_loc).contour_plot(savefig = True)
 
 ##########
 # STEP 3 #
@@ -34,12 +37,16 @@ sft.Merger_Grid(zval=98, data_loc=data_loc).contour_plot(savefig = True)
 ##########
 # STEP 4 #
 ##########
+# Calculate gradients
+
+##########
+# STEP 5 #
+##########
 # Draw adiabaticity/resonance for many points
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.Multipoint(80,73,99,"/mnt/scratch/shared/3-Henry_NSM_box/i080_j073_k099/allData.h5", 75,80,73,78,data_loc).pointPlots(0,savefig=True)
-
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, 75,80,73,78,merger_data_filename).pointPlots(0,savefig=True)
 
 ######################
 # Diagonalizer Tests #
@@ -54,4 +61,4 @@ Htest_2f[0,2]=1
 
 sft.Diagonalizer(H = Htest).state_evolution_plotter(init_array = np.diag((1,0,0,0,0,0)))
 sft.Diagonalizer(H=Htest_2f).state_evolution_plotter(init_array = np.diag((1,0,0,0)))
-sft.Diagonalizer( H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))
+sft.Diagonalizer(H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))
