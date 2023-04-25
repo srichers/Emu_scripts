@@ -4,16 +4,24 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
 import spin_flip_tools as sft
+from gradients import store_gradients
 
 # For ease of development, reload the relevant modules to make sure they are up to date.
 import importlib
 importlib.reload(sft)
 
 location=[80,73,99]
+xmin = 75
+xmax = 83
+ymin = 67
+ymax = 77
+zmin = 97
+zmax = 99
 
-merger_data_filename = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5"
+merger_data_filename = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5"
 emu_data_loc = "/mnt/scratch/shared/3-Henry_NSM_box/"
 emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+gradient_filename = "/mnt/scratch/shared/4-gradients/gradients.h5"
 
 ##########
 # STEP 1 #
@@ -38,6 +46,7 @@ emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(lo
 # STEP 4 #
 ##########
 # Calculate gradients
+store_gradients(merger_data_filename, emu_data_loc, gradient_filename, xmin, xmax, ymin, ymax, zmin, zmax, 0)
 
 ##########
 # STEP 5 #
@@ -46,7 +55,7 @@ emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(lo
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.MultiPlot(location[0], location[1], location[2], emu_filename, 75,80,73,78,merger_data_filename).pointPlots(0,savefig=True)
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename).pointPlots(0,savefig=True)
 
 ######################
 # Diagonalizer Tests #
