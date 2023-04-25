@@ -114,21 +114,6 @@ def four_current(infilename):
 
     return (c**3*hbar**3) * (J-np.conj(Jbar))
 
-
-#data_base_directory is the .h5 file with the raw simulation data in it
-#output_name is the name of the output if you want a specific one, otherwise it gives it the same name as the input h5 file and appends output_append at the end (so ijk.h5 becomes ijk_sfm.h5 by default)
-#interact_J, which just outputs the flux to save space
-#inputpath carries files of the form /i*j*k*/allData.h5. outputpath is the file where you want to store the output h5 files. output_append is an appended string to the name of the individual h5 files inside outputpath; default is _sfm (so files inside outputpath have filename i*j*k*_sfm.h5)
-class Multipoint_interact:
-    def __init__(self, inputpath, outputpath):
-        self.outputpath = outputpath
-        self.filelist = glob.glob(inputpath + "/i*j*k*/allData.h5")
-
-    def run_many(self):
-        with Pool() as p:
-            p.map(four_current,self.filelist)
-
-
 ## Chiral Potentials ##
 # input: flux[spacetime, f1, f2, z]
 # output: Sigma_R[spacetime, f1, f2, z]
