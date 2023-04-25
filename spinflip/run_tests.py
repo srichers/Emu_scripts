@@ -22,6 +22,9 @@ merger_data_filename = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl
 emu_data_loc = "/mnt/scratch/shared/3-Henry_NSM_box/"
 emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
 gradient_filename = "/mnt/scratch/shared/4-gradients/gradients.h5"
+p_abs = 1e7 # eV
+
+
 
 ##########
 # STEP 1 #
@@ -46,7 +49,7 @@ gradient_filename = "/mnt/scratch/shared/4-gradients/gradients.h5"
 # STEP 4 #
 ##########
 # Calculate gradients
-store_gradients(merger_data_filename, emu_data_loc, gradient_filename, xmin, xmax, ymin, ymax, zmin, zmax, 0)
+#store_gradients(merger_data_filename, emu_data_loc, gradient_filename, xmin, xmax, ymin, ymax, zmin, zmax, 0)
 
 ##########
 # STEP 5 #
@@ -55,7 +58,7 @@ store_gradients(merger_data_filename, emu_data_loc, gradient_filename, xmin, xma
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename).pointPlots(0,savefig=True)
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename, p_abs=p_abs).pointPlots(0,savefig=True)
 
 ######################
 # Diagonalizer Tests #

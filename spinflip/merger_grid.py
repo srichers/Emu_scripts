@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from constants import hbar, c, M_p, G, M_2flavor, M_3flavor, p_abs
+from constants import hbar, c, M_p, G, M_2flavor
 from basis import Basis
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -9,8 +9,7 @@ import matplotlib.patches as mpatches
 #data_loc, unrotated_data_loc is the location for the merger data and unrotated merger data
 class Merger_Grid:
     def __init__(self, zval, data_loc,
-                p_abs=10**7, theta=0, phi=0,
-                rotate = True):
+                p_abs, theta=0, phi=0):
         
         self.zval = zval
             

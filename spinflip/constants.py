@@ -21,9 +21,6 @@ m_1=0.608596511
 m_2=0.608
 m_3=0.649487372
 
-#test neutrino momentum:
-p_abs=10**7#eV
-
 ## Mass Matrix ##	
 m23=np.array([[1,0*1j,0],
               [0,np.cos(a23),np.sin(a23)],

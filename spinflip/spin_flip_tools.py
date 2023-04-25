@@ -8,8 +8,6 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
 import h5py
-import glob
-from multiprocessing import Pool
 from constants import hbar, c, M_p, M_3flavor, G
 from diagonalizer import Diagonalizer
 from matrix import visualizer
@@ -27,9 +25,10 @@ from scipy import optimize as opt
 class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
-                merger_data_loc):
+                merger_data_loc, p_abs):
         self.emu_file = emu_file        
         self.merger_data_loc = merger_data_loc
+        self.p_abs = p_abs
         
         self.xmin = xmin
         self.xmax = xmax
@@ -40,14 +39,14 @@ class MultiPlot:
         self.j = j
         self.k = k
 
-        self.MG = Merger_Grid(self.k, self.merger_data_loc)
+        self.MG = Merger_Grid(self.k, self.merger_data_loc, p_abs=p_abs)
         
     def angularPlot(self, t, savefig=False):
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
+        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
     def pointPlots(self, t, plot_tlim='timescale', savefig=False):
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k])
+        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
         H_resonant = SP.resonant_Hamiltonian()
         D = Diagonalizer(H_resonant)
@@ -131,8 +130,7 @@ def sigma(flux):
 #merger_data_loc is the merger grid data location
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, location,
-                 p_abs=10**7):
+    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs):
         
         self.p_abs = p_abs
         self.t_sim = t_sim

@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
 import h5py
 import gellmann as gm
-from spin_params import SpinParams
+from spin_flip_tools import SpinParams
 import numpy as np
 
 #generates plots vs time of spin parameters in fast flavor instability simulation
 class TimePlots:
-    def __init__(self, data_loc,  merger_data_loc, location,
-           p_abs=10**7):
+    def __init__(self, data_loc,  merger_data_loc, location, p_abs):
         
         self.precision = 1
         
