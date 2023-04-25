@@ -11,13 +11,13 @@ import h5py
 from constants import hbar, c, M_p, M_3flavor, G
 from diagonalizer import Diagonalizer
 from matrix import visualizer
-from constants import c, hbar
 from merger_grid import Merger_Grid
 from matrix import trace_matrix, dagger
 from basis import Basis
 import matplotlib.pyplot as plt
 import gellmann as gm
 from scipy import optimize as opt
+from four_current import four_current, read_gradients
 
 
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
@@ -25,9 +25,11 @@ from scipy import optimize as opt
 class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
-                merger_data_loc, p_abs):
+                merger_data_loc, gradient_filename, 
+                p_abs):
         self.emu_file = emu_file        
         self.merger_data_loc = merger_data_loc
+        self.gradient_filename = gradient_filename
         self.p_abs = p_abs
         
         self.xmin = xmin
@@ -42,76 +44,17 @@ class MultiPlot:
         self.MG = Merger_Grid(self.k, self.merger_data_loc, p_abs=p_abs)
         
     def angularPlot(self, t, savefig=False):
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
     def pointPlots(self, t, plot_tlim='timescale', savefig=False):
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
         H_resonant = SP.resonant_Hamiltonian()
         D = Diagonalizer(H_resonant)
 
         D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
         visualizer(H_resonant, traceless=True, savefig=savefig)
-
-#returns J, Jbar like the above function but this one works on h5 files (takes in the dictionary outputed by extract)
-#keys must be of the form ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', ... 'N00_Re', 'N00_Rebar', ... 'dz(cm)', 'it', 't(s)']>
-#where the numbers denote flavor components       
-#number of flavors is variable. 
-#Returns (nt, 4, nF, nF, nz)
-def four_current(infilename):
-    h5_dict = h5py.File(infilename, "r")
-    
-    num_flavors=max([int(key[2]) for key in list(h5_dict.keys()) if key[0]=='F'])+1
-    component_shape=np.shape(h5_dict['N00_Re(1|ccm)'])
-    components=['N', 'Fx', 'Fy', 'Fz']
-
-    # get coordinages, times
-    #dz = np.array(h5_dict['dz(cm)'])
-    #nz = np.shape(h5_dict['N00_Re(1|ccm)'])[1]
-    #z = np.arange(dz/2., nz*dz, dz)
-    #t = h5_dict['t(s)']
-
-    # component shape: [nt,nz]
-    # result: [4, nF, nF, nt, nz]
-    J_Re=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Re(1|ccm)'] 
-                     for i in range(0,num_flavors)] 
-                     for j in range (0, num_flavors)]
-                     for n in range(0,4)]) 
-
-    J_Im=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Im(1|ccm)']
-                     for i in range(0,num_flavors)]
-                     for j in range (0, num_flavors)]
-                     for n in range(0,4)])   
-
-    J_Re_bar=np.array([[[h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Rebar(1|ccm)']
-                         for i in range(0,num_flavors)]
-                         for j in range (0, num_flavors)]
-                         for n in range (0,4)]) 
-
-    J_Im_bar=np.array([[[np.zeros(component_shape) if i==j else h5_dict[components[n] + str(min(i,j)) + str(max(i,j)) +'_Imbar(1|ccm)']
-                         for i in range(0,num_flavors)]
-                         for j in range (0, num_flavors)]
-                         for n in range(0,4)])
-    
-    h5_dict.close()
-    
-    #make sure J_Im is antisymmetric so J is Hermitian
-    for i in range(0,num_flavors):
-        for j in range(0,i):
-            J_Im_bar[:,i,j,:] = -J_Im_bar[:,i,j,:]
-            J_Im[    :,i,j,:] = -J_Im[    :,i,j,:]
-
-    #store complex numbers
-    J    = (1+0*1j)*J_Re     + 1j*J_Im
-    Jbar = (1+0*1j)*J_Re_bar + 1j*J_Im_bar
-
-    # rearrange the order of indices so that the time index is first
-    # indices: [time, component, flavor1, flavor2, z]
-    J    = np.transpose(J,    (3,0,1,2,4))
-    Jbar = np.transpose(Jbar, (3,0,1,2,4))
-
-    return (c**3*hbar**3) * (J-np.conj(Jbar))
 
 ## Chiral Potentials ##
 # input: flux[spacetime, f1, f2, z]
@@ -130,12 +73,13 @@ def sigma(flux):
 #merger_data_loc is the merger grid data location
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs):
+    def __init__(self, t_sim, emu_file, merger_data_loc, gradient_filename, location, p_abs):
         
         self.p_abs = p_abs
         self.t_sim = t_sim
          
         #Grid-dependent stuff: Electron fraction, baryon n density
+        location = np.array(location)
         self.location=location
           
         self.merger_grid = h5py.File(merger_data_loc, 'r')
@@ -145,7 +89,15 @@ class SpinParams:
 
         #Flux (spacetime, F, F, z)
         self.J = four_current(emu_file)[self.t_sim]
-       
+
+        # flux gradient (spacetime up, spacetime (gradient) low, F, F, z)
+        all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
+        assert(t_sim == it)
+        assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
+        assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
+        assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
+        self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
+
         #length of 1d array 
         self.nz = self.J.shape[3]
         
