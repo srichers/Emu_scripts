@@ -1,61 +1,28 @@
 import os
 import sys
-sys.path.append("/mnt/scratch/srichers/software/emu_scripts/data_reduction")
-import yt
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import scipy
-from scipy import optimize as opt
-import h5py
-import amrex_plot_tools as amrex
-import emu_yt_module as emu
 import spin_flip_tools as sft
-import glob
-import concurrent
-import matplotlib as mpl
-from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator)
-from matplotlib import cm, colors
-import matplotlib.axes as ax
-from mpl_toolkits.mplot3d import Axes3D
-from itertools import product
+from four_current import store_gradients
 
 # For ease of development, reload the relevant modules to make sure they are up to date.
 import importlib
 importlib.reload(sft)
 
-c = 299792458 #m/s
-hbar =6.582119569E-16 #eV s
-G=1.1663787E-23 # eV^-2 (fermi constant)
-M_p=1.6726219*10**(-24)#grams (Proton mass)
+location=[80,73,99]
+xmin = 75
+xmax = 83
+ymin = 67
+ymax = 77
+zmin = 97
+zmax = 99
 
-################
-# plot options #
-################
-mpl.rcParams['font.size'] = 10
-mpl.rcParams['font.family'] = 'serif'
-COLOR = 'black'
-mpl.rcParams['text.color'] = COLOR
-mpl.rcParams['axes.labelcolor'] = COLOR
-mpl.rcParams['xtick.color'] = COLOR
-mpl.rcParams['ytick.color'] = COLOR
-mpl.rcParams['axes.facecolor'] = 'white'
-mpl.rcParams['figure.facecolor'] = 'white'
-mpl.rc('text', usetex=True)
-mpl.rcParams['xtick.major.size'] = 7
-mpl.rcParams['xtick.major.width'] = 2
-mpl.rcParams['xtick.major.pad'] = 8
-mpl.rcParams['xtick.minor.size'] = 4
-mpl.rcParams['xtick.minor.width'] = 2
-mpl.rcParams['ytick.major.size'] = 7
-mpl.rcParams['ytick.major.width'] = 2
-mpl.rcParams['ytick.minor.size'] = 4
-mpl.rcParams['ytick.minor.width'] = 2
-mpl.rcParams['axes.linewidth'] = 2
-mpl.rcParams['axes.grid'] = False
-plt.show()
-mpl.rcParams['axes.facecolor'] = 'white'
-mpl.rcParams['figure.facecolor'] = 'white'
+merger_data_filename = "/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_rotated.h5"
+emu_data_loc = "/mnt/scratch/shared/3-Henry_NSM_box/"
+emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+gradient_filename = "/mnt/scratch/shared/4-gradients/gradients.h5"
+p_abs = 1e7 # eV
 
 ##########
 # STEP 1 #
@@ -66,8 +33,7 @@ mpl.rcParams['figure.facecolor'] = 'white'
 # STEP 2 #
 ##########
 # Generate the orthonormal distribution file in 2-orthonormal_distributions
-# python3 orthonormal_distributions_unrotated.py
-sft.Merger_Grid().contour_plot()
+# python3 orthonormal_distributions.py
 
 ##########
 # STEP 3 #
@@ -76,30 +42,21 @@ sft.Merger_Grid().contour_plot()
 # Henry specifies i,j,k range
 # python3 setup_runs.sh
 # bash run_all.sh
-# then run again for data analysis step (should be automated)
 
 ##########
 # STEP 4 #
 ##########
-#process simulation data from a dataset (inputdatafile) full of files of the form i*j*k*/allData.h5 (e.g. Henry_NSM_Box)
-#outputs h5 files in directory outputpath
-sft.Multipoint_interact("/mnt/scratch/shared/3-Henry_NSM_box", "/mnt/scratch/shared/4-Multipoint_interact")
+# Calculate gradients
+#store_gradients(merger_data_filename, emu_data_loc, gradient_filename, xmin, xmax, ymin, ymax, zmin, zmax, 0)
 
 ##########
 # STEP 5 #
 ##########
-# For one grid cell, calculate all spin transformation quantities at each timestep
-sft.SpinParams(t_sim = 100,
-               data_loc='/mnt/scratch/shared/spinflip/4-Multipoint_interact/i106_j136_k099_sfm_JJ.h5',
-               merger_data_loc="/mnt/scratch/shared/2-orthonormal_distributions/model_rl0_orthonormal_unrotated.h5",
-               location=[106,136,99]).angularPlot(100,100)
-
 # Draw adiabaticity/resonance for many points
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.Multipoint(80,73,99).pointPlots(0,1E-8)
-
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename, gradient_filename, p_abs=p_abs).pointPlots(0,savefig=True)
 
 ######################
 # Diagonalizer Tests #
@@ -114,4 +71,4 @@ Htest_2f[0,2]=1
 
 sft.Diagonalizer(H = Htest).state_evolution_plotter(init_array = np.diag((1,0,0,0,0,0)))
 sft.Diagonalizer(H=Htest_2f).state_evolution_plotter(init_array = np.diag((1,0,0,0)))
-sft.Diagonalizer( H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))
+sft.Diagonalizer(H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))
