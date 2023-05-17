@@ -25,7 +25,7 @@ def dagger(matrix):
 def rm_trace(M):
     return np.array(M) - np.trace(M)*np.identity(np.array(M).shape[0])/np.array(M).shape[0]
 
-def visualizer(M, log=True, text='mag', traceless = False, vmin=1E-15,vmax=1E-6, savefig=False):
+def visualizer(M, log=True,  text='mag', traceless = True, vmin=1E-15,vmax=1E-6, savefig=False):
     if traceless ==True:
         M=rm_trace(M)
     else:
