@@ -46,7 +46,7 @@ class MultiPlot:
     def angularPlot(self, t, savefig=False):
         SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
-    def pointPlots(self, t, plot_tlim='timescale', savefig=False):
+    def pointPlots(self, t, plot_tlim='timescale', savefig=False, traceless = True,  text='mag'):
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
         SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
@@ -54,7 +54,7 @@ class MultiPlot:
         D = Diagonalizer(H_resonant)
 
         D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
-        visualizer(H_resonant, traceless=True, savefig=savefig)
+        visualizer(H_resonant, traceless=traceless, savefig=savefig, text = text)
 
 ## Chiral Potentials ##
 # input: flux[spacetime, f1, f2, z]
@@ -73,7 +73,7 @@ def sigma(flux):
 #merger_data_loc is the merger grid data location
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, gradient_filename, location, p_abs):
+    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, gradient_filename = None):
         
         self.p_abs = p_abs
         self.t_sim = t_sim
@@ -91,12 +91,13 @@ class SpinParams:
         self.J = four_current(emu_file)[self.t_sim]
 
         # flux gradient (spacetime up, spacetime (gradient) low, F, F, z)
-        all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
-        assert(t_sim == it)
-        assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
-        assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
-        assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
-        self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
+        if gradient_filename != None:
+            all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
+            assert(t_sim == it)
+            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
+            assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
+            assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
+            self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
 
         #length of 1d array 
         self.nz = self.J.shape[3]
@@ -115,7 +116,7 @@ class SpinParams:
         
         #Total Sigma
         self.S_R = self.S_R_nu + self.S_R_mat
-        self.S_L = self.S_L_nu + self.S_R_mat
+        self.S_L = self.S_L_nu + self.S_L_mat
         
         #Mass part
         self.M = M_3flavor
@@ -130,6 +131,21 @@ class SpinParams:
     def S_R_kappa(self, theta, phi):
         basis = Basis(theta,phi)
         return np.average(basis.kappa(self.S_R), axis = 2)
+    
+    ## changes
+    def S_L_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_L_nu), axis = 2)
+
+    def S_R_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_R_nu), axis = 2)
+    
+    def S_R_kappa2(self, theta, phi):
+        return self.S_R_nu_kappa(theta, phi) + np.average(self.S_R_mat[0], axis = 2)
+    
+    def S_L_kappa2(self,theta, phi):
+        return self.S_L_nu_kappa(theta, phi) + np.average(self.S_L_mat[0], axis = 2)
 
     def H_L_pm(self, theta, phi):
         basis = Basis(theta,phi)
@@ -151,11 +167,11 @@ class SpinParams:
     #NO DERIVATIVE TERM
     def H_L(self, theta, phi):
         basis = Basis(theta,phi)
-        return self.S_L_kappa(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
+        return self.S_L_kappa2(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
 
     def H_R(self, theta, phi):
         basis = Basis(theta,phi)
-        return self.S_R_kappa(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
+        return self.S_R_kappa2(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
 
     def H_LR(self, theta, phi):          
         basis = Basis(theta, phi)
@@ -188,7 +204,7 @@ class SpinParams:
         return self.H(theta,phi)[f1,f1]-self.H(theta,phi)[f2,f2]
 
     def resonance_old(self, theta, phi):
-        return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_R_kappa(theta,phi)[0,0])
+        return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_R_nu_kappa(theta,phi)[0,0])
 
     def angularPlot(self, theta_res, phi_res, savefig=False, use_gm=True, direction_point=False):
         
