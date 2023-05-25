@@ -134,21 +134,7 @@ class SpinParams:
         basis = Basis(theta,phi)
         return np.average(basis.kappa(self.S_R), axis = 2)
     
-    ## changes
-    def S_L_nu_kappa(self, theta, phi):
-        basis = Basis(theta,phi)
-        return np.average(basis.kappa(self.S_L_nu), axis = 2)
-
-    def S_R_nu_kappa(self, theta, phi):
-        basis = Basis(theta,phi)
-        return np.average(basis.kappa(self.S_R_nu), axis = 2)
     
-    def S_R_kappa2(self, theta, phi):
-        return self.S_R_nu_kappa(theta, phi) + np.average(self.S_R_mat[0], axis = 2)
-    
-    def S_L_kappa2(self,theta, phi):
-        return self.S_L_nu_kappa(theta, phi) + np.average(self.S_L_mat[0], axis = 2)
-
     def H_L_pm(self, theta, phi):
         basis = Basis(theta,phi)
         S_L_minus = basis.minus(self.S_L)
@@ -169,11 +155,11 @@ class SpinParams:
     #NO DERIVATIVE TERM
     def H_L(self, theta, phi):
         basis = Basis(theta,phi)
-        return self.S_L_kappa2(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
+        return self.S_L_kappa(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
 
     def H_R(self, theta, phi):
         basis = Basis(theta,phi)
-        return self.S_R_kappa2(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
+        return self.S_R_kappa(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
 
     def H_LR(self, theta, phi):          
         basis = Basis(theta, phi)
@@ -186,12 +172,22 @@ class SpinParams:
         SrM = np.array(np.matmul(S_R_plus,dagger(self.M)))
         return (-1/self.p_abs)*(SrM-MSl)
 
-
     #full Hamiltonian
     def H(self, theta, phi):
         return np.concatenate((np.concatenate( (self.H_R(theta, phi), np.conjugate(self.H_LR(theta,phi).transpose(1,0))), axis=0),
                 np.concatenate((self.H_LR(theta,phi), self.H_L(theta,phi)), axis = 0)), axis = 1)
 
+        
+    ## kappa component of just neutrino part of potential. Need for Resonance condition so matter contribution isnt counted twice
+    def S_L_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_L_nu), axis = 2)
+
+    def S_R_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_R_nu), axis = 2)
+    
+    
     #NEED DEFINITION OF DENSITY MATRIX
     def P(self, theta, phi):
         
