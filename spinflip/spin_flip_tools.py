@@ -42,7 +42,9 @@ class MultiPlot:
         self.k = k
 
         self.MG = Merger_Grid(self.k, self.merger_data_loc, p_abs=p_abs)
-        
+    def resHamiltonian(self, t):
+        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        return SP.resonant_Hamiltonian()    
     def angularPlot(self, t, savefig=False):
         SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
