@@ -25,8 +25,8 @@ from four_current import four_current, read_gradients
 class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
-                merger_data_loc, gradient_filename, 
-                p_abs):
+                merger_data_loc, p_abs, gradient_filename = None
+                ):
         self.emu_file = emu_file        
         self.merger_data_loc = merger_data_loc
         self.gradient_filename = gradient_filename
@@ -59,14 +59,16 @@ class MultiPlot:
         visualizer(H_resonant, traceless=traceless, savefig=savefig, text = text)
 
 ## Chiral Potentials ##
-# input: flux[spacetime, f1, f2, z]
-# output: Sigma_R[spacetime, f1, f2, z]
+# input: flux[spacetime, f1, f2, ...]
+# output: Sigma_R[spacetime, f1, f2, ...]
 def sigma(flux):
         Sigma_R=0j*np.zeros(np.shape(flux)) 
         Sigma_L=0j*np.zeros(np.shape(flux))
         for n in range(0,4):
                 Sigma_R[n]=2**(1./2.)*G*(flux[n]+trace_matrix(flux[n]))
-        Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,2,1,3)) #for majorana 
+        transpose_axes = np.arange(Sigma_R.ndim)
+        transpose_axes[1:3] = [2,1] #switches f1 and f2. input can have extra vars at the end like z, lower gradient indices
+        Sigma_L=(-1)*np.transpose(Sigma_R, axes=transpose_axes) #for majorana 
         return Sigma_R, Sigma_L
 
 #Given a spinflip dataset, finds the hamiltonian at some angle. Can also check resonant direction
@@ -81,8 +83,7 @@ class SpinParams:
         self.t_sim = t_sim
          
         #Grid-dependent stuff: Electron fraction, baryon n density
-        location = np.array(location)
-        self.location=location
+        self.location=np.array(location)
           
         self.merger_grid = h5py.File(merger_data_loc, 'r')
         self.rho = np.array(self.merger_grid['rho(g|ccm)'])[location[0],location[1],location[2]] #g/cm^3 (baryon mass density)
@@ -91,15 +92,6 @@ class SpinParams:
 
         #Flux (spacetime, F, F, z)
         self.J = four_current(emu_file)[self.t_sim]
-
-        # flux gradient (spacetime up, spacetime (gradient) low, F, F, z)
-        if gradient_filename != None:
-            all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
-            assert(t_sim == it)
-            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
-            assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
-            assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
-            self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
 
         #length of 1d array 
         self.nz = self.J.shape[3]
@@ -111,7 +103,7 @@ class SpinParams:
         #matter part of Sigma
         self.S_R_mat = np.zeros(np.shape(self.J))  
         for k in np.arange(0, self.nz):
-            self.S_R_mat[0,:,:,k] = 2**(-1/2)*G*self.n_b*np.array([[3*self.Ye-1,    0,      0],
+            self.S_R_mat[0,:,:,k] = -2**(-1/2)*G*self.n_b*np.array([[3*self.Ye-1,    0,      0],
                                               [0,           self.Ye-1, 0],
                                               [0,              0,   self.Ye-1 ]])
         self.S_L_mat = (-1)*np.transpose(self.S_R_mat, axes=(0,2,1,3))   
@@ -124,7 +116,25 @@ class SpinParams:
         self.M = M_3flavor
         self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,dagger(self.M))
         
-        
+        #Gradients
+        if gradient_filename != None:
+            # flux gradient (spacetime up, spacetime (gradient) low, F, F, z)
+            all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
+            assert(t_sim == it)
+            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
+            assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
+            assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
+            self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
+
+            # S_R_nu gradient (spacetime up, spacetime (gradient) low, F, F, z) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
+            self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,2,3,4,1)))
+            self.grad_S_R_nu, self.grad_S_L_nu = np.transpose(self.grad_S_R_nu, axes = (0,4,1,2,3)), np.transpose(self.grad_S_L_nu, axes = (0,4,1,2,3))
+
+            #need matter part gradients from changing Y_e, n_b
+            self.grad_S_R_mat, self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_R_nu)), np.zeros(np.shape(self.grad_S_L_nu))
+            self.grad_S_R, self.grad_S_L = self.grad_S_R_nu + self.grad_S_R_mat, self.grad_S_L_nu + self.grad_S_L_mat
+
+            
 
     def S_L_kappa(self, theta, phi):
         basis = Basis(theta,phi)
@@ -134,7 +144,7 @@ class SpinParams:
         basis = Basis(theta,phi)
         return np.average(basis.kappa(self.S_R), axis = 2)
     
-    
+    #plus & minus Potential term
     def H_L_pm(self, theta, phi):
         basis = Basis(theta,phi)
         S_L_minus = basis.minus(self.S_L)
@@ -150,9 +160,22 @@ class SpinParams:
         H_R_pm = 2./self.p_abs * np.array([np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return  np.average(H_R_pm, axis = 2)
+    
+    #derivative term (doesn't account for zsim gradient)
+    def H_L_grad(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.matmul(self.eps, self.grad_S_L) 
+        
 
 
-    #NO DERIVATIVE TERM
+
+
+        
+
+
+
+
+
     def H_L(self, theta, phi):
         basis = Basis(theta,phi)
         return self.S_L_kappa(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
@@ -165,6 +188,8 @@ class SpinParams:
         basis = Basis(theta, phi)
         S_L_plus = np.average(basis.plus(self.S_L), axis = 2)
         S_R_plus = np.average(basis.plus(self.S_R), axis = 2)
+
+    
         
        # MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
        # SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
@@ -187,6 +212,13 @@ class SpinParams:
         basis = Basis(theta,phi)
         return np.average(basis.kappa(self.S_R_nu), axis = 2)
     
+    def grad_S_L_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.grad_S_L_nu), axis = 2)
+
+    def grad_S_R_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.grad_S_R_nu), axis = 2)
     
     #NEED DEFINITION OF DENSITY MATRIX
     def P(self, theta, phi):
@@ -202,7 +234,7 @@ class SpinParams:
         return self.H(theta,phi)[f1,f1]-self.H(theta,phi)[f2,f2]
 
     def resonance_old(self, theta, phi):
-        return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_R_nu_kappa(theta,phi)[0,0])
+        return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])
 
     def angularPlot(self, theta_res, phi_res, savefig=False, use_gm=True, direction_point=False):
         
