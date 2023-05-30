@@ -139,7 +139,7 @@ def dotprod(H, P):
         raise TypeError('H and P have different dimensions')
         return
     else: 
-        return np.dot(np.real(GM_projection(H)),np.real(GM_projection(P)))
+        return np.dot(np.real(projection(H)),np.real(projection(P)))
 
 #GM gets the 8 GM components of the flux matrix
 def components(d):
