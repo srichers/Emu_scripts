@@ -87,6 +87,48 @@ def sigma(flux):
 #data_loc is the spinflip file to compute
 #merger_data_loc is the merger grid data location
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
+class Gradients:
+    def __init__(self, gradient_filename, merger_data_loc):
+        
+        #allgrad object (dims: spacetime up, spacetime (gradient) low, x,y,z, F, F)
+        self.gradJ, self.x, self.y, self.z, self.it, self.limits = read_gradients(gradient_filename)
+
+        
+        # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, x,y,z, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
+        self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,5,6,1,2,3,4)))
+        self.grad_S_R_nu, self.grad_S_L_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,4,5,6,1,2)), np.transpose(self.grad_S_L_nu, axes = (0,3,4,5,6,1,2))        
+        
+        #THIS NEEDS GR TREATMENT
+        ####################################
+        #Electron fraction, baryon density
+        self.merger_grid = h5py.File(merger_data_loc, 'r')
+        self.rho = np.array(self.merger_grid['rho(g|ccm)']) #g/cm^3 (baryon mass density)
+        self.Ye = np.array(self.merger_grid['Ye'])[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1]] #electron fraction 
+        self.n_b = self.rho[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1] ]/M_p*(hbar**3 * c**3) #eV^3 (baryon number density)
+        #differentials for matter gradients
+        dx = self.x[1]-self.x[0]
+        dy = self.y[1]-self.y[0]
+        dz = self.z[1]-self.z[0]
+        #electron fraction gradients #probably wont use these since they don't account for christoffel symbols
+        self.grad_Ye = np.array(np.gradient(self.Ye, dx,dy,dz)) #(3, x,y,z)
+        #append lower t axis (what to make time derivative?)
+        self.grad_Ye = np.append(self.grad_Ye, np.zeros((1,self.grad_Ye.shape[1],self.grad_Ye.shape[2],self.grad_Ye.shape[3])), axis = 0) #(4, x,y,z)
+        #baryon number density gradients
+        self.grad_nb = np.array(np.gradient(self.n_b, dx,dy,dz)) #(3, x,y,z)
+        #fix time derivative
+        self.grad_nb = np.append(self.grad_nb, np.zeros((1,self.grad_nb.shape[1],self.grad_nb.shape[2],self.grad_nb.shape[3])), axis = 0) #(4, x,y,z)
+        ####################################
+        #need matter part gradients from changing Y_e, n_b
+        self.grad_S_R_mat, self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_R_nu)), np.zeros(np.shape(self.grad_S_L_nu))
+            
+        #total Sigma Gradients
+        self.grad_S_R, self.grad_S_L = self.grad_S_R_nu + self.grad_S_R_mat, self.grad_S_L_nu + self.grad_S_L_mat
+
+
+        
+
+
+
 class SpinParams:
     def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, resonance_type = 'full', density_matrix =np.diag([1,0,0,0,0,0]), gradient_filename = None):
         
@@ -129,24 +171,29 @@ class SpinParams:
         
         #Gradients
         if gradient_filename != None:
-            # flux gradient (spacetime up, spacetime (gradient) low, F, F)
+            #check location and timestep are match gradients file
             all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
-            assert(t_sim == it)
-            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
+            self.Gradients_class = Gradients(gradient_filename, merger_data_loc)
+            it, limits = self.Gradients_class.it, self.Gradients_class.limits
+            assert(t_sim == it) 
+            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) 
             assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
             assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
-            self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
-            # access the gradient at the location. Index 0 means at the lower limit.
 
-            # S_R_nu gradient (spacetime up, spacetime (gradient) low, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
-            self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,2,3,1)))
-            print(self.grad_S_R_nu.shape)
-            self.grad_S_R_nu, self.grad_S_L_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,1,2)), np.transpose(self.grad_S_L_nu, axes = (0,3,1,2))
-            print(self.grad_S_R_nu.shape)
+            #get the gradient at the location #Index 0 means at the lower limit.
+            self.gradJ = self.Gradients_class.gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+
+            # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
+            self.grad_S_R_nu = self.Gradients_class.grad_S_R_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_nu = self.Gradients_class.grad_S_L_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            
             #need matter part gradients from changing Y_e, n_b
-            self.grad_S_R_mat, self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_R_nu)), np.zeros(np.shape(self.grad_S_L_nu))
-            self.grad_S_R, self.grad_S_L = self.grad_S_R_nu + self.grad_S_R_mat, self.grad_S_L_nu + self.grad_S_L_mat
-
+            self.grad_S_R_mat = self.Gradients_class.grad_S_R_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_mat = self.Gradients_class.grad_S_L_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            
+            #total Sigma Gradients
+            self.grad_S_R = self.Gradients_class.grad_S_R[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L = self.Gradients_class.grad_S_L[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
             
         #Resonance, initial density matrix
         self.density_matrix = density_matrix
