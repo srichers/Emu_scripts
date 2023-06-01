@@ -6,7 +6,7 @@ from constants import c, hbar
 #keys must be of the form ['Fx00_Re', 'Fx00_Rebar', 'Fx01_Imbar', ... 'N00_Re', 'N00_Rebar', ... 'dz(cm)', 'it', 't(s)']>
 #where the numbers denote flavor components       
 #number of flavors is variable. 
-#Returns (nt, 4, nF, nF, nz)
+#Returns (nt, 4, nF, nF, nz) in units of eV^3
 def four_current(infilename):
     h5_dict = h5py.File(infilename, "r")
     
@@ -66,12 +66,12 @@ def four_current(infilename):
 def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, xmax, ymin, ymax, zmin,zmax, tindex):
     print("Reading data")
     merger_data = h5py.File(merger_data_filename, 'r')
-    christoffel = np.array(merger_data['christoffel'])[:,:,:, xmin:xmax+1, ymin:ymax+1, zmin:zmax+1, np.newaxis,np.newaxis,np.newaxis] # [up,lo,lo,           x,y,z, f1,f2,nzsim]
+    christoffel = np.array(merger_data['christoffel'])[:,:,:, xmin:xmax+1, ymin:ymax+1, zmin:zmax+1, np.newaxis,np.newaxis,np.newaxis] * (hbar*c) # [up,lo,lo,           x,y,z, f1,f2,nzsim] eV
     tetrad      = np.array(merger_data['tetrad'     ])[:,:,   xmin:xmax+1, ymin:ymax+1, zmin:zmax+1, np.newaxis,np.newaxis,np.newaxis] # [(tet_lo), coord_up, x,y,z, f1,f2,nzsim]
     tetrad_low  = np.array(merger_data['tetrad_low' ])[:,:,   xmin:xmax+1, ymin:ymax+1, zmin:zmax+1, np.newaxis,np.newaxis,np.newaxis] # [(tet_up), coord_lo, x,y,z, f1,f2,nzsim]
-    x = np.array(merger_data['x(cm)'])[xmin:xmax+1, 0,           0          ]
-    y = np.array(merger_data['y(cm)'])[0,           ymin:ymax+1, 0          ]
-    z = np.array(merger_data['z(cm)'])[0,           0,           zmin:zmax+1]
+    x = np.array(merger_data['x(cm)'])[xmin:xmax+1, 0,           0          ] / (hbar*c) # 1/eV
+    y = np.array(merger_data['y(cm)'])[0,           ymin:ymax+1, 0          ] / (hbar*c) # 1/eV
+    z = np.array(merger_data['z(cm)'])[0,           0,           zmin:zmax+1] / (hbar*c) # 1/eV
     merger_data.close()
 
     nx=len(x)
@@ -130,10 +130,10 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
 
     # write covarJtet to file
     output = h5py.File(output_filename, 'w')
-    output["covarJtet(eV^3)"] = covarJtet
-    output["x(cm)"] = x
-    output["y(cm)"] = y
-    output["z(cm)"] = z
+    output["covarJtet(eV^4)"] = covarJtet
+    output["x(1|eV)"] = x
+    output["y(1|eV)"] = y
+    output["z(1|eV)"] = z
     output["it"] = tindex
     output["limits"] = np.array([[xmin,xmax],[ymin,ymax],[zmin,zmax]])
     output.close()
