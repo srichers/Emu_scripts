@@ -155,11 +155,12 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
 # read the covariant derivative of the four-current from file
 def read_gradients(filename):
     data = h5py.File(filename, 'r')
-    covarJtet = np.array(data["covarJtet(eV^3)"])
+    covarJtet = np.array(data["covarJtet(eV^4)"])
+    covarJetet = np.array(data["covarJetet(eV^4)"])
     x = np.array(data["x(cm)"])
     y = np.array(data["y(cm)"])
     z = np.array(data["z(cm)"])
     it = np.array(data["it"])
     limits = np.array(data["limits"])
     data.close()
-    return covarJtet, x, y, z, it, limits
+    return covarJtet, covarJetet, x, y, z, it, limits
