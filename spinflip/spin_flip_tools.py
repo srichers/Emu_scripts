@@ -205,6 +205,8 @@ class SpinParams:
         
         self.p_abs = p_abs
         self.t_sim = t_sim
+
+        self.gradient_filename = gradient_filename
          
         #Grid-dependent stuff: Electron fraction, baryon n density
         self.location=np.array(location)
