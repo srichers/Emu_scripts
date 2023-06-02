@@ -105,7 +105,8 @@ class Gradients:
         
         # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, x,y,z, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
         self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,5,6,1,2,3,4)))
-        self.grad_S_R_nu, self.grad_S_L_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,4,5,6,1,2)), np.transpose(self.grad_S_L_nu, axes = (0,3,4,5,6,1,2))        
+        self.grad_S_R_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,4,5,6,1,2))
+        self.grad_S_L_nu = np.transpose(self.grad_S_L_nu, axes = (0,3,4,5,6,1,2))        
     
         #THIS NEEDS GR TREATMENT
         ####################################
@@ -128,10 +129,12 @@ class Gradients:
         self.grad_nb = np.append(self.grad_nb, np.zeros((1,self.grad_nb.shape[1],self.grad_nb.shape[2],self.grad_nb.shape[3])), axis = 0) #(4, x,y,z)
         ####################################
         #need matter part gradients from changing Y_e, n_b
-        self.grad_S_R_mat, self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_R_nu)), np.zeros(np.shape(self.grad_S_L_nu))
+        self.grad_S_R_mat = np.zeros(np.shape(self.grad_S_R_nu))
+        self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_L_nu))
             
         #total Sigma Gradients (spacetime up, spacetime (gradient) low, x,y,z, F, F
-        self.grad_S_R, self.grad_S_L = self.grad_S_R_nu + self.grad_S_R_mat, self.grad_S_L_nu + self.grad_S_L_mat
+        self.grad_S_R = self.grad_S_R_nu + self.grad_S_R_mat
+        self.grad_S_L = self.grad_S_L_nu + self.grad_S_L_mat
 
     #total H_L and H_R gradients (ignoring extra terms in inverse p/abs)
     #(spacetime low, x,y,z, F, F)
@@ -143,7 +146,7 @@ class Gradients:
         return basis.kappa(self.grad_S_R)
    
         
-    # plot of magnitude of gradient along minimizing resonant direction
+    # calculates magnitude of gradient along minimizing resonant direction in each grid cell
     def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5):
         min_gradients = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], self.gradJ.shape[4])) #x,y,z
         if z == None:
@@ -173,6 +176,7 @@ class Gradients:
         
         return min_gradients
     
+    #plots output of the above for a z slice
     def gradientsPlot(self, emu_data_loc, p_abs, z, vmin = -14, vmax = -9, phi_resolution = 5 , savefig=False, min_gradients = None):
         if type(min_gradients) == type(None):
             min_gradients = self.minGradients(emu_data_loc=emu_data_loc, p_abs=p_abs, z=z,
@@ -244,29 +248,28 @@ class SpinParams:
         
         #Gradients
         if gradient_filename != None:
+            self.Gradients_instance = Gradients(gradient_filename, merger_data_loc)
             #check location and timestep are match gradients file
-            all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
-            self.Gradients_class = Gradients(gradient_filename, merger_data_loc)
-            it, limits = self.Gradients_class.it, self.Gradients_class.limits
+            it, limits = self.Gradients_instance.it, self.Gradients_instance.limits
             assert(t_sim == it) 
             assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) 
             assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
             assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
 
-            #get the gradient at the location #Index 0 means at the lower limit.
-            self.gradJ = self.Gradients_class.gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            #get the gradient at the location #Index 0 means at the lower limit. (spacetime up, spacetime low, F ,F)
+            self.gradJ = self.Gradients_instance.gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
 
             # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
-            self.grad_S_R_nu = self.Gradients_class.grad_S_R_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
-            self.grad_S_L_nu = self.Gradients_class.grad_S_L_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_R_nu = self.Gradients_instance.grad_S_R_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_nu = self.Gradients_instance.grad_S_L_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
             
             #need matter part gradients from changing Y_e, n_b
-            self.grad_S_R_mat = self.Gradients_class.grad_S_R_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
-            self.grad_S_L_mat = self.Gradients_class.grad_S_L_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_R_mat = self.Gradients_instance.grad_S_R_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_mat = self.Gradients_instance.grad_S_L_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
             
             #total Sigma Gradients
-            self.grad_S_R = self.Gradients_class.grad_S_R[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
-            self.grad_S_L = self.Gradients_class.grad_S_L[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_R = self.Gradients_instance.grad_S_R[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L = self.Gradients_instance.grad_S_L[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
 
             
         #Resonance, initial density matrix
@@ -385,6 +388,7 @@ class SpinParams:
         elif self.resonance_type == 'simplified':
             return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])
 
+    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
     def resonant_theta(self, phi=0):
         if self.resonance(0,phi)*self.resonance(np.pi,phi) > 0:
             return None
@@ -449,9 +453,6 @@ class SpinParams:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('angularPlot.png', dpi=300)
-        
-    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
-    #Currently only works for the old resonance condition
 
 
     def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False):
