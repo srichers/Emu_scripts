@@ -58,8 +58,10 @@ p_abs = 1e7 # eV
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename, p_abs, gradient_filename=gradient_filename_start).pointPlots(0,savefig=True)
-
+#(resonance_type = 'full', 'simplified', or [n,k] which gives the P dot H, tian paper, and H[n,n] = H[k,k] respectively, so simplified is equivalent to [0,3])
+#if full resonance, density_matrix gives the P used in the P dot H. also P will be the initial density matrix in the diagonalizer plot (unless you specify otherwise by calling init_array in pointPlots)
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename,
+               resonance_type = [0,3], density_matrix = np.array([1,0,0,0,0,0]), p_abs=p_abs).pointPlots(0,traceless=True, text = 'mag', savefig=True)
 ######################
 # Diagonalizer Tests #
 ######################

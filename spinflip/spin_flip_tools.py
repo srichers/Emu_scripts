@@ -390,7 +390,6 @@ class SpinParams:
         elif type(self.resonance_type) == type([]):
             diag1 = self.resonance_type[0]
             diag2 = self.resonance_type[1]
-            print(diag1,diag2)
             return self.H(theta,phi)[diag1,diag1]-self.H(theta,phi)[diag2,diag2]
 
 
