@@ -88,19 +88,19 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     # fill the tetrad four-current values
     print("Filling Jtet")
     Jtet  = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [(tetrad_up), x, y, z, f1, f2, zsim]
-    Jetet = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [(tetrad_up), x, y, z]
+    Jetet = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [(tetrad_up), x, y, z, 1, 1, 1]
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
                 emu_filename = emu_data_loc + "i{:03d}".format(i+xmin)+"_j{:03d}".format(j+ymin)+"_k{:03d}".format(k+zmin)+"/allData.h5"
-                Jtet[:,i,j,k,:,:,:] = four_current(emu_filename)[tindex] # [txyz, f1, f2, z]
-                Jetet[0,i,j,k] = ne[i,j,k]
+                Jtet[ :,i,j,k,:,:,:] = four_current(emu_filename)[tindex] # [txyz, f1, f2, z]
+                Jetet[0,i,j,k,:,:,:] = ne[i,j,k]
     
     # transform the tetrad four-current to the coordinate four-current
     # J^l = e^l_(:) Jtet^(:)
     print ("Transforming Jtet to Jcoord")
     Jcoord  = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [coord_up, x, y, z, f1, f2, zsim]
-    Jecoord = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [coord_up, x, y, z, f1, f2, zsim]
+    Jecoord = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [coord_up, x, y, z, 1, 1, 1]
     for l in range(nF):
         Jcoord[l]  = np.sum(tetrad[:,l] * Jtet , axis=0)
         Jecoord[l] = np.sum(tetrad[:,l] * Jetet, axis=0)
@@ -109,7 +109,7 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     # [txyz(grad,lo), txyz_up, x, y, z, f1, f2, zsim]
     print("Calculating gradJcoord")
     gradJcoord  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    gradJecoord = 0j * np.zeros((4, 4, nx, ny, nz))
+    gradJecoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
     gradJcoord[1:]  = np.gradient(Jcoord , x, y, z, axis=(1,2,3))
     gradJecoord[1:] = np.gradient(Jecoord, x, y, z, axis=(1,2,3))
 
@@ -122,7 +122,7 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     # J^l_;m = J^l_,m + \Gamma^l_mn J^n
     print("Calculating covarJcoord")
     covarJcoord  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    covarJecoord = 0j * np.zeros((4, 4, nx, ny, nz))
+    covarJecoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
     for l in range(4):
         for m in range(4):
             covarJcoord[ l,m] = gradJcoord[ l,m] + np.sum(christoffel[l,m] * Jcoord , axis=0)
@@ -132,7 +132,7 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     # [txyz_up, txyz(grad_lo), x, y, z, f1, f2, zsim]
     print("Calculating covarJtet")
     covarJtet  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    covarJetet = 0j * np.zeros((4, 4, nx, ny, nz))
+    covarJetet = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
     for l in range(4):
         for m in range(4):
             covarJtet[ l,m] = np.sum(tetrad_low[l,:,np.newaxis] * tetrad[m,np.newaxis,:] * covarJcoord , axis=(0,1))
@@ -153,10 +153,11 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     output.close()
 
 # read the covariant derivative of the four-current from file
+# average over zsim
 def read_gradients(filename):
     data = h5py.File(filename, 'r')
-    covarJtet = np.array(data["covarJtet(eV^4)"])
-    covarJetet = np.array(data["covarJetet(eV^4)"])
+    covarJtet  = np.average(np.array(data["covarJtet(eV^4)" ]), axis=7)
+    covarJetet = np.average(np.array(data["covarJetet(eV^4)"]), axis=7)
     x = np.array(data["x(1|eV)"])
     y = np.array(data["y(1|eV)"])
     z = np.array(data["z(1|eV)"])
