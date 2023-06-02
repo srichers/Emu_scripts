@@ -72,7 +72,7 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     x = np.array(merger_data['x(cm)'])[xmin:xmax+1, 0,           0          ] / (hbar*c) # 1/eV
     y = np.array(merger_data['y(cm)'])[0,           ymin:ymax+1, 0          ] / (hbar*c) # 1/eV
     z = np.array(merger_data['z(cm)'])[0,           0,           zmin:zmax+1] / (hbar*c) # 1/eV
-    ne = np.array(merger_data['rho(g|ccm)']*merger_data['Ye']/M_p) * (hbar*c)**3 # [x,y,z] eV^3
+    ne = np.array(merger_data['rho(g|ccm)'])*np.array(merger_data['Ye'])/M_p * (hbar*c)**3 # [x,y,z] eV^3
     merger_data.close()
 
     nx=len(x)
