@@ -22,11 +22,13 @@ from four_current import four_current, read_gradients
 
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
 #append is the end of the filenames
+#resonance_type is either 'full' or 'simplified'. 'full' uses the full resonance condition, 'simplified' uses the simplified resonance condition
 class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
-                merger_data_loc, gradient_filename, 
-                p_abs):
+                merger_data_loc, p_abs, gradient_filename = None, resonance_type = 'simplified', 
+                density_matrix = np.diag([1,0,0,0,0,0])
+                ):
         self.emu_file = emu_file        
         self.merger_data_loc = merger_data_loc
         self.gradient_filename = gradient_filename
@@ -41,30 +43,43 @@ class MultiPlot:
         self.j = j
         self.k = k
 
+        self.resonance_type = resonance_type
+        self.density_matrix = density_matrix
+
         self.MG = Merger_Grid(self.k, self.merger_data_loc, p_abs=p_abs)
-        
+    def resHamiltonian(self, t):
+        SP = SpinParams(t_sim = t, resonance_type = self.resonance_type, density_matrix = self.density_matrix, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        return SP.resonant_Hamiltonian()    
+    
     def angularPlot(self, t, savefig=False):
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        SP = SpinParams(t_sim = t, resonance_type = self.resonance_type, density_matrix = self.density_matrix, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
-    def pointPlots(self, t, plot_tlim='timescale', savefig=False, traceless = True,  text='mag'):
+    
+    #init array is density matrix at t=0 evolved by diagonalizer. default is same as the density matrix used for the Resoannce condition
+    #diagonalier_quantity is either 'state_right', 'state_left', or a list of integers up to dim(H). 'state_right' plots the right eigenvectors, 'state_left' plots the left eigenvectors, the list plots the eigenvectors with those indices.
+    def pointPlots(self, t, plot_tlim='timescale', savefig=False, traceless = True,  text='mag', diagonalizer_quantity = 'state_right', init_array = None):
+        if init_array == None:
+            init_array =self.density_matrix
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
-        SP = SpinParams(t_sim = t, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
+        SP = SpinParams(t_sim = t, resonance_type = self.resonance_type, density_matrix = self.density_matrix, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
         SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
         H_resonant = SP.resonant_Hamiltonian()
         D = Diagonalizer(H_resonant)
 
-        D.state_evolution_plotter(plot_tlim, init_array = np.diag((1,0,0,0,0,0)),savefig=savefig)
+        D.state_evolution_plotter(plot_tlim, init_array = init_array,savefig=savefig, quantity = diagonalizer_quantity)
         visualizer(H_resonant, traceless=traceless, savefig=savefig, text = text)
 
 ## Chiral Potentials ##
-# input: flux[spacetime, f1, f2, z]
-# output: Sigma_R[spacetime, f1, f2, z]
+# input: flux[spacetime, f1, f2, ...]
+# output: Sigma_R[spacetime, f1, f2, ...]
 def sigma(flux):
         Sigma_R=0j*np.zeros(np.shape(flux)) 
         Sigma_L=0j*np.zeros(np.shape(flux))
         for n in range(0,4):
                 Sigma_R[n]=2**(1./2.)*G*(flux[n]+trace_matrix(flux[n]))
-        Sigma_L=(-1)*np.transpose(Sigma_R, axes=(0,2,1,3)) #for majorana 
+        transpose_axes = np.arange(Sigma_R.ndim)
+        transpose_axes[1:3] = [2,1] #switches f1 and f2. input can have extra vars at the end like z, lower gradient indices
+        Sigma_L=(-1)*np.transpose(Sigma_R, axes=transpose_axes) #for majorana 
         return Sigma_R, Sigma_L
 
 #Given a spinflip dataset, finds the hamiltonian at some angle. Can also check resonant direction
@@ -72,15 +87,133 @@ def sigma(flux):
 #data_loc is the spinflip file to compute
 #merger_data_loc is the merger grid data location
 #location is where in the merger data to evaluate stuff like ye, rho (=[x,y,z])
+
+
+
+
+class Gradients:
+    def __init__(self, gradient_filename, merger_data_loc):
+        
+
+        #data
+        self.merger_data_loc = merger_data_loc
+        self.gradient_filename = gradient_filename
+
+        #allgrad object (dims: spacetime up, spacetime (gradient) low, x,y,z, F, F)
+        self.gradJ, self.x, self.y, self.z, self.it, self.limits = read_gradients(gradient_filename)
+
+        
+        # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, x,y,z, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
+        self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,5,6,1,2,3,4)))
+        self.grad_S_R_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,4,5,6,1,2))
+        self.grad_S_L_nu = np.transpose(self.grad_S_L_nu, axes = (0,3,4,5,6,1,2))        
+    
+        #THIS NEEDS GR TREATMENT
+        ####################################
+        #Electron fraction, baryon density
+        self.merger_grid = h5py.File(merger_data_loc, 'r')
+        self.rho = np.array(self.merger_grid['rho(g|ccm)']) #g/cm^3 (baryon mass density)
+        self.Ye = np.array(self.merger_grid['Ye'])[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1]] #electron fraction 
+        self.n_b = self.rho[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1] ]/M_p*(hbar**3 * c**3) #eV^3 (baryon number density)
+        #differentials for matter gradients
+        dx = self.x[1]-self.x[0]
+        dy = self.y[1]-self.y[0]
+        dz = self.z[1]-self.z[0]
+        #electron fraction gradients #probably wont use these since they don't account for christoffel symbols
+        self.grad_Ye = np.array(np.gradient(self.Ye, dx,dy,dz)) #(3, x,y,z)
+        #append lower t axis (what to make time derivative?)
+        self.grad_Ye = np.append(self.grad_Ye, np.zeros((1,self.grad_Ye.shape[1],self.grad_Ye.shape[2],self.grad_Ye.shape[3])), axis = 0) #(4, x,y,z)
+        #baryon number density gradients
+        self.grad_nb = np.array(np.gradient(self.n_b, dx,dy,dz)) #(3, x,y,z)
+        #fix time derivative
+        self.grad_nb = np.append(self.grad_nb, np.zeros((1,self.grad_nb.shape[1],self.grad_nb.shape[2],self.grad_nb.shape[3])), axis = 0) #(4, x,y,z)
+        ####################################
+        #need matter part gradients from changing Y_e, n_b
+        self.grad_S_R_mat = np.zeros(np.shape(self.grad_S_R_nu))
+        self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_L_nu))
+            
+        #total Sigma Gradients (spacetime up, spacetime (gradient) low, x,y,z, F, F
+        self.grad_S_R = self.grad_S_R_nu + self.grad_S_R_mat
+        self.grad_S_L = self.grad_S_L_nu + self.grad_S_L_mat
+
+    #total H_L and H_R gradients (ignoring extra terms in inverse p/abs)
+    #(spacetime low, x,y,z, F, F)
+    def grad_H_L(self, theta, phi):
+        basis = Basis(theta,phi)
+        return basis.kappa(self.grad_S_L)
+    def grad_H_R(self, theta, phi):
+        basis = Basis(theta,phi)
+        return basis.kappa(self.grad_S_R)
+   
+        
+    # calculates magnitude of gradient along minimizing resonant direction in each grid cell
+    def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5):
+        min_gradients = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], self.gradJ.shape[4])) #x,y,z
+        if z == None:
+            z_range = range(self.gradJ.shape[4])
+        else:
+            z_range = [z]
+        for x in range(self.gradJ.shape[2]):
+            for y in range(self.gradJ.shape[3]):
+                for z in z_range:
+
+                    location = [x + self.limits[0,0],
+                                y + self.limits[1,0],
+                                z + self.limits[2,0]]
+                    emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+                    SP = SpinParams(t_sim = self.it, resonance_type = 'simplified', emu_file = emu_filename, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = location, p_abs=p_abs)
+                    if SP.resonant_theta(phi=0) == None:
+                        min_gradients[x,y,z] = None
+                    else:
+                        gradients = []
+                        for phi in np.linspace(0, 2*np.pi, phi_resolution): 
+                            theta = SP.resonant_theta(phi=phi)
+                            grad_H_L = self.grad_H_L(theta, phi)[:,x,y,z] 
+                            direction = Basis(theta,phi).n_vector
+                            grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
+                            gradients.append(gm.magnitude(grad_along_direction))
+                        min_gradients[x,y,z] = np.min(gradients)
+        
+        return min_gradients
+    
+    #plots output of the above for a z slice
+    def gradientsPlot(self, emu_data_loc, p_abs, z, vmin = -14, vmax = -9, phi_resolution = 5 , savefig=False, min_gradients = None):
+        if type(min_gradients) == type(None):
+            min_gradients = self.minGradients(emu_data_loc=emu_data_loc, p_abs=p_abs, z=z,
+                                          phi_resolution = phi_resolution)
+        else:
+            min_gradients = min_gradients   
+        plt.figure(figsize=(8,6))
+        plt.pcolormesh(np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][0,:,:],
+                       np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][1,:,:], 
+                       np.log10(min_gradients[:,:,z]), cmap = 'jet',
+                       vmin = vmin, vmax = vmax)
+        plt.colorbar()
+        plt.title('Minimum Gradient at Each Grid Cell')
+        plt.xlabel('x index')
+        plt.ylabel('y index')
+        if savefig == True:
+            plt.savefig('min_gradient.png')
+        plt.show()
+        np.where
+
+        
+
+        
+
+
+#resonance type = 'full' or 'simplified'. 'full' uses the full resonance condition, 'simplified' uses the simplified resonance condition
+#if 'full', density_matrix is the initial density matrix. 
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, gradient_filename = None):
+    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, resonance_type = 'full', density_matrix =np.diag([1,0,0,0,0,0]), gradient_filename = None):
         
         self.p_abs = p_abs
         self.t_sim = t_sim
+
+        self.gradient_filename = gradient_filename
          
         #Grid-dependent stuff: Electron fraction, baryon n density
-        location = np.array(location)
-        self.location=location
+        self.location=np.array(location)
           
         self.merger_grid = h5py.File(merger_data_loc, 'r')
         self.rho = np.array(self.merger_grid['rho(g|ccm)'])[location[0],location[1],location[2]] #g/cm^3 (baryon mass density)
@@ -89,15 +222,6 @@ class SpinParams:
 
         #Flux (spacetime, F, F, z)
         self.J = four_current(emu_file)[self.t_sim]
-
-        # flux gradient (spacetime up, spacetime (gradient) low, F, F, z)
-        if gradient_filename != None:
-            all_gradJ, x, y, z, it, limits = read_gradients(gradient_filename)
-            assert(t_sim == it)
-            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) # make sure the location is within the limits
-            assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
-            assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
-            self.gradJ = all_gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]] # access the gradient at the location. Index 0 means at the lower limit.
 
         #length of 1d array 
         self.nz = self.J.shape[3]
@@ -109,7 +233,7 @@ class SpinParams:
         #matter part of Sigma
         self.S_R_mat = np.zeros(np.shape(self.J))  
         for k in np.arange(0, self.nz):
-            self.S_R_mat[0,:,:,k] = 2**(-1/2)*G*self.n_b*np.array([[3*self.Ye-1,    0,      0],
+            self.S_R_mat[0,:,:,k] = -2**(-1/2)*G*self.n_b*np.array([[3*self.Ye-1,    0,      0],
                                               [0,           self.Ye-1, 0],
                                               [0,              0,   self.Ye-1 ]])
         self.S_L_mat = (-1)*np.transpose(self.S_R_mat, axes=(0,2,1,3))   
@@ -122,31 +246,54 @@ class SpinParams:
         self.M = M_3flavor
         self.H_vac = 1/(2*self.p_abs)*np.matmul(self.M,dagger(self.M))
         
-        
+        #Gradients
+        if gradient_filename != None:
+            self.Gradients_instance = Gradients(gradient_filename, merger_data_loc)
+            #check location and timestep are match gradients file
+            it, limits = self.Gradients_instance.it, self.Gradients_instance.limits
+            assert(t_sim == it) 
+            assert(location[0] >= limits[0,0] and location[0] <= limits[0,1]) 
+            assert(location[1] >= limits[1,0] and location[1] <= limits[1,1])
+            assert(location[2] >= limits[2,0] and location[2] <= limits[2,1])
+
+            #get the gradient at the location #Index 0 means at the lower limit. (spacetime up, spacetime low, F ,F)
+            self.gradJ = self.Gradients_instance.gradJ[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+
+            # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
+            self.grad_S_R_nu = self.Gradients_instance.grad_S_R_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_nu = self.Gradients_instance.grad_S_L_nu[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            
+            #need matter part gradients from changing Y_e, n_b
+            self.grad_S_R_mat = self.Gradients_instance.grad_S_R_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L_mat = self.Gradients_instance.grad_S_L_mat[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            
+            #total Sigma Gradients
+            self.grad_S_R = self.Gradients_instance.grad_S_R[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+            self.grad_S_L = self.Gradients_instance.grad_S_L[:,:,location[0]-limits[0,0], location[1]-limits[1,0], location[2]-limits[2,0]]
+
+            
+        #Resonance, initial density matrix
+        self.density_matrix = density_matrix
+        self.resonance_type = resonance_type
+
+    #total H gradients (direction dependent) (space time low, F, F)
+    def grad_H_L(self, theta, phi):
+        basis = Basis(theta,phi)
+        return basis.kappa(self.grad_S_L)
+    def grad_H_R(self, theta, phi):
+        basis = Basis(theta,phi)
+        return basis.kappa(self.grad_S_R)
 
     def S_L_kappa(self, theta, phi):
         basis = Basis(theta,phi)
+
         return np.average(basis.kappa(self.S_L), axis = 2)
 
     def S_R_kappa(self, theta, phi):
         basis = Basis(theta,phi)
         return np.average(basis.kappa(self.S_R), axis = 2)
     
-    ## changes
-    def S_L_nu_kappa(self, theta, phi):
-        basis = Basis(theta,phi)
-        return np.average(basis.kappa(self.S_L_nu), axis = 2)
-
-    def S_R_nu_kappa(self, theta, phi):
-        basis = Basis(theta,phi)
-        return np.average(basis.kappa(self.S_R_nu), axis = 2)
-    
-    def S_R_kappa2(self, theta, phi):
-        return self.S_R_nu_kappa(theta, phi) + np.average(self.S_R_mat[0], axis = 2)
-    
-    def S_L_kappa2(self,theta, phi):
-        return self.S_L_nu_kappa(theta, phi) + np.average(self.S_L_mat[0], axis = 2)
-
+    #plus & minus Potential term
     def H_L_pm(self, theta, phi):
         basis = Basis(theta,phi)
         S_L_minus = basis.minus(self.S_L)
@@ -162,49 +309,99 @@ class SpinParams:
         H_R_pm = 2./self.p_abs * np.array([np.matmul(S_R_plus[:,:,z], S_R_minus[:,:,z])
             for z in range(self.nz)]).transpose((1,2,0))
         return  np.average(H_R_pm, axis = 2)
-
-
-    #NO DERIVATIVE TERM
-    def H_L(self, theta, phi):
+    
+    #derivative terms (don't account for zsim gradient, since its approximately negligible)
+    def H_L_der(self, theta, phi):
         basis = Basis(theta,phi)
-        return self.S_L_kappa2(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
+        x1 = basis.x1
+        x2 = basis.x2
+        #grad_S_L is the Jacobian, indices are [spacetime_up, spacetime_down, F, F]
+        # we want the derivative along x_i of component x_j of the gradient
+        #given by x_j @ grad_S_L @ x^i
+
+        #d_2 S_L ^1
+        d2_S1 = np.tensordot( x1.T, np.tensordot(self.grad_S_L, x2, axes =([1],[0])), axes = ([0],[0]))
+        #d_1 S_L ^2
+        d1_S2 = np.tensordot( x2.T, np.tensordot(self.grad_S_L, x1, axes =([1],[0])), axes = ([0],[0]))
+        
+        return 1/(2*self.p_abs)*(d1_S2 - d2_S1)
+        
+    def H_R_der(self, theta, phi):
+        basis = Basis(theta,phi)
+        x1 = basis.x1
+        x2 = basis.x2
+        #grad_S_L is the Jacobian, indices are [spacetime_up, spacetime_down, F, F]
+        # we want the derivative along x_i of component x_j of the gradient
+        #given by x_j @ grad_S_L @ x^i
+
+        #d_2 S_L ^1
+        d2_S1 = np.tensordot( x1.T, np.tensordot(self.grad_S_R, x2, axes =([1],[0])), axes = ([0],[0]))
+        #d_1 S_L ^2
+        d1_S2 = np.tensordot( x2.T, np.tensordot(self.grad_S_R, x1, axes =([1],[0])), axes = ([0],[0]))
+        
+        return - 1/(2*self.p_abs)*(d1_S2 - d2_S1)
+
+    def H_L(self, theta, phi):
+        H_L_nogradient = self.S_L_kappa(theta, phi) + self.H_vac + self.H_L_pm(theta, phi)
+        if self.gradient_filename != None:
+            return H_L_nogradient + self.H_L_der(theta, phi)
+        else:
+            return H_L_nogradient
+        
 
     def H_R(self, theta, phi):
-        basis = Basis(theta,phi)
-        return self.S_R_kappa2(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
+        H_R_nogradient = self.S_R_kappa(theta, phi) + self.H_vac + self.H_R_pm(theta, phi)
+        if self.gradient_filename != None:
+            return H_R_nogradient + self.H_R_der(theta, phi)
+        else:
+            return H_R_nogradient
 
     def H_LR(self, theta, phi):          
         basis = Basis(theta, phi)
         S_L_plus = np.average(basis.plus(self.S_L), axis = 2)
         S_R_plus = np.average(basis.plus(self.S_R), axis = 2)
-        
+
        # MSl = np.array([ np.matmul(conj(M),S_L_plus[:,:,n]) for n in range(nz) ])
        # SrM = np.array([ np.matmul(S_R_plus[:,:,n],conj(M))  for n in range(nz) ])
         MSl = np.array(np.matmul(dagger(self.M),S_L_plus))
         SrM = np.array(np.matmul(S_R_plus,dagger(self.M)))
         return (-1/self.p_abs)*(SrM-MSl)
 
-
     #full Hamiltonian
     def H(self, theta, phi):
         return np.concatenate((np.concatenate( (self.H_R(theta, phi), np.conjugate(self.H_LR(theta,phi).transpose(1,0))), axis=0),
                 np.concatenate((self.H_LR(theta,phi), self.H_L(theta,phi)), axis = 0)), axis = 1)
 
-    #NEED DEFINITION OF DENSITY MATRIX
-    def P(self, theta, phi):
         
-        return np.diag((1,0,0,0,0,0))
+    ## kappa component of just neutrino part of potential. Need for Resonance condition so matter contribution isnt counted twice
+    def S_L_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_L_nu), axis = 2)
 
-    def resonance_full(self, theta, phi):
-        return gm.dotprod(self.H(theta,phi),self.P(theta,phi))
+    def S_R_nu_kappa(self, theta, phi):
+        basis = Basis(theta,phi)
+        return np.average(basis.kappa(self.S_R_nu), axis = 2)
     
-    #checks resonance condition [H_L]_f1f1 = [H_R]_f2f2
-    #equals resonance from tian et al if f1=f2=0 (electron)
-    def resonance_2f(self, theta, phi, f1, f2):
-        return self.H(theta,phi)[f1,f1]-self.H(theta,phi)[f2,f2]
+    def resonance(self, theta, phi):
+        if self.resonance_type == 'full':
+            return gm.dotprod(self.H(theta,phi),self.density_matrix)
+        elif self.resonance_type == 'simplified':
+            return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])
 
-    def resonance_old(self, theta, phi):
-        return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_R_nu_kappa(theta,phi)[0,0])
+    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
+    def resonant_theta(self, phi=0):
+        if self.resonance(0,phi)*self.resonance(np.pi,phi) > 0:
+            return None
+        else:
+            theta = opt.bisect(self.resonance,0,np.pi,args = (phi))
+        return theta
+    
+    #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
+    def resonant_Hamiltonian(self, phi=0):
+        theta = self.resonant_theta(phi)
+        return self.H(theta,phi)
+    
+
 
     def angularPlot(self, theta_res, phi_res, savefig=False, use_gm=True, direction_point=False):
         
@@ -218,7 +415,7 @@ class SpinParams:
                                    for theta in np.linspace(0, np.pi, theta_res)])
 
         
-        resonance_array = np.array([[self.resonance_old(theta,phi)
+        resonance_array = np.array([[self.resonance(theta,phi)
                                    for phi in np.linspace(0, 2*np.pi, phi_res)]
                                    for theta in np.linspace(0, np.pi, theta_res)]) 
 
@@ -256,26 +453,26 @@ class SpinParams:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('angularPlot.png', dpi=300)
-        
-    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
-    #Currently only works for the old resonance condition
+
+
+    def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False):
+        gradients = []
+        for phi in np.linspace(0, 2*np.pi, phi_resolution): 
+            theta = self.resonant_theta(phi=phi)
+            grad_H_L = self.grad_H_L(theta, phi) 
+            direction = Basis(theta,phi).n_vector
+            grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
+            gradients.append(gm.magnitude(grad_along_direction))
+
+        plt.figure()
+        plt.plot(np.linspace(0, 2*np.pi, phi_resolution), gradients)
+        plt.xlabel('Azimuthal Angle')
+        plt.ylabel('Gradient Magnitude')
+        plt.title('Gradient Along Resonant Directions at a Point')
+        if savefig == True:
+            plt.savefig('azimuthal_gradient.png')
+        plt.show()
     
-    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
-    #Currently only works for the old resonance condition
-    
-    def J_avg(self): 
-        return np.array([gm.sum_magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
-    
-    def resonant_theta(self, phi=0):
-        res_function = self.resonance_old
-        return opt.bisect(res_function,0,np.pi,args = (phi))
-    
-    #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
-    def resonant_Hamiltonian(self, phi=0):
-        theta = self.resonant_theta(phi)
-        return self.H(theta,phi)
-    
-    def H_array(self):
-        return np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
-                                   for phi in np.linspace(0, 2*np.pi, 50)]
-                                   for theta in np.linspace(0, np.pi, 50)])
+
+
+   

@@ -4,7 +4,7 @@ import matplotlib as mpl
 
 #unitary trace matrix
 def trace_matrix(data):#takes in (nF,nF,nz)
-        nz = data.shape[2]
+        
         nF = data.shape[0]
         # calculate trace
         diagonals = np.array([data[n,n,:] for n in range(nF)])
