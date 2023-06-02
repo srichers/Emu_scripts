@@ -72,7 +72,8 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     x = np.array(merger_data['x(cm)'])[xmin:xmax+1, 0,           0          ] / (hbar*c) # 1/eV
     y = np.array(merger_data['y(cm)'])[0,           ymin:ymax+1, 0          ] / (hbar*c) # 1/eV
     z = np.array(merger_data['z(cm)'])[0,           0,           zmin:zmax+1] / (hbar*c) # 1/eV
-    ne = np.array(merger_data['rho(g|ccm)'])*np.array(merger_data['Ye'])/M_p * (hbar*c)**3 # [x,y,z] eV^3
+    nb = np.array(merger_data['rho(g|ccm)'])[xmin:xmax+1, ymin:ymax+1, zmin:zmax+1]/M_p * (hbar*c)**3 # [x,y,z] eV^3
+    Ye = np.array(merger_data['Ye'])[xmin:xmax+1, ymin:ymax+1, zmin:zmax+1] # [x,y,z]
     merger_data.close()
 
     nx=len(x)
@@ -88,63 +89,79 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
     # fill the tetrad four-current values
     print("Filling Jtet")
     Jtet  = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [(tetrad_up), x, y, z, f1, f2, zsim]
-    Jetet = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [(tetrad_up), x, y, z, 1, 1, 1]
+    Jbtet = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [(tetrad_up), x, y, z, 1, 1, 1]
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
                 emu_filename = emu_data_loc + "i{:03d}".format(i+xmin)+"_j{:03d}".format(j+ymin)+"_k{:03d}".format(k+zmin)+"/allData.h5"
                 Jtet[ :,i,j,k,:,:,:] = four_current(emu_filename)[tindex] # [txyz, f1, f2, z]
-                Jetet[0,i,j,k,:,:,:] = ne[i,j,k]
+                Jbtet[0,i,j,k,:,:,:] = nb[i,j,k]
     
     # transform the tetrad four-current to the coordinate four-current
     # J^l = e^l_(:) Jtet^(:)
     print ("Transforming Jtet to Jcoord")
     Jcoord  = 0j * np.zeros((4, nx, ny, nz, nF, nF, nzsim)) # [coord_up, x, y, z, f1, f2, zsim]
-    Jecoord = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [coord_up, x, y, z, 1, 1, 1]
+    Jbcoord = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1)) # [coord_up, x, y, z, 1, 1, 1]
     for l in range(nF):
         Jcoord[l]  = np.sum(tetrad[:,l] * Jtet , axis=0)
-        Jecoord[l] = np.sum(tetrad[:,l] * Jetet, axis=0)
+        Jbcoord[l] = np.sum(tetrad[:,l] * Jbtet, axis=0)
     
     # Take the gradient of the four-current
     # [txyz(grad,lo), txyz_up, x, y, z, f1, f2, zsim]
     print("Calculating gradJcoord")
     gradJcoord  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    gradJecoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
+    gradJbcoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
     gradJcoord[1:]  = np.gradient(Jcoord , x, y, z, axis=(1,2,3))
-    gradJecoord[1:] = np.gradient(Jecoord, x, y, z, axis=(1,2,3))
+    gradJbcoord[1:] = np.gradient(Jbcoord, x, y, z, axis=(1,2,3))
+    print("Jcoord max: ", np.max(Jcoord))
+    print("gradJcoord max: ", np.max(gradJcoord))
+
+    # Take the gradient of the electron fraction
+    # [txyz(grad,lo), x, y, z, f1, f2, zsim]
+    print(Ye.shape)
+    print(x.shape)
+    print(y.shape)
+    print(z.shape)
+    gradYecoord = 0j * np.zeros((4, nx, ny, nz,  1,  1,     1))
+    gradYecoord[1:] = np.array(np.gradient(Ye[:,:,:,None,None,None], x, y, z, axis=(0,1,2)))
 
     # change index order to [txyz_up, txyz(grad_lo), x, y, z, f1, f2, zsim]
     gradJcoord  = np.swapaxes(gradJcoord , 0, 1)
-    gradJecoord = np.swapaxes(gradJecoord, 0, 1)
+    gradJbcoord = np.swapaxes(gradJbcoord, 0, 1)
 
     # calculate the covariant derivative of the four-current
     # [txyz_up, xyz(grad,lo), x, y, z, f1, f2, zsim]
     # J^l_;m = J^l_,m + \Gamma^l_mn J^n
+    # The covariant derivative of a scalar is the same as the gradient
     print("Calculating covarJcoord")
     covarJcoord  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    covarJecoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
+    covarJbcoord = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
     for l in range(4):
         for m in range(4):
             covarJcoord[ l,m] = gradJcoord[ l,m] + np.sum(christoffel[l,m] * Jcoord , axis=0)
-            covarJecoord[l,m] = gradJecoord[l,m] + np.sum(christoffel[l,m] * Jecoord, axis=0)
+            covarJbcoord[l,m] = gradJbcoord[l,m] + np.sum(christoffel[l,m] * Jbcoord, axis=0)
 
     # map back into tetrad frame
-    # [txyz_up, txyz(grad_lo), x, y, z, f1, f2, zsim]
+    # [txyz_up, txyz(grad_lo), x, y, z, f1, f2, zsim] for J
+    # [txyz(grad_lo), x, y, z, 1, 1, 1] for Ye
     print("Calculating covarJtet")
     covarJtet  = 0j * np.zeros((4, 4, nx, ny, nz, nF, nF, nzsim))
-    covarJetet = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
+    covarJbtet = 0j * np.zeros((4, 4, nx, ny, nz,  1,  1,     1))
+    covarYetet = 0j * np.zeros((4,    nx, ny, nz,  1,  1,     1))
     for l in range(4):
+        covarYetet[l] = np.sum(tetrad[l,:] * gradYecoord, axis=(0))
         for m in range(4):
             covarJtet[ l,m] = np.sum(tetrad_low[l,:,np.newaxis] * tetrad[m,np.newaxis,:] * covarJcoord , axis=(0,1))
-            covarJetet[l,m] = np.sum(tetrad_low[l,:,np.newaxis] * tetrad[m,np.newaxis,:] * covarJecoord, axis=(0,1))
+            covarJbtet[l,m] = np.sum(tetrad_low[l,:,np.newaxis] * tetrad[m,np.newaxis,:] * covarJbcoord, axis=(0,1))
 
     print(np.shape(covarJtet))
-    print(np.shape(covarJetet))
+    print(np.shape(covarJbtet))
 
     # write covarJtet to file
     output = h5py.File(output_filename, 'w')
-    output["covarJtet(eV^4)"] = covarJtet
-    output["covarJetet(eV^4)"] = covarJetet
+    output["covarJtet(eV^4)"] = np.average(covarJtet, axis=7)
+    output["covarJbtet(eV^4)"] = np.average(covarJbtet, axis=7)
+    output["covarYetet(eV)"] = np.average(covarYetet, axis=6)
     output["x(1|eV)"] = x
     output["y(1|eV)"] = y
     output["z(1|eV)"] = z
@@ -156,12 +173,13 @@ def store_gradients(merger_data_filename, emu_data_loc, output_filename, xmin, x
 # average over zsim
 def read_gradients(filename):
     data = h5py.File(filename, 'r')
-    covarJtet  = np.average(np.array(data["covarJtet(eV^4)" ]), axis=7)
-    covarJetet = np.average(np.array(data["covarJetet(eV^4)"]), axis=7)
+    covarJtet  = np.array(data["covarJtet(eV^4)" ])
+    covarJbtet = np.array(data["covarJbtet(eV^4)"])
+    covarYetet = np.array(data["covarYetet(eV)"  ])
     x = np.array(data["x(1|eV)"])
     y = np.array(data["y(1|eV)"])
     z = np.array(data["z(1|eV)"])
     it = np.array(data["it"])
     limits = np.array(data["limits"])
     data.close()
-    return covarJtet, covarJetet, x, y, z, it, limits
+    return covarJtet, covarJbtet, covarYetet, x, y, z, it, limits

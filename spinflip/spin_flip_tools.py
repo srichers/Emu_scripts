@@ -100,7 +100,7 @@ class Gradients:
         self.gradient_filename = gradient_filename
 
         #allgrad object (dims: spacetime up, spacetime (gradient) low, x,y,z, F, F)
-        self.gradJ, self.x, self.y, self.z, self.it, self.limits = read_gradients(gradient_filename)
+        self.gradJ, self.gradJb, self.gradYe, self.x, self.y, self.z, self.it, self.limits = read_gradients(gradient_filename)
 
         
         # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, x,y,z, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
