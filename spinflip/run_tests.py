@@ -48,8 +48,8 @@ p_abs = 1e7 # eV
 # STEP 4 #
 ##########
 # Calculate gradients
-store_gradients(merger_data_filename, emu_data_loc, gradient_filename_start, xmin, xmax, ymin, ymax, zmin, zmax, 0)
-store_gradients(merger_data_filename, emu_data_loc, gradient_filename_end, xmin, xmax, ymin, ymax, zmin, zmax, -1)
+#store_gradients(merger_data_filename, emu_data_loc, gradient_filename_start, xmin, xmax, ymin, ymax, zmin, zmax, 0)
+#store_gradients(merger_data_filename, emu_data_loc, gradient_filename_end, xmin, xmax, ymin, ymax, zmin, zmax, -1)
 
 ##########
 # STEP 5 #
@@ -58,7 +58,7 @@ store_gradients(merger_data_filename, emu_data_loc, gradient_filename_end, xmin,
 # Draw angular distribution at one point
 # Draw diagonalizer sinusoidal distribution
 # Draw Hamiltonian matrix
-sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename, gradient_filename_start, p_abs=p_abs).pointPlots(0,savefig=True)
+sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename, p_abs, gradient_filename=gradient_filename_start).pointPlots(0,savefig=True)
 
 ######################
 # Diagonalizer Tests #
