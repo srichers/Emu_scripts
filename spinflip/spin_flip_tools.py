@@ -387,6 +387,12 @@ class SpinParams:
             return gm.dotprod(self.H(theta,phi),self.density_matrix)
         elif self.resonance_type == 'simplified':
             return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])
+        elif type(self.resonance_type) == type([]):
+            diag1 = self.resonance_type[0]
+            diag2 = self.resonance_type[1]
+            print(diag1,diag2)
+            return self.H(theta,phi)[diag1,diag1]-self.H(theta,phi)[diag2,diag2]
+
 
     #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
     def resonant_theta(self, phi=0):
@@ -468,10 +474,10 @@ class SpinParams:
             gradients.append(grad_along_direction[0,0])
             H_LR_ee.append(H_LR_ee_along_direction)
         
-        gradients = np.array(gradients)
+        gradients = np.array(np.abs(gradients))
         H_LR_ee = np.array(np.abs(H_LR_ee))
 
-        adiab = H_LR_ee/gradients
+        adiab = 2*H_LR_ee**2/gradients
         min_phi = np.linspace(0,2*np.pi, phi_resolution)[np.argmin(gradients)]
         print('minimum resonance magnitude = ', str(np.min(gradients)))
         print('minimizing resonant phi = ', str(min_phi))
@@ -489,7 +495,7 @@ class SpinParams:
         ax[1].set_xlabel('Azimuthal Angle')
         ax[1].set_ylabel('Adiabaticity Parameter')
         ax[1].set_title('Adiabaticity Parameter Along Resonant Directions at a Point')
-        ax[1].set_ylim(0,1)
+        #ax[1].set_ylim(0,1)
         plt.tight_layout()
 
         if savefig == True:
