@@ -455,23 +455,47 @@ class SpinParams:
             plt.savefig('angularPlot.png', dpi=300)
 
 
-    def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False):
+    def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False, adiabaticity_threshold = 1):
+        phis = np.linspace(0, 2*np.pi, phi_resolution)
         gradients = []
-        for phi in np.linspace(0, 2*np.pi, phi_resolution): 
+        H_LR_ee = []
+        for phi in phis: 
             theta = self.resonant_theta(phi=phi)
             grad_H_L = self.grad_H_L(theta, phi) 
             direction = Basis(theta,phi).n_vector
             grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
-            gradients.append(gm.magnitude(grad_along_direction))
+            H_LR_ee_along_direction = self.H_LR(theta, phi)[0,0]
+            gradients.append(grad_along_direction[0,0])
+            H_LR_ee.append(H_LR_ee_along_direction)
+        
+        gradients = np.array(gradients)
+        H_LR_ee = np.array(np.abs(H_LR_ee))
 
-        plt.figure()
-        plt.plot(np.linspace(0, 2*np.pi, phi_resolution), gradients)
-        plt.xlabel('Azimuthal Angle')
-        plt.ylabel('Gradient Magnitude')
-        plt.title('Gradient Along Resonant Directions at a Point')
+        adiab = H_LR_ee/gradients
+        min_phi = np.linspace(0,2*np.pi, phi_resolution)[np.argmin(gradients)]
+        print('minimum resonance magnitude = ', str(np.min(gradients)))
+        print('minimizing resonant phi = ', str(min_phi))
+        print('minimizing theta = ', str(self.resonant_theta(phi=min_phi)))
+        f, ax = plt.subplots(1,2, figsize=(8,6))
+        ax[0].plot(phis, gradients)
+        #shade region of plot where adiab>1
+        ax[0].fill_between(phis, 0, np.max(gradients), where=adiab > adiabaticity_threshold,
+                color='red', alpha=0.5)
+        ax[0].set_xlabel('Azimuthal Angle')
+        ax[0].set_ylabel('Gradient Magnitude')
+        ax[0].set_title('Gradient Along Resonant Directions at a Point')
+
+        ax[1].plot(phis,adiab)
+        ax[1].set_xlabel('Azimuthal Angle')
+        ax[1].set_ylabel('Adiabaticity Parameter')
+        ax[1].set_title('Adiabaticity Parameter Along Resonant Directions at a Point')
+        ax[1].set_ylim(0,1)
+        plt.tight_layout()
+
         if savefig == True:
             plt.savefig('azimuthal_gradient.png')
-        plt.show()
+        
+        
     
 
 
