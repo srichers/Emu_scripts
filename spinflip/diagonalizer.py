@@ -33,10 +33,6 @@ class Diagonalizer:
     def U_flavor(self, t):
         return np.linalg.inv(self.f_to_e) @ self.U_energy(t) @ self.f_to_e
    
-    #time array of neutrino density matrix, with init_array as intial condition
-    def state_evolution(self, resolution, t_lim, init_array):
-        return np.array([self.U_flavor(t) @ init_array @ np.linalg.inv(self.U_flavor(t)) for t in np.linspace(0, t_lim, resolution)])
-    
     def timescales(self, minmax = True):
         eigenvals = np.real(np.linalg.eig(self.H)[0])
         differences = np.array([[abs(eig1 - eig2) 
@@ -49,6 +45,14 @@ class Diagonalizer:
         else:
             return hbar/differences
         
+        #time array of neutrino density matrix, with init_array as intial condition
+    def state_evolution(self, resolution, t_lim, init_array):
+        if t_lim == 'timescale':
+           t_lim = self.timescale
+           print('Largest timescale = '+str(t_lim)+ ' s')
+        return np.array([self.U_flavor(t) @ init_array @ np.linalg.inv(self.U_flavor(t)) for t in np.linspace(0, t_lim, resolution)])
+    
+        
     def state_evolution_plotter(self, t_lim = 'timescale', resolution=500, quantity = 'state_right', ylim = None, init_array = np.diag((1,0,0,0,0,0)), savefig = False):
         if t_lim == 'timescale':
            t_lim = self.timescale
@@ -58,13 +62,10 @@ class Diagonalizer:
         #s_vs_t.shape = t,2nf,2nf
         state_vs_time = np.real(self.state_evolution(resolution, t_lim, init_array))
         
-        state_left = np.trace(state_vs_time[:,0:flavornum,0:flavornum], axis1= 1, axis2 = 2)
+        state_left  = np.trace(state_vs_time[:,0:flavornum,0:flavornum], axis1= 1, axis2 = 2)
         state_right = np.trace(state_vs_time[:,flavornum:2*flavornum,flavornum:2*flavornum], axis1= 1, axis2 = 2)
         left_minus_right = state_left - state_right
         
-        nth_diagonal = np.array([state_vs_time[:,n,n] for n in np.arange(0,2*flavornum)])
-        
-       
         f, ax = plt.subplots()
         ax.set_ylabel('diagonal elements')
         ax.set_xlabel('s')
@@ -74,6 +75,7 @@ class Diagonalizer:
         
         
         if type(quantity) == type([]):
+            nth_diagonal = np.array([state_vs_time[:,n,n] for n in np.arange(0,2*flavornum)])
             for n in quantity:
                 ax.plot(np.linspace(0,t_lim,resolution),nth_diagonal[n], label = str(n))
         elif quantity == 'state_left':
@@ -89,3 +91,5 @@ class Diagonalizer:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('evolvedstate.png', dpi=300)
+        
+        f.show()
