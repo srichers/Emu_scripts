@@ -29,7 +29,9 @@ def plotdata(filename,a,b):
     avgData = h5py.File(filename,"r")
     t=np.array(avgData["t"])*1e9
     N=np.array(avgData["N_avg_mag"])[:,a,b]
-    stop_ind = 30
+    #stop_ind = 30
+    #For NSM_2:
+    stop_ind = 100
     t = t[:stop_ind]
     N = N[:stop_ind]
     avgData.close()
@@ -77,16 +79,24 @@ ax.semilogy(t, N)
 #original indices used:
 #ind1 = 5
 #ind2 = 1
-#indices for flash NSM:
+#indices for flash NSM_1:
 #ind1 = 8
 #ind2 = 3
+#indices for flash NSM_2:
+#ind1 = 46
+#ind2 = 41
+#indices for flash NSM_3:
+#ind1 = 51
+#ind2 = 46
 #indices for emu NSM:
+#ind1 = 15
+#ind2 = 11
+#indices for Beam:
 ind1 = 15
-ind2 = 11
+ind2 = 20
 ot_est = (np.log(N[ind1]) - np.log(N[ind2]))/1.e-9/(t[ind1] - t[ind2])
 t_line = [t[ind2], t[ind1]]
 N_line = [10.0*N[ind2], 10.0*N[ind1]]
 ax.semilogy(t_line, N_line, color='orange')
 ax.set_title(r"$\tilde{{\omega}}={:.2E}$".format(ot_est))
-plt.savefig("../../avgfemu_est.pdf", bbox_inches="tight")
-#plt.savefig("avgfemu_est.pdf", bbox_inches="tight")
+plt.savefig("avgfemu_est.pdf", bbox_inches="tight")

@@ -7,27 +7,17 @@ import h5py
 import matplotlib as mpl
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator)
 
-#2_3:
-n_nue0 = 4.89e+32     # 1/ccm
-#n_nux0 = 0.0 # 1/ccm
-n_nux0 = 4.89e+27     # 1/ccm
-mfact = 1.e-32
-mfactstr = r'$10^{-32}\times$'
-
-#NSM_1:
-#n_nue0 = 1.421954234999705e+33     # 1/ccm
-#n_nux0 = 1.9645407875568215e+33/4. # 1/ccm, each flavor
-#NSM_2:
-#n_nue0 = 2.3293607911671233e+33    # 1/ccm
-#n_nux0 = 1.5026785300973756e+33 # 1/ccm, each flavor
-#mfact = 1.e-33
-#mfactstr = r'$10^{-33}\times$'
+#2/3:
+n_nue0 = 4.89e+32    # 1/ccm
+n_nux0 = 0.0 # 1/ccm, each flavor
 
 n_tot = n_nue0 + 2.*n_nux0
 n_2F = n_nue0 + n_nux0
 n_tot_eq = n_tot/3.0
 n_2F_eq = n_2F/2.0
 
+mfact = 1.e-32
+mfactstr = r'$10^{-32}\times$'
 
 base=["N","Fx","Fy","Fz"]
 diag_flavor=["00","11","22"]
@@ -80,16 +70,14 @@ plt.subplots_adjust(hspace=0)
 ##############
 # formatting #
 ##############
-axes[1].set_xlabel(r'$t\,(10^{-9}\,{\rm s})$')
+axes[1].set_xlabel(r'$t\,({\rm s})$')
 for i in range(2):
     axes[i].tick_params(axis='both', which='both', direction='in', right=True,top=True)
     axes[i].xaxis.set_minor_locator(AutoMinorLocator())
     axes[i].yaxis.set_minor_locator(AutoMinorLocator())
     axes[i].minorticks_on()
 #axes[0].set_xlim(-1.0, 4.0)
-#axes[0].set_xlim(-0.5, 2.0)
-#axes[0].set_xlim(-0.5, 1.0)
-axes[0].set_xlim(-0.7, 0.5)
+axes[0].set_xlim(-0.5, 2.0)
 axes[0].set_ylabel(mfactstr + r'$\langle N_{ee}\rangle\,({\rm cm}^{-3})$')
 axes[1].set_ylabel(mfactstr + r'$|N_{ex}|\,({\rm cm}^{-3})$')
 axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
@@ -97,55 +85,28 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #############
 # plot data #
 #############
-#filename_bang = "reduced_data_NSM_sim.h5"
-filename_bang = "reduced_data.h5"
-#beam
-#sim1:
-#box_length = 1.0
-#n_grid = 128
-#sim2:
-#box_length = 8.0
-#n_grid = 1024
-#2_3
-#sim:
-#box_length = 32.0
-#n_grid = 128
-#testing1:
-#box_length = 8.0
-#n_grid = 512
-#NSM_1
-box_length = 7.865243034321406
+filename_mec = "/global/project/projectdirs/m3761/FLASH/FFI_3D/2_3/sim1/reduced_data_nov4_test_hdf5_chk.h5"
+filename_thick = "/global/project/projectdirs/m3761/FLASH/FFI_3D/2_3_clos/sim/reduced_data.h5"
+#2/3:
+box_length = 32.0
 n_grid = 128
-#NSM_3
-#t1
-#t2:
-#sim:
-#box_length = 4.132703957221158
-#n_grid = 256
-#res_a
-#box_length = 2.066351978610579
-#n_grid = 128
-#t3:
-#res_b:
-#box_length = 8.265407914442315
-#n_grid = 128
-#t4:
-#sim:
-#box_length = 16.53081582888463
-#n_grid = 512
-#filename_bang = "reduced_data_NSM_res2.h5"
 
-t,Nee = plotdata(filename_bang,0,0)
-tex,Nex = plotdata(filename_bang,0,1)
-tmax = t[np.argmax(Nex)]
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', label='2f')
+t_mec,Nee_mec = plotdata(filename_mec,0,0)
+tex_mec,Nex_mec = plotdata(filename_mec,0,1)
+tmax_mec = t_mec[np.argmax(Nex_mec)]
+axes[0].plot(t_mec-tmax_mec, mfact * Nee_mec * n_2F, 'r-', label=r'${\rm MEC}$')
 axes[0].axhline(mfact*n_2F_eq, color="green")
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-', label='2f')
+axes[1].semilogy(t_mec-tmax_mec, mfact * Nex_mec * n_2F, 'r-')
+
+t_thick,Nee_thick = plotdata(filename_thick,0,0)
+tex_thick,Nex_thick = plotdata(filename_thick,0,1)
+tmax_thick = t_thick[np.argmax(Nex_thick)]
+axes[0].plot(t_thick-tmax_thick, mfact * Nee_thick * n_2F, 'b-', label=r'$\chi=1/3$')
+axes[1].semilogy(t_thick-tmax_thick, mfact * Nex_thick * n_2F, 'b-')
 
 fig.text(0.5, 0.82, r'$L={:.3f}\,{{\rm cm}}$'.format(box_length))
 fig.text(0.5, 0.77, r'$N_{{gp}}={}^3$'.format(n_grid))
-#fig.text(0.5, 0.77, r'$N_{{gp}}={}$'.format(n_grid))
 
 
-#axes[0].legend(loc=(0.43,0.6), frameon=False)
-plt.savefig("Nee_Nex_1res.pdf", bbox_inches="tight")
+axes[0].legend(loc=(0.43,0.1), frameon=False)
+plt.savefig("Nee_Nex_1res_2clos.pdf", bbox_inches="tight")

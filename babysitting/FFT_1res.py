@@ -50,7 +50,8 @@ def plotdata(filename_FFT, filename_avg, t_in):
     
     # get time closest to t
     dt = np.abs(t-t_in)
-    it = np.argmin(dt)
+    #it = np.argmin(dt)
+    it = 0
     trace = Nee[it,0]+Nex[it,0]
     print(it,t[it])
     return k, (Nex/trace)[it, :-1]
@@ -91,7 +92,8 @@ ax.set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
 #############
 # plot data #
 #############
-tplot = -0.1e-9
+#tplot = -0.1e-9
+tplot = 0.0
 
 #filename_bang   = "reduced_data_fft_power_NSM_sim.h5"
 #filename_bang_avg   = "reduced_data_NSM_sim.h5"

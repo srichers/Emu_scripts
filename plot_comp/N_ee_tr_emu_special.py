@@ -16,22 +16,26 @@ re=["Re","Im"]
 R=0
 I=1
     
+    
+t_str = ["t", "t(s)"]
+N_str = ["N_avg_mag", "N_avg_mag(1|ccm)"]
+
 
 def offdiagMag(f):
     return np.sqrt(f[:,0,1,R]**2 + f[:,0,1,I]**2 +
                    f[:,0,2,R]**2 + f[:,0,2,I]**2 +
                    f[:,1,2,R]**2 + f[:,1,2,I]**2)
 
-
 ######################
 # read averaged data #
 ######################
-def plotdata(filename,a,b):
+def plotdata(filename,a,b,ind):
     avgData = h5py.File(filename,"r")
-    t=np.array(avgData["t"])*1e9
-    N=np.array(avgData["N_avg_mag"])[:,a,b]
+    t=np.array(avgData[t_str[ind]])*1e9
+    N=np.array(avgData[N_str[ind]])[:,a,b]
     avgData.close()
     return t, N
+
 
 ################
 # plot options #
@@ -68,37 +72,34 @@ ax.minorticks_on()
 # plot data #
 #############
 
-#fid:
-filename_emu_2f = "/global/project/projectdirs/m3761/FLASH/Emu/Fiducial_3D_2F/reduced_data.h5"
-filename_emu_3f = "/global/project/projectdirs/m3761/FLASH/Emu/Fiducial_3D_3F/reduced_data.h5"
-filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/fid/sim1/reduced_data_nov4_test_hdf5_chk.h5"
+#Beam
+filename_emu_2f = "/global/cfs/projectdirs/m3761/FLASH/Emu/beam_test/random_perturbations_bigdomain_3d/plt_reduced_data.h5"
+filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_1D/Beam/sim1/reduced_data.h5"
+#sim2
+filename_emu_2f = "/global/cfs/projectdirs/m3761/FLASH/Emu/beam_test/random_perturbations_bigdomain_3d/plt_reduced_data.h5"
+filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_1D/Beam/sim2/reduced_data.h5"
 
-#90d:
-#filename_emu_2f = "/global/cfs/projectdirs/m3761/FLASH/Emu/90Degree_3D_2F/reduced_data.h5"
-#filename_emu_3f = "/global/cfs/projectdirs/m3761/FLASH/Emu/90Degree_3D_3F/reduced_data.h5"
-#filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/90d/sim1/reduced_data_nov4_test_hdf5_chk.h5"
-
-t,N = plotdata(filename_emu_2f,0,0)
-t_ex,N_ex = plotdata(filename_emu_2f,0,1)
+t,N = plotdata(filename_emu_2f,0,0, 1)
+#special code for normalizing emu_2F:
+N0 = N[0]
+N = N/N0
+t_ex,N_ex = plotdata(filename_emu_2f,0,1, 1)
 tmax = t[np.argmax(N_ex)]
 ax.plot(t-tmax, N, 'k-', label=r'${\rm emu\,\,(2f)}$')
 
-t,N = plotdata(filename_emu_3f,0,0)
-t_ex,N_ex = plotdata(filename_emu_3f,0,1)
-tmax = t[np.argmax(N_ex)]
+#t,N = plotdata(filename_emu_3f,0,0)
 #special code for excising a single point
-bad_ind = 152
+#bad_ind = 152
 #print(N[:])
-t = np.concatenate((t[:bad_ind-1], t[bad_ind+1:]))
-N = np.concatenate((N[:bad_ind-1], N[bad_ind+1:]))
-ax.plot(t-tmax, N, 'k--', label=r'${\rm emu\,\,(3f)}$')
+#t = np.concatenate((t[:bad_ind-1], t[bad_ind+1:]))
+#N = np.concatenate((N[:bad_ind-1], N[bad_ind+1:]))
+#ax.plot(t, N, 'k--', label=r'${\rm emu\,\,(3f)}$')
 
-t,N = plotdata(filename_bang,0,0)
-t_ex,N_ex = plotdata(filename_bang,0,1)
+t,N = plotdata(filename_bang,0,0, 0)
+t_ex,N_ex = plotdata(filename_bang,0,1, 0)
 tmax = t[np.argmax(N_ex)]
 ax.plot(t-tmax, N, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
 ax.set_xlabel(r"$t-t_{\rm max}\,(10^{-9}{\rm s})$")
 ax.set_ylabel(r"$\langle N_{ee}/{\rm Tr}[N]\rangle$")
 ax.legend(loc='upper right')
-plt.savefig("N_ee_tr_comp_fid.pdf", bbox_inches="tight")
-#plt.savefig("N_ee_tr_comp_90d.pdf", bbox_inches="tight")
+plt.savefig("N_ee_tr_beam.pdf", bbox_inches="tight")

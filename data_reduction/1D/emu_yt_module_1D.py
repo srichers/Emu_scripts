@@ -33,7 +33,8 @@ class Dim3(object):
                 hi.z - lo.z + 1]
 
 class FourierData(object):
-    def __init__(self, time, kx, ky, kz, FT_magnitude, FT_phase):
+#    def __init__(self, time, kx, ky, kz, FT_magnitude, FT_phase):
+    def __init__(self, time, kx, FT_magnitude, FT_phase):
         # Dataset time
         self.time = time
 

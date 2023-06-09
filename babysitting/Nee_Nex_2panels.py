@@ -88,9 +88,9 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #############
 # plot data #
 #############
-#filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/sim1/reduced_data_NSM_sim_hdf5_chk.h5"
-#filename_bang_res1 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/res_test1/from_payne/v0/reduced_data_NSM_sim.h5"
-#filename_bang_res2 = "/global/project/projectdirs/m3761/FLASH/FFI_3D/NSM/res_test2/from_payne/v0/reduced_data_NSM_sim.h5"
+#filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/sim1/reduced_data_NSM_sim_hdf5_chk.h5"
+#filename_bang_res1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/res_test1/from_payne/v0/reduced_data_NSM_sim.h5"
+#filename_bang_res2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/res_test2/from_payne/v0/reduced_data_NSM_sim.h5"
 #t1
 #box_length = 4.132703957221158
 #n_grid = 128

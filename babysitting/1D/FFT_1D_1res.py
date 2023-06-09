@@ -46,14 +46,16 @@ def plotdata(filename_FFT, filename_avg, t_in):
 
     # make time relative to tmax
     itmax = np.argmax(Nexavg)
-    t = t-t[itmax]
+    #t = t-t[itmax]
     
     # get time closest to t
-    dt = np.abs(t-t_in)
-    it = np.argmin(dt)
+    #dt = np.abs(t-t_in)
+    #it = np.argmin(dt)
+    it = itmax
     trace = Nee[it,0]+Nex[it,0]
-    print(it,t[it])
-    return k, (Nex/trace)[it, :-1]
+    #print(it,t[it], Nexavg[itmax])
+    print(it,t[it], Nexavg[it])
+    return k, (Nex/trace)[it, :-1], t[it], it
 
 ################
 # plot options #
@@ -85,13 +87,22 @@ ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
 ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
 ax.set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
-#axes[0].set_xlim(0,8)
-#ax.set_ylim(1.e-20,1.0)
+ax.set_xlim(-10,210)
+ax.set_ylim(1.e-16,1.0)
+
+box_length = 8.0
+n_blks = 64
+cells_per_blk = 16
+
+fig.text(0.5, 0.77, r'$L={:.3f}\,{{\rm cm}}$'.format(box_length))
+fig.text(0.5, 0.67, r'$N_{{B}}={}$'.format(n_blks))
+fig.text(0.5, 0.57, r'$N_{{gp}}={}$'.format(n_blks*cells_per_blk))
 
 #############
 # plot data #
 #############
-tplot = -0.1e-9
+#tplot = -0.1e-9
+tplot = 0.0
 
 #filename_bang   = "reduced_data_fft_power_NSM_sim.h5"
 #filename_bang_avg   = "reduced_data_NSM_sim.h5"
@@ -99,13 +110,16 @@ filename_bang   = "reduced_data_fft_power.h5"
 filename_bang_avg   = "reduced_data.h5"
 #filename_bang   = "reduced_data_fft_power_NSM_res2.h5"
 #filename_bang_avg   = "reduced_data_NSM_res2.h5"
-k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
+k3,N3, tdata, it = plotdata(filename_bang,filename_bang_avg,tplot)
 ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
 #Vertical line from LSA for fastet growing mode
+ax.set_title(r'$t={:.2}\times 10^{{-11}}\,{{\rm s}}$'.format(1.e11*tdata))
 #ax.axvline(5.64, color='g', label=None)
 
-ax.legend(loc='upper right', frameon=False)
-plt.savefig("Nex_FFT_1res.pdf", bbox_inches="tight")
+#ax.legend(loc='upper right', frameon=False)
+#plt.savefig("Nex_FFT_1res_1D_0.pdf", bbox_inches="tight")
+namestr = "Nex_FFT_1res_1D_{}.pdf".format(it)
+plt.savefig(namestr, bbox_inches="tight")
 
 ind3 = np.argmax(N3)
 print('flash', ind3, k3[ind3], N3[ind3])

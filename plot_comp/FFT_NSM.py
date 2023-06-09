@@ -51,7 +51,7 @@ def plotdata(filename_FFT, filename_avg, t_in):
     # get time closest to t
     dt = np.abs(t-t_in)
     it = np.argmin(dt)
-    trace = Nee[it,0]+Nex[it,0]
+    trace = Nee[it,0]+Nxx[it,0]
     print(it,t[it])
     return k, (Nex/trace)[it, :-1]
 
@@ -92,15 +92,15 @@ ax.set_ylim(1.e-20,1.0)
 # plot data #
 #############
 tplot = -0.1e-9
-basedirs = ["/global/project/projectdirs/m3761/Evan/",
-            "/global/project/projectdirs/m3761/Evan/",
-            "/global/project/projectdirs/m3761/FLASH/FFI_3D/"]
+basedirs = ["/global/cfs/projectdirs/m3761/FLASH/Emu/NSM_1/",
+            "/global/cfs/projectdirs/m3761/FLASH/Emu/NSM_1/",
+            "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/"]
 simlist = ["merger_2F/", "merger_3F/", "NSM_1/"]
 
 filename_emu_2f = basedirs[0]+simlist[0]+"reduced_data_fft_power.h5"
 filename_emu_3f = basedirs[1]+simlist[1]+"reduced_data_fft_power.h5"
 filename_bang   = basedirs[2]+simlist[2]+"sim/reduced_data_fft_power_NSM_sim_hdf5_chk.h5"
-filename_emu_2f_avg = basedirs[0]+simlist[0]+"reduced_data.h5"
+filename_emu_2f_avg = basedirs[0]+simlist[0]+"reduced_data_old.h5"
 filename_emu_3f_avg = basedirs[1]+simlist[1]+"reduced_data.h5"
 filename_bang_avg   = basedirs[2]+simlist[2]+"sim/reduced_data_NSM_sim_hdf5_chk.h5"
 k1,N1 = plotdata(filename_emu_2f,filename_emu_2f_avg,tplot)
@@ -110,7 +110,7 @@ ax.semilogy(k2, N2, 'k--', label=r'${\rm {\tt EMU}\,\,(3f)}$')
 k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
 ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
 #Vertical line from LSA for fastet growing mode
-ax.axvline(5.64, color='g', label=None)
+#ax.axvline(5.64, color='g', label=None)
 
 ax.legend(loc='upper right', frameon=False)
 plt.savefig("NSM_N_ex_FFT.pdf", bbox_inches="tight")

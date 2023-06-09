@@ -1,4 +1,6 @@
+# used to make plots but now just generates a hdf5 file with domain-averaged data.
 # Run in the directory of the simulation the data should be generated for.
+# Still has functionality for per-snapshot plots, but the line is commented out.
 # This version averages the magnitudes of off-diagonal components rather than the real/imaginary parts
 # also normalizes fluxes by sumtrace of N rather than F.
 # This data is used for the growth plot.
@@ -9,12 +11,13 @@ os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
+import matplotlib.pyplot as plt
 import yt
 import glob
 import multiprocessing as mp
 import h5py
 import amrex_plot_tools as amrex
-import emu_yt_module_1D as emu
+import emu_yt_module as emu
 from multiprocessing import Pool
 import scipy.special
 
@@ -63,10 +66,10 @@ cm_to_codelength = emu.nulib_length_gf
 def get_kmid(fft):
     if fft.kx is not None:
         kmid = fft.kx[np.where(fft.kx>=0)]
-#    if fft.ky is not None:
-#        kmid = fft.ky[np.where(fft.ky>=0)]
-#    if fft.kz is not None:
-#        kmid = fft.kz[np.where(fft.kz>=0)]
+    if fft.ky is not None:
+        kmid = fft.ky[np.where(fft.ky>=0)]
+    if fft.kz is not None:
+        kmid = fft.kz[np.where(fft.kz>=0)]
     return kmid
 
 def fft_coefficients(fft):
@@ -80,10 +83,10 @@ def fft_coefficients(fft):
     kmag = 0
     if fft.kx is not None:
         kmag = kmag + fft.kx[:,np.newaxis,np.newaxis]**2
-#    if fft.ky is not None:
-#        kmag = kmag + fft.ky[np.newaxis,:,np.newaxis]**2
-#    if fft.kz is not None:
-#        kmag = kmag + fft.kz[np.newaxis,np.newaxis,:]**2
+    if fft.ky is not None:
+        kmag = kmag + fft.ky[np.newaxis,:,np.newaxis]**2
+    if fft.kz is not None:
+        kmag = kmag + fft.kz[np.newaxis,np.newaxis,:]**2
     kmag = np.sqrt(np.squeeze(kmag))
     kmag[np.where(kmag>=kmid[-1])] = kmid[-1]
     
@@ -189,12 +192,11 @@ def averaged_F(F, FI, sumtrace):
     
     # do the averaging
     # direction, f1, f2, R/I
-#    Fout = np.zeros((3,NF,NF))
-    Fout = np.zeros((NF,NF))
-#    for i in range(3):
-    for j in range(NF):
-        for k in range(NF):
-            Fout[j][k] = float(np.sum(np.sqrt( F[j][k]**2 + FI[j][k]**2))/sumtrace)
+    Fout = np.zeros((3,NF,NF))
+    for i in range(3):
+        for j in range(NF):
+            for k in range(NF):
+                Fout[i][j][k] = float(np.sum(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2))/sumtrace)
 
     return Fout
 
@@ -221,6 +223,8 @@ else:
     mpi_rank = 0
     mpi_size = 1
 directories = sorted(glob.glob(output_base+"*"))
+#directories = ["nov4_test_hdf5_chk_0375"]
+#directories = directories[394:395]
 if( (not do_average) and (not do_fft)):
     directories = []
 for d in directories[mpi_rank::mpi_size]:
@@ -244,20 +248,19 @@ for d in directories[mpi_rank::mpi_size]:
         N = averaged_N(thisN,thisNI,sumtrace)
 
         thisFx, thisFxI = get_matrix("Fx","")
-#        thisFy, thisFyI = get_matrix("Fy","")
-#        thisFz, thisFzI = get_matrix("Fz","")
+        thisFy, thisFyI = get_matrix("Fy","")
+        thisFz, thisFzI = get_matrix("Fz","")
         for f1 in range(2):
             for f2 in range(2):
                 thisFx[f1][f2]  = thisFx[f1][f2]  * thisN[f1][f2]
-#                thisFy[f1][f2]  = thisFy[f1][f2]  * thisN[f1][f2]
-#                thisFz[f1][f2]  = thisFz[f1][f2]  * thisN[f1][f2]
+                thisFy[f1][f2]  = thisFy[f1][f2]  * thisN[f1][f2]
+                thisFz[f1][f2]  = thisFz[f1][f2]  * thisN[f1][f2]
                 thisFxI[f1][f2] = thisFxI[f1][f2] * thisNI[f1][f2]
-#                thisFyI[f1][f2] = thisFyI[f1][f2] * thisNI[f1][f2]
-#                thisFzI[f1][f2] = thisFzI[f1][f2] * thisNI[f1][f2]
-#        Ftmp  = np.array([thisFx , thisFy , thisFz ])
-#        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-#        F = averaged_F(Ftmp, FtmpI,sumtrace)
-        F = averaged_F(thisFx, thisFxI,sumtrace)
+                thisFyI[f1][f2] = thisFyI[f1][f2] * thisNI[f1][f2]
+                thisFzI[f1][f2] = thisFzI[f1][f2] * thisNI[f1][f2]
+        Ftmp  = np.array([thisFx , thisFy , thisFz ])
+        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
+        F = averaged_F(Ftmp, FtmpI,sumtrace)
 
         thisN, thisNI = get_matrix("N","bar")
         sumtrace = sumtrace_N(thisN)
@@ -266,20 +269,19 @@ for d in directories[mpi_rank::mpi_size]:
         Nbar = averaged_N(thisN,thisNI,sumtrace)
 
         thisFx, thisFxI = get_matrix("Fx","bar") 
-#        thisFy, thisFyI = get_matrix("Fy","bar") 
-#        thisFz, thisFzI = get_matrix("Fz","bar") 
+        thisFy, thisFyI = get_matrix("Fy","bar") 
+        thisFz, thisFzI = get_matrix("Fz","bar") 
         for f1 in range(2):
             for f2 in range(2):
                 thisFx[f1][f2]  = thisFx[f1][f2]  * thisN[f1][f2]
-#                thisFy[f1][f2]  = thisFy[f1][f2]  * thisN[f1][f2]
-#                thisFz[f1][f2]  = thisFz[f1][f2]  * thisN[f1][f2]
+                thisFy[f1][f2]  = thisFy[f1][f2]  * thisN[f1][f2]
+                thisFz[f1][f2]  = thisFz[f1][f2]  * thisN[f1][f2]
                 thisFxI[f1][f2] = thisFxI[f1][f2] * thisNI[f1][f2]
-#                thisFyI[f1][f2] = thisFyI[f1][f2] * thisNI[f1][f2]
-#                thisFzI[f1][f2] = thisFzI[f1][f2] * thisNI[f1][f2]
-#        Ftmp  = np.array([thisFx , thisFy , thisFz ])
-#        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-#        Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
-        Fbar = averaged_F(thisFx, thisFxI,sumtrace)
+                thisFyI[f1][f2] = thisFyI[f1][f2] * thisNI[f1][f2]
+                thisFzI[f1][f2] = thisFzI[f1][f2] * thisNI[f1][f2]
+        Ftmp  = np.array([thisFx , thisFy , thisFz ])
+        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
+        Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
 
         print("# rank",mpi_rank,"writing",outputfilename)
         sys.stdout.flush()
