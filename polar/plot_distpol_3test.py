@@ -128,9 +128,13 @@ def function(Z,fluxfac):
 def dfunctiondZ(Z,fluxfac):
     return 1./Z**2 - 1./np.sinh(Z)**2
 def get_Z(fluxfac):
-    initial_guess = 1
-    Z = scipy.optimize.fsolve(function, initial_guess, fprime=dfunctiondZ, args=fluxfac)[0]
-    residual = np.max(np.abs(function(Z,fluxfac)) )
+    if fluxfac == 0.0:
+        Z = 0.0
+        residual = 0.0
+    else:
+        initial_guess = 1.0
+        Z = scipy.optimize.fsolve(function, initial_guess, fprime=dfunctiondZ, args=fluxfac)[0]
+        residual = np.max(np.abs(function(Z,fluxfac)) )
     # when near isotropic, use taylor expansion
     # f \approx Z/3 - Z^3/45 + O(Z^5)
     return Z, residual
@@ -140,78 +144,99 @@ def get_Z(fluxfac):
 # make a plot of the distributions
 def distribution(N, Z,theta):
     mu = np.cos(theta)
-    return N/(4.*np.pi) * Z/np.sinh(Z) * np.exp(Z*mu)
+    if Z != 0.0:
+        return N/(4.*np.pi) * Z/np.sinh(Z) * np.exp(Z*mu)
+    else:
+        return N/(4.*np.pi) * np.exp(Z*mu)
 
 def makepolar(N,Nbar,f,fbar, label):
     print("########## ")
     print("Computing for "+label)
     print("########## ")
-    print("N = ", N, Nbar)
+    print()
+    print("N = ", N)
     print("F    = ", f)
-    print("Fbar = ", fbar)
     
     fluxfac = mag(f)
-    fluxfacbar = mag(fbar)
-    print("fluxfac = ",fluxfac, fluxfacbar)
-    
+    print("fluxfac = ",fluxfac)
     Z, residual = get_Z(fluxfac)
-    Zbar, residualbar = get_Z(fluxfacbar)
+    print("Z = ", Z)
+    print("residual = ", residual)
     print()
-    print("Z = ", Z, Zbar)
-    print("residual = ", residual, residualbar)
+    
+    print("Nbar = ", Nbar)
+    print("Fbar = ", fbar)
+    fluxfacbar = mag(fbar)
+    print("fluxfacbar = ",fluxfacbar)
+    Zbar, residualbar = get_Z(fluxfacbar)
+    print("Zbar = ", Zbar)
+    print("residual = ", residualbar)
+    print()
     
     
-    # get the crossing descriminant
+    # get the crossing discriminant
     #fhat = f / mag(f)
     #fhatbar = fbar / mag(fbar)
     if fluxfac != 0.0:
-        fhat = f / mag(f)
+        fhat = f / fluxfac
     else:
         fhat = f
     if fluxfacbar != 0.0:
-        fhatbar = fbar / mag(fbar)
+        fhatbar = fbar / fluxfacbar
     else:
         fhatbar = fbar
     costheta = np.sum(fhat*fhatbar)
-    eta = np.log( (N*Z/np.sinh(-Z)) / (Nbar*Zbar/np.sinh(-Zbar)) )
+    print("cos angle between fhat and fhatbar = ", costheta)
+    if (Z == 0.0) and (Zbar == 0.0):
+        eta = np.log( (N) / (Nbar) )
+    elif (Z == 0.0):
+        eta = np.log( (N) / (Nbar*Zbar/np.sinh(Zbar)) )
+    elif (Zbar == 0.0):
+        eta = np.log( (N*Z/np.sinh(Z)) / (Nbar) )
+    else:
+        eta = np.log( (N*Z/np.sinh(Z)) / (Nbar*Zbar/np.sinh(Zbar)) )
     beta = Zbar**2 + Z**2 - 2.*Z*Zbar*costheta
-    gamma = -2.*(Zbar * costheta - Z)
+    gamma = 2.*(Zbar * costheta - Z)
     epsilon = eta**2 - Zbar**2 * (1.-costheta**2)
-    descriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
+    print("eta, beta, gamma, epsilon =", eta, beta, gamma, epsilon)
+    if beta != 0.0:
+        discriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
+        print("discriminant = ",discriminant)
+    else:
+        discriminant = -1.0 #trivial
+        print("trivial distributions, setting discriminant to -1")
 
     # determine the original eln direction
-    eln = N*f - Nbar*fbar
-    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
-    print("theta_eln = ",theta_eln)
+    eln_vec = N*f - Nbar*fbar
+    theta_eln = np.arccos(eln_vec[2] / np.linalg.norm(eln_vec))
+    print("unrotated theta_eln with z-axis = ",theta_eln)
 
     # get rotation matrix for plotting
     R = get_rotation_matrix(f*N, fbar*Nbar)
     print()
-    print("Rotation matrix:")
+    print("Rotation matrix so eln_vec points along z^{\prime}-axis:")
     print(R)
-    f = -rotate(R, f)
-    fbar = -rotate(R, fbar)
+    f = rotate(R, f)
+    fbar = rotate(R, fbar)
     eln = N*f - Nbar*fbar
     print("F_rotated    = ",f)
     print("Fbar_rotated = ",fbar)
     print("ELN_rotated = ",eln)
     if fluxfac != 0.0:
-        fhat = f / mag(f)
+        fhat = f / fluxfac
     else:
         fhat = f
     if fluxfacbar != 0.0:
-        fhatbar = fbar / mag(fbar)
+        fhatbar = fbar / fluxfacbar
     else:
         fhatbar = fbar
-    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
+    theta_eln = np.arccos(eln[2] / np.linalg.norm(eln))
 
-    print()
-    print("descriminant = ",descriminant)
 
-    if descriminant>0:
+    if discriminant>0:
         print("YES crossing")
-        theta1_cross = np.arccos(-gamma*eta / (2.*beta) + np.sqrt(descriminant))
-        theta2_cross = np.arccos(-gamma*eta / (2.*beta) - np.sqrt(descriminant))
+        theta1_cross = np.arccos(-gamma*eta / (2.*beta) + np.sqrt(discriminant))
+        theta2_cross = np.arccos(-gamma*eta / (2.*beta) - np.sqrt(discriminant))
         #plt.arrow(theta+theta1_cross, 0,0,N/10., color='purple')
         #plt.scatter(theta+theta2_cross, distribution(N,Z,theta2_cross), color='purple')
         #plt.scatter(theta-theta1_cross, distribution(N,Z,theta1_cross), color='purple')
@@ -219,11 +244,11 @@ def makepolar(N,Nbar,f,fbar, label):
     else:
         print("NO crossing")
 
-    theta = np.arccos(fhat[2]) + theta_eln
-    thetabar = np.arccos(fhatbar[2]) + theta_eln
+    theta = np.arccos(fhat[2])
+    thetabar = np.arccos(fhatbar[2])
     
     thetaplot = np.arange(0,2.*np.pi,np.pi/100)
-    dist    = distribution(N   , Z   , thetaplot-theta   )
+    dist    = distribution(N   , Z   , thetaplot-theta)
     distbar = distribution(Nbar, Zbar, thetaplot-thetabar)
 
     return thetaplot, theta, thetabar, theta_eln, dist, distbar, fluxfac, fluxfacbar, eln
@@ -263,7 +288,7 @@ for i in range(test_np):
         
         ax1.arrow(th_max_nu,0,0,Nee*ff_nu, color='blue', linewidth=1.5)
         ax1.arrow(th_max_bnu+np.pi,0,0, Neebar*ff_bnu, color='red', linewidth=1.5)
-        ax1.arrow(th_eln+np.pi, 0,0,np.abs(eln[2]), color="purple", linewidth=1.5)
+        ax1.arrow(th_eln, 0,0,np.abs(eln[2]), color="purple", linewidth=1.5)
         
         ax1.get_xaxis().set_ticklabels([])
         ax1.get_yaxis().set_ticklabels([])
@@ -279,13 +304,13 @@ for i in range(test_np):
         
         
         ax2.axhline(0,color="k",linestyle="--")
-        if i == 0:
-                ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90, fontsize=13)
-                #ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+        #if i == 0:
+        #        ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+        #        #ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
         ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$n_{ee}$")
         ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{n}_{ee}$")
         ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$n_{ee} - \overline{n}_{ee}$")
-        ax2.axvline(th_eln/np.pi, color="purple")
+        #ax2.axvline(th_eln/np.pi, color="purple")
         ax2.set_xlim(0,2)
         ax2.set_xlabel(r"$\theta/\pi$")
         ax2.minorticks_on()
