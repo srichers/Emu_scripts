@@ -128,7 +128,8 @@ def fft_power_find_max_kvec(fft, cleft, cright, ileft, iright, kmid):
     kvec[1] = fft.ky[k_ind[1]]
     kvec[2] = fft.kz[k_ind[2]]
     print("Indices for k: ", k_ind)
-    print("Wavevector: ", 2.0*np.pi*kvec)
+    print("Wavevector (cm^{-1}): ", 2.0*np.pi*kvec)
+    print("Magnitude Wavevector (cm^{-1}): ", 2.0*np.pi*np.sqrt(np.sum(kvec**2)))
     print("Power (cm^{-6}): ", power[k_ind])
 
     return kvec
