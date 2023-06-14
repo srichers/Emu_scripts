@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction"
 import numpy as np
 import h5py
 from constants import hbar, c, M_p, M_3flavor, G
-from diagonalizer import Diagonalizer
+import diagonalizer as dg
 from matrix import visualizer
 from merger_grid import Merger_Grid
 from matrix import trace_matrix, dagger
@@ -19,7 +19,6 @@ import gellmann as gm
 from scipy import optimize as opt
 from four_current import four_current, read_gradients
 
-
 # i,j,k are the coordinate to generate plots from. xmin,xmax,ymin,ymax are the limits of the array of points.
 #append is the end of the filenames
 #resonance_type is either 'full' or 'simplified'. 'full' uses the full resonance condition, 'simplified' uses the simplified resonance condition
@@ -27,7 +26,7 @@ class MultiPlot:
     def __init__(self, i, j, k, emu_file,
                 xmin, xmax, ymin, ymax,
                 merger_data_loc, p_abs, gradient_filename = None, resonance_type = 'simplified', 
-                density_matrix = np.diag([1,0,0,0,0,0])
+                initial_ket = np.array([1,0,0,0,0,0])
                 ):
         self.emu_file = emu_file        
         self.merger_data_loc = merger_data_loc
@@ -43,8 +42,9 @@ class MultiPlot:
         self.j = j
         self.k = k
 
+        self.initial_ket = initial_ket
+        self.density_matrix = np.outer(self.initial_ket, np.conjugate(self.initial_ket))
         self.resonance_type = resonance_type
-        self.density_matrix = density_matrix
 
         self.MG = Merger_Grid(self.k, self.merger_data_loc, p_abs=p_abs)
     def resHamiltonian(self, t):
@@ -53,21 +53,24 @@ class MultiPlot:
     
     def angularPlot(self, t, savefig=False):
         SP = SpinParams(t_sim = t, resonance_type = self.resonance_type, density_matrix = self.density_matrix, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
-        SP.angularPlot( theta_res = 100, phi_res = 100, use_gm=True, direction_point=False, savefig=savefig)
+        SP.angularPlot( theta_resolution = 100, phi_resolution = 100, use_gm=True, direction_point=False, savefig=savefig)
     
-    #init array is density matrix at t=0 evolved by diagonalizer. default is same as the density matrix used for the Resoannce condition
+    #init array is density matrix at t=0 evolved by diagonalizer. default is same as the density matrix used for the Resonance condition
     #diagonalier_quantity is either 'state_right', 'state_left', or a list of integers up to dim(H). 'state_right' plots the right eigenvectors, 'state_left' plots the left eigenvectors, the list plots the eigenvectors with those indices.
     def pointPlots(self, t, plot_tlim='timescale', savefig=False, traceless = True,  text='mag', diagonalizer_quantity = 'state_right', init_array = None):
         if init_array == None:
             init_array =self.density_matrix
         self.MG.contour_plot(x = self.i, y = self.j, xmin = self.xmin, xmax = self.xmax, ymin = self.ymin, ymax = self.ymax)
         SP = SpinParams(t_sim = t, resonance_type = self.resonance_type, density_matrix = self.density_matrix, emu_file = self.emu_file, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = [self.i,self.j,self.k], p_abs=self.p_abs)
-        SP.angularPlot( theta_res = 50, phi_res = 50, use_gm=True, direction_point=False, savefig=savefig)
+        SP.angularPlot( theta_resolution = 50, phi_resolution = 50, use_gm=True, direction_point=False, savefig=savefig)
         H_resonant = SP.resonant_Hamiltonian()
-        D = Diagonalizer(H_resonant)
+        D = dg.Diagonalizer(H_resonant)
 
         D.state_evolution_plotter(plot_tlim, init_array = init_array,savefig=savefig, quantity = diagonalizer_quantity)
         visualizer(H_resonant, traceless=traceless, savefig=savefig, text = text)
+
+
+        
 
 ## Chiral Potentials ##
 # input: flux[spacetime, f1, f2, ...]
@@ -205,7 +208,7 @@ class Gradients:
 #resonance type = 'full' or 'simplified'. 'full' uses the full resonance condition, 'simplified' uses the simplified resonance condition
 #if 'full', density_matrix is the initial density matrix. 
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, resonance_type = 'full', density_matrix =np.diag([1,0,0,0,0,0]), gradient_filename = None):
+    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, resonance_type = 'full', initial_ket = np.array([1,0,0,0,0,0]), gradient_filename = None):
         
         self.p_abs = p_abs
         self.t_sim = t_sim
@@ -273,7 +276,8 @@ class SpinParams:
 
             
         #Resonance, initial density matrix
-        self.density_matrix = density_matrix
+        self.initial_ket = initial_ket
+        self.density_matrix = np.outer(self.initial_ket, np.conjugate(self.initial_ket))
         self.resonance_type = resonance_type
 
     #total H gradients (direction dependent) (space time low, F, F)
@@ -407,38 +411,37 @@ class SpinParams:
         return self.H(theta,phi)
     
 
-
-    def angularPlot(self, theta_res, phi_res, savefig=False, use_gm=True, direction_point=False):
+    def angularPlot(self, theta_resolution, phi_resolution, savefig=False, use_gm=True, direction_point=False):
         
         if use_gm==True:
             H_LR_array = np.array([[np.abs(np.trace(self.H_LR(theta, phi))) 
-                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
-                                   for theta in np.linspace(0, np.pi, theta_res)])
+                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                   for theta in np.linspace(0, np.pi, theta_resolution)])
         else: 
             H_LR_array = np.array([[gm.sum_magnitude(self.H_LR(theta, phi)) 
-                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
-                                   for theta in np.linspace(0, np.pi, theta_res)])
+                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                   for theta in np.linspace(0, np.pi, theta_resolution)])
 
         
         resonance_array = np.array([[self.resonance(theta,phi)
-                                   for phi in np.linspace(0, 2*np.pi, phi_res)]
-                                   for theta in np.linspace(0, np.pi, theta_res)]) 
+                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                   for theta in np.linspace(0, np.pi, theta_resolution)]) 
 
         f = plt.figure()
         ax = f.add_subplot(projection = 'mollweide')
         ax.grid(False)
         #ax.set_title(r'Angular plot of $H_{LR}$')
         
-        H_LR_im = ax.pcolormesh(np.linspace(-np.pi, np.pi, phi_res), 
-                                np.linspace(0.5*np.pi, -0.5*np.pi, theta_res),
+        H_LR_im = ax.pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                                np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
                                 H_LR_array, 
                                 cmap=plt.cm.hot, shading='auto')
 
         plt.colorbar(H_LR_im, label="eV")
 
         #resonance 
-        res_im = ax.contour(np.linspace(-np.pi, np.pi, phi_res),
-                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_res),
+        res_im = ax.contour(np.linspace(-np.pi, np.pi, phi_resolution),
+                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
                            resonance_array, levels=[0.], colors='cyan')
         
         h1,l1 = res_im.legend_elements()
@@ -458,6 +461,159 @@ class SpinParams:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('angularPlot.png', dpi=300)
+
+
+
+
+
+    #########################
+    ##Eigenvector resonance##
+    #########################
+
+
+    #resonance that decomposes initvector into energy basis and finds right hand magnitude of most important basis component.
+    #function  used for scipy in maxRightHanded
+    #negative bc looking for max and using minimize
+    def rightHandedPart(self, theta, phi, initvector):
+        if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
+            theta = theta[0]
+        return -1*np.linalg.norm(dg.Diagonalizer(self.H(theta,phi)).largest_ket_component(initvector)[1][3:6])
+
+    #finds maximum right handed part of largest component of initial eigenvector of resonant Hamiltonian
+    #returns theta and max value
+    #works as a resonance condition specifically for initvector
+    def maxRightHanded(self, initvector, phi=0, method='SLSQP', bounds = [(np.pi/4, 3*np.pi/4)]):
+        optimal = opt.minimize(self.rightHandedPart, x0 = np.pi/2, args = (phi, initvector), bounds = bounds,  method = method)
+        return optimal.x[0], -1*optimal.fun #theta_max, max_right_handed_part
+    
+
+   
+    #plots magnitude of right handed part of largest energy eigenvector component of initial ket vector (should be large for resonance)
+    #phi max is the phi along which a theta_max is found (maximizing right handed part of largest eigenvector component)
+    #zoom is None (giving a full mollweide plot like angularPlot) or a number (giving a zoomed in plot around phi_max, theta_max)
+    def angularEigenvectorPlot(self, theta_resolution, phi_resolution,
+                                type, # = 'lminusr' or 'rmax'
+                                phi_max = np.pi, zoom = None, 
+                                zoom_resolution = 50, initvector = 'default', 
+                                method = 'SLSQP', bounds =[(np.pi/4, 3*np.pi/4)], 
+                                savefig=False,  linearPlot = True):
+        
+        if initvector == 'default':
+            initvector = self.initial_ket
+        
+        theta_max, max_right = self.maxRightHanded(initvector, phi=phi_max, method = method, bounds = bounds)
+        print('theta_max = ', str(theta_max),
+             ' along phi = ', str(phi_max),
+             ' with max_right = ', str(max_right))
+
+        f = plt.figure(figsize=(8,6))
+        ax = f.add_subplot(projection = 'mollweide') 
+        ax.grid(False)
+
+         #colorplot
+        right_handed_part = np.array([[-1*self.rightHandedPart(theta,phi, initvector)
+                                for phi in np.linspace(phi_max - zoom, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+        right_handed_im = ax.pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                                np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                                np.log10(right_handed_part), 
+                                cmap=plt.cm.hot, shading='auto', vmin = -8)
+        plt.colorbar(right_handed_im)
+
+        #resonance 
+        resonance_array = np.array([[self.resonance(theta,phi)
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)]) 
+        res_im = ax.contour(np.linspace(-np.pi, np.pi, phi_resolution),
+                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                           resonance_array, levels=[0.], colors='cyan')
+        h1,l1 = res_im.legend_elements()
+        
+         #add net flux point 
+        J_avg = np.array([gm.magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
+        flux_point = ax.scatter([np.arctan2(J_avg[2],J_avg[1])],[np.arctan2(J_avg[3],
+                                                (J_avg[1]**2+J_avg[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
+        
+        
+        #add maximum along phi_max
+        max_point_plot = ax.scatter([phi_max - np.pi],
+                                    [-1*theta_max + np.pi/2],
+                                    label = 'maximum Right-Handed Component', 
+                                    color='magenta')
+        
+        #legend
+        plt.legend([h1[0], flux_point, max_point_plot], ["Resonant Directions", "Number Flux Direction", 'Maximum Right-Handed Component'], loc=(0, 1.13))
+        plt.show()
+
+        
+        #add zoomed in graphic
+        if type(zoom) == float:
+            f_z = plt.figure(figsize = (8,6))
+            ax_z = f_z.add_subplot()
+            right_handed_part_zoom = np.array([[-1*self.rightHandedPart(theta,phi, initvector)
+                                    for phi in np.linspace(phi_max - zoom, phi_max + zoom, zoom_resolution)]
+                                    for theta in np.linspace(theta_max - zoom, theta_max + zoom, zoom_resolution)])
+            right_handed_im_z = ax_z.pcolormesh(
+                                np.linspace(phi_max - zoom, phi_max + zoom, zoom_resolution), 
+                                np.linspace(theta_max - zoom, theta_max + zoom, zoom_resolution),
+                                np.log10(right_handed_part_zoom), 
+                                cmap=plt.cm.hot, shading='auto', vmin = -8)
+            plt.colorbar(right_handed_im_z)
+
+            resonance_array_zoom = np.array([[self.resonance(theta,phi)
+                                    for phi in np.linspace(phi_max - zoom, phi_max + zoom, zoom_resolution)]
+                                    for theta in np.linspace(theta_max - zoom, theta_max + zoom, zoom_resolution)])
+            res_im_z = ax_z.contour(
+                                np.linspace(phi_max - zoom, phi_max + zoom, zoom_resolution), 
+                                np.linspace(theta_max - zoom, theta_max + zoom, zoom_resolution),
+                                resonance_array_zoom, levels=[0.], colors='cyan')
+            plt.show()
+
+    
+    
+        #add linearPlot graphic
+        if linearPlot == True:
+            self.linearEigenvectorPlot(initvector, zoom_resolution, phi_max= phi_max, zoom = zoom, savefig=False, max_point=False,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
+    
+
+        if savefig == True: 
+            ax.tight_layout()
+            plt.savefig('angularPlot.png', dpi=300)
+        
+        
+
+        
+    def linearEigenvectorPlot(self, initvector, theta_resolution, zoom = None, phi_max= np.pi, savefig=False, max_point=False,  method = 'SLSQP', bounds =[(np.pi/4, 3*np.pi/4)]):
+        
+        plt.figure(figsize = (8,6))
+        plt.title('Linear Plot of Right-Handed Component of Initial Ket vs Theta')
+        plt.xlabel(r'$\theta$')
+        plt.ylabel('Right-Handed Component of Initial Ket')
+        plt.grid(True)
+
+
+        theta_max, max_right = self.maxRightHanded(initvector, phi=phi_max, method = method, bounds = bounds) 
+        theta_resonant = self.resonant_theta(phi=phi_max)  
+
+        if zoom == None:
+            thetas = np.linspace(np.pi, 0, theta_resolution)
+            plt.xlim(-np.pi/2,np.pi/2)
+        else:
+            thetas = np.linspace(theta_max - zoom, theta_max + zoom, theta_resolution)
+            plt.xlim(np.pi/2 - theta_max + zoom,np.pi/2 - theta_max - zoom)
+
+        right_handed_part = np.array([-1*self.rightHandedPart(theta, phi_max, initvector)
+                                   for theta in thetas])
+
+        plt.plot(-1*thetas + np.pi/2, right_handed_part, color = 'r')
+
+        standard_resonance_vline = plt.vlines([-1*theta_resonant + np.pi/2],[0],[max(right_handed_part)], linestyles = '-', label = 'Standard Resonance', color='cyan')
+        max_point_vline =          plt.vlines([-1*theta_max + np.pi/2],[0],[max(right_handed_part)], linestyles = ':', label = 'maximum Right-Handed Component', color='magenta')
+
+        plt.legend([max_point_vline, standard_resonance_vline], ['Max Right-Handed', 'Standard Resonance'])
+
+    ###################
+
 
 
     def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False, adiabaticity_threshold = 1):
@@ -504,4 +660,3 @@ class SpinParams:
     
 
 
-   
