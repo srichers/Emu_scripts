@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from constants import hbar
 
 #unitary trace matrix
 def trace_matrix(data):#takes in (nF,nF,nz)
@@ -46,7 +45,6 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
     else: 
         max_value = vmax
 
-    print(vmin, vmax)
     if log ==True: scale = norm=mpl.colors.LogNorm(vmin=min_value, vmax=max_value)
     else: scale = None
     
@@ -86,6 +84,7 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
         plt.savefig('visualizer.png', dpi=300)
 
 def derivative(H,P, n=1):
+    from constants import hbar
     for k in np.arange(n):
         P = -1.j/hbar*( H @ P - P @ H)
     return P
