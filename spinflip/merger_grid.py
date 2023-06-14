@@ -6,15 +6,15 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 #Calculates values from merger data, and generates adiabaticity / resonance contour plots.
-#data_loc, unrotated_data_loc is the location for the merger data and unrotated merger data
+#merger_data_loc, unrotated_data_loc is the location for the merger data and unrotated merger data
 class Merger_Grid:
-    def __init__(self, zval, data_loc,
+    def __init__(self, zval, merger_data_loc,
                 p_abs, theta=0, phi=0):
         
         self.zval = zval
             
         #rotated data has ELN flux along z
-        self.merger_grid = h5py.File(data_loc, 'r')
+        self.merger_grid = h5py.File(merger_data_loc, 'r')
         
         #Electron fraction, baryon n density
         self.rho=np.array(self.merger_grid['rho(g|ccm)'])[:,:,self.zval] #g/cm^3 (baryon mass density)
