@@ -21,11 +21,10 @@ class Diagonalizer:
     
         #(inverted) array of normalized eigenvectors
         #a.k.a. change of basis matrix from Energy to flavor/spin
-        #ket_f = f_to_e(ket_e)
-        #H_f = (f_to_e) H_diag (e_to f)^-1
+        #ket_e = f_to_e(ket_f)
+        #H_f = (f_to_e)^-1 H_e (f_to_e)
         self.f_to_e = (1+0*1j)*np.linalg.inv(np.linalg.eig(self.H)[1]) 
         
-        self.H_diag = self.f_to_e @ self.H @ np.linalg.inv(self.f_to_e)
     #Time evolution operator in energy basis
     def U_energy(self, t):
         return np.diag([np.exp(-1j*eigenvalue*t/hbar) for eigenvalue in self.eigenvals])
@@ -51,6 +50,11 @@ class Diagonalizer:
            t_lim = self.timescale
            print('Largest timescale = '+str(t_lim)+ ' s')
         return np.array([self.U_flavor(t) @ init_array @ np.linalg.inv(self.U_flavor(t)) for t in np.linspace(0, t_lim, resolution)])
+    
+    #calculates the largest component of initial_ket_f and returns the component and the corresponding eigenvector
+    def largest_ket_component(self, init_ket_f):
+        components = self.f_to_e @ init_ket_f
+        return np.max(np.abs(components)), (1+0j)*self.f_to_e[np.argmax(components)]
     
         
     def state_evolution_plotter(self, t_lim = 'timescale', resolution=500, quantity = 'state_right', ylim = None, init_array = np.diag((1,0,0,0,0,0)), savefig = False):
@@ -93,3 +97,5 @@ class Diagonalizer:
             plt.savefig('evolvedstate.png', dpi=300)
         
         f.show()
+
+    
