@@ -14,9 +14,9 @@ class TimePlots:
         self.h5file = h5py.File(self.data_loc, "r")
  
         self.time_axis = np.array(self.h5file["t(s)"])*1E9 #ns
-        self.nt = self.time_axis.shape[0]-10
+        self.nt = self.time_axis.shape[0]-1
     
-        self.spin_params_timearray = [SpinParams(t_sim= t, data_loc=data_loc, p_abs=p_abs, location=location, merger_data_loc=merger_data_loc) for t in np.arange(0,self.nt,self.precision)]
+        self.spin_params_timearray = [SpinParams(t, data_loc, merger_data_loc, location, p_abs, resonance_type = 'full', density_matrix =np.diag([1,0,0,0,0,0])) for t in np.arange(0,self.nt,self.precision)]
         
     #(spacetime, F, F, z)
     def J_spatial_flavoravg(self, avg_method = 'GM'): 
