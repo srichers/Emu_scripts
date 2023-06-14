@@ -196,7 +196,7 @@ class Merger_Grid:
             pass
 
     #Adiabaticity Colorplot
-    def adiab_plot(self, minval = 1E-5, crit_region = False, savefig = False, theta_res = np.pi, phi_res = 0, ):
+    def adiab_plot(self, minval = 1E-5, crit_region = False, savefig = False, theta_resolution = np.pi, phi_resolution = 0, ):
         zval = self.zval
         adiabaticity = self.adiabaticity(self.basis)
         plt.grid(False)
@@ -211,7 +211,7 @@ class Merger_Grid:
             proxy = [plt.Rectangle((1, 1), 2, 2, fc=pc.get_facecolor()[0]) for pc in
             contourf.collections]
         
-        plt.contour(self.x_km[:,:],self.y_km[:,:],self.resonance_val(Basis(theta_res,phi_res)), levels=0)
+        plt.contour(self.x_km[:,:],self.y_km[:,:],self.resonance_val(Basis(theta_resolution,phi_resolution)), levels=0)
         #plt.tick_params(axis='both',which="both", direction="in",top=True,right=True)
         plt.minorticks_on()
         scatter=plt.scatter(self.coords(adiabaticity, minval)[0],self.coords(adiabaticity,minval)[1],color=[0,0.9,0], marker='x', label='Simulated Point')
