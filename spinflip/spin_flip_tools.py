@@ -14,6 +14,7 @@ from matrix import visualizer
 from merger_grid import Merger_Grid
 from matrix import trace_matrix, dagger
 from basis import Basis
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import gellmann as gm
 from scipy import optimize as opt
@@ -552,7 +553,7 @@ class SpinParams:
                            resonance_array, levels=[0.], colors='cyan')
         h1,l1 = res_im.legend_elements()
         
-         #add net flux point 
+        #add net flux point 
         J_avg = np.array([gm.magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
         flux_point = ax.scatter([np.arctan2(J_avg[2],J_avg[1])],[np.arctan2(J_avg[3],
                                                 (J_avg[1]**2+J_avg[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
@@ -566,7 +567,7 @@ class SpinParams:
         
         #legend
         plt.legend([h1[0], flux_point, max_point_plot], ["Resonant Directions", "Number Flux Direction", 'Maximum Right-Handed Component'], loc=(0, 1.13))
-        plt.show()
+        
 
         
         #add zoomed in graphic
@@ -583,42 +584,56 @@ class SpinParams:
                                     for phi in np.linspace(phi_optimal - zoom, phi_optimal + zoom, zoom_resolution)]
                                     for theta in np.linspace(theta_optimal - zoom, theta_optimal + zoom, zoom_resolution)]))
             
-           
+            #colorplot
             colorplot_im_z = ax_z.pcolormesh(
                                 np.linspace(phi_optimal - zoom, phi_optimal + zoom, zoom_resolution), 
-                                np.linspace(theta_optimal - zoom, theta_optimal + zoom, zoom_resolution),
+                                np.linspace(theta_optimal + zoom, theta_optimal - zoom, zoom_resolution),
                                 colorplot_vals_zoom, 
                                 cmap=plt.cm.hot, shading='auto', vmin = -8)
             plt.colorbar(colorplot_im_z)
 
+            #resonance
             resonance_array_zoom = np.array([[self.resonance(theta,phi)
                                     for phi in np.linspace(phi_optimal - zoom, phi_optimal + zoom, zoom_resolution)]
                                     for theta in np.linspace(theta_optimal - zoom, theta_optimal + zoom, zoom_resolution)])
             res_im_z = ax_z.contour(
                                 np.linspace(phi_optimal - zoom, phi_optimal + zoom, zoom_resolution), 
-                                np.linspace(theta_optimal - zoom, theta_optimal + zoom, zoom_resolution),
+                                np.linspace(theta_optimal + zoom, theta_optimal - zoom, zoom_resolution),
                                 resonance_array_zoom, levels=[0.], colors='cyan')
+            
+            #max point
+            max_point_plot = ax_z.scatter([phi_optimal],
+                                    [theta_optimal],
+                                    label = 'maximum Right-Handed Component', 
+                                    color='magenta')
+            
+            # Create a Rectangle patch
+            rect = mpl.patches.Rectangle((phi_optimal-zoom - np.pi, np.pi/2-(theta_optimal+zoom)), 2*zoom, 2*zoom, linewidth=1, edgecolor='lime', facecolor='none')
+            ax.add_patch(rect)
+                        
             plt.show()
 
     
         #add linearPlot graphic
         if linearPlot == True:
-            self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom, savefig=False, max_point=False,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
+            self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
     
 
         if savefig == True: 
             ax.tight_layout()
             plt.savefig('angularPlot.png', dpi=300)
 
-        return resonance_array_zoom
-        
+
         
 
         
-    def linearEigenvectorPlot(self, theta_resolution,  initvector ='default', value = 'rmax', zoom = None, shift = 0, phi_optimal= np.pi, savefig=False, max_point=False,  method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)]):
+    def linearEigenvectorPlot(self, theta_resolution,  
+                              initvector ='default', value = 'rmax',
+                              zoom = None, shift = 0, phi_optimal= np.pi,
+                              method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)],
+                              extra_lines = None, extra_init_vectors = None):
     
         plt.figure(figsize = (8,6))
-        plt.title('Linear Plot of Right-Handed Component of Initial Ket vs Theta')
         plt.xlabel(r'$\theta$')
         plt.ylabel('Right-Handed Component of Initial Ket')
         plt.grid(True)
@@ -628,36 +643,46 @@ class SpinParams:
         
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
-            print(theta_optimal)
+            plt.title(f'Linear Plot of L-minus-R vs theta (phi = {phi_optimal:.3})')
+
             if zoom == None:
                 thetas = np.linspace(np.pi, 0, theta_resolution)
                 plt.xlim(-np.pi/2,np.pi/2)
             else:
-                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
-                plt.xlim(np.pi/2 - theta_optimal + zoom,np.pi/2 - theta_optimal - zoom)
+                thetas = np.linspace(theta_optimal + zoom + shift, theta_optimal - zoom + shift, theta_resolution)
+                plt.xlim(np.pi/2 - theta_optimal - zoom- shift,np.pi/2 - theta_optimal + zoom - shift)
             plot_vals = 1 - np.array([self.leftMinusRight(theta, phi_optimal)
                                    for theta in thetas]) 
         elif value == 'rmax':
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
+            plt.title(f'Linear Plot of Right-Handed Component of Ket vs theta (phi = {phi_optimal:.3})')
             if zoom == None:
                 thetas = np.linspace(np.pi, 0, theta_resolution)
                 plt.xlim(-np.pi/2,np.pi/2)
             else:
-                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
-                plt.xlim(np.pi/2 - theta_optimal + zoom,np.pi/2 - theta_optimal - zoom)
+                thetas = np.linspace(theta_optimal + zoom + shift, theta_optimal - zoom + shift, theta_resolution)
+                plt.xlim(np.pi/2 - theta_optimal - zoom - shift,np.pi/2 - theta_optimal + zoom- shift)
             plot_vals = np.array([-1*self.rightHandedPart(theta, phi_optimal, initvector)
                                    for theta in thetas])
             
-        theta_resonant = self.resonant_theta(phi=phi_optimal)  
-
-        
-
+        #plot full resonance value
         plt.plot(-1*thetas + np.pi/2, plot_vals, color = 'r')
 
-        standard_resonance_vline = plt.vlines([-1*theta_resonant + np.pi/2],[0],[max(plot_vals)], linestyles = '-', label = 'Standard Resonance', color='cyan')
-        max_point_vline =          plt.vlines([-1*theta_optimal + np.pi/2],[0],[max(plot_vals)], linestyles = ':', label = 'maximum Right-Handed Component', color='magenta')
+        #extra_init_vector to see specific resonance condition solutions over plot of the general resonance condition
+        if extra_init_vectors != None:
+            extra_thetas = np.array([self.maxRightHanded(extra_init_vector, phi=phi_optimal, method = method, bounds = bounds)[0]
+                                    for extra_init_vector in extra_init_vectors])
+            print('Extra Thetas = ', extra_thetas)
+            extra_thetas_vlines = plt.vlines(-1*extra_thetas + np.pi/2, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
 
-        plt.legend([max_point_vline, standard_resonance_vline], ['Max Right-Handed', 'Standard Resonance'])
+        #plot vlines
+        theta_resonant = self.resonant_theta(phi=phi_optimal)  
+        standard_resonance_vline = plt.vlines([-1*theta_resonant + np.pi/2],[0],[max(plot_vals)], linestyles = '-', label = 'Simplified Resonance', color='cyan')
+        max_point_vline =          plt.vlines([-1*theta_optimal + np.pi/2],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+        if extra_lines != None:
+          extra_vlines = plt.vlines(extra_lines, [0], [max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
+
+        plt.legend()
 
     ###################
 
