@@ -60,7 +60,6 @@ class Diagonalizer:
     def state_evolution_plotter(self, t_lim = 'timescale', resolution=500, quantity = 'state_right', ylim = None, init_array = np.diag((1,0,0,0,0,0)), savefig = False):
         if t_lim == 'timescale':
            t_lim = self.timescale
-           print('Largest timescale = '+str(t_lim)+ ' s')
         
         flavornum = self.Hsize//2
         #s_vs_t.shape = t,2nf,2nf
