@@ -488,19 +488,26 @@ class SpinParams:
         return optimal.x[0], -1*optimal.fun #theta_optimal, max_colorplot_vals
     
     #initial ket -independent resonance condition. assures existence of resonance for some initial ket
-    def leftMinusRight(self, theta, phi):
+    #min_eigenvec = True returns the eigenvector that minimizes leftMinusRight
+
+    def leftMinusRight(self, theta, phi, min_eigenvec = False):
         if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
             theta = theta[0]
         H = self.H(theta, phi)
         eigenvectors = np.linalg.eig(H)[1]
         left_minus_right = [abs(np.linalg.norm(eigenvectors[0:3,n]) - np.linalg.norm(eigenvectors[3:6,n]))
                             for n in range(0,6)]
+        if min_eigenvec == True:
+            return min(left_minus_right), eigenvectors[:,np.argmin(left_minus_right)]
         return min(left_minus_right)
     
     #finds minimum of leftMinusRight over theta for some phi
     #returns theta and min value
-    def minLeftMinusRight(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)]):
-        optimal = opt.minimize(self.leftMinusRight, x0 = np.pi/2, args = (phi), bounds = bounds,  method = method)
+    def minLeftMinusRight(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)], min_eigenvec = False):
+        x0 = (bounds[0][0]+bounds[0][1])/2
+        optimal = opt.minimize(self.leftMinusRight, x0 = x0, args = (phi), bounds = bounds,  method = method)
+        if min_eigenvec == True:
+            return optimal.x[0], optimal.fun, self.leftMinusRight(optimal.x[0], phi, min_eigenvec = True)[1]
         return optimal.x[0], optimal.fun
     
     #plots magnitude of right handed part of largest energy eigenvector component of initial ket vector (should be large for resonance)
@@ -635,7 +642,6 @@ class SpinParams:
     
         plt.figure(figsize = (8,6))
         plt.xlabel(r'$\theta$')
-        plt.ylabel('Right-Handed Component of Initial Ket')
         plt.grid(True)
 
         if initvector == 'default':
@@ -644,44 +650,46 @@ class SpinParams:
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             plt.title(f'Linear Plot of L-minus-R vs theta (phi = {phi_optimal:.3})')
-
+            plt.ylabel(r'$1-|L-R|$')
             if zoom == None:
-                thetas = np.linspace(np.pi, 0, theta_resolution)
-                plt.xlim(-np.pi/2,np.pi/2)
+                thetas = np.linspace(0, np.pi, theta_resolution)
+                plt.xlim(0,np.pi)
             else:
-                thetas = np.linspace(theta_optimal + zoom + shift, theta_optimal - zoom + shift, theta_resolution)
-                plt.xlim(np.pi/2 - theta_optimal - zoom- shift,np.pi/2 - theta_optimal + zoom - shift)
+                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
+                plt.xlim( theta_optimal - zoom + shift, theta_optimal + zoom + shift)
             plot_vals = 1 - np.array([self.leftMinusRight(theta, phi_optimal)
                                    for theta in thetas]) 
         elif value == 'rmax':
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
             plt.title(f'Linear Plot of Right-Handed Component of Ket vs theta (phi = {phi_optimal:.3})')
             if zoom == None:
-                thetas = np.linspace(np.pi, 0, theta_resolution)
-                plt.xlim(-np.pi/2,np.pi/2)
+                thetas = np.linspace(0, np.pi/2, theta_resolution)
+                plt.xlim(0,np.pi)
             else:
-                thetas = np.linspace(theta_optimal + zoom + shift, theta_optimal - zoom + shift, theta_resolution)
-                plt.xlim(np.pi/2 - theta_optimal - zoom - shift,np.pi/2 - theta_optimal + zoom- shift)
+                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
+                plt.xlim(theta_optimal - zoom + shift, theta_optimal + zoom + shift)
             plot_vals = np.array([-1*self.rightHandedPart(theta, phi_optimal, initvector)
                                    for theta in thetas])
             
         #plot full resonance value
-        plt.plot(-1*thetas + np.pi/2, plot_vals, color = 'r')
+        plt.plot(thetas, plot_vals, color = 'r')
 
         #extra_init_vector to see specific resonance condition solutions over plot of the general resonance condition
         if extra_init_vectors != None:
             extra_thetas = np.array([self.maxRightHanded(extra_init_vector, phi=phi_optimal, method = method, bounds = bounds)[0]
                                     for extra_init_vector in extra_init_vectors])
             print('Extra Thetas = ', extra_thetas)
-            extra_thetas_vlines = plt.vlines(-1*extra_thetas + np.pi/2, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
+            extra_thetas_vlines = plt.vlines(extra_thetas, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
 
         #plot vlines
         theta_resonant = self.resonant_theta(phi=phi_optimal)  
-        standard_resonance_vline = plt.vlines([-1*theta_resonant + np.pi/2],[0],[max(plot_vals)], linestyles = '-', label = 'Simplified Resonance', color='cyan')
-        max_point_vline =          plt.vlines([-1*theta_optimal + np.pi/2],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+        standard_resonance_vline = plt.vlines([theta_resonant],[0],[max(plot_vals)], linestyles = '-', label = 'Simplified Resonance', color='cyan')
+        max_point_vline =          plt.vlines([theta_optimal],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+        bounds_vlines =            plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
         if extra_lines != None:
           extra_vlines = plt.vlines(extra_lines, [0], [max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
 
+        print("Optimal theta in Range = ", str(theta_optimal))
         plt.legend()
 
     ###################
