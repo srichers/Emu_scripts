@@ -248,10 +248,11 @@ class Gradients:
                                                     self.limits[1,0]:self.limits[1,1]+1,
                                                     zs[0]]
         n = len(zs)
-        f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True)
+        f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True, squeeze = False,)
         for k in range(n):
-            im = ax[k].pcolormesh(xdim, ydim, adiabaticities[:,:,k], vmin = vmin, vmax = vmax, cmap = 'jet')
-            ax[k].text(xdim[0,0],ydim[0,-1],f'z = {zs[k]}', backgroundcolor = 'white')
+            im = ax[0,k].pcolormesh(xdim, ydim, adiabaticities[:,:,k], vmin = vmin, vmax = vmax, cmap = 'jet')
+            ax[0,k].text((xdim[0,0] - xdim[-1,0])*0.99 + xdim[-1,0],
+                         (ydim[0,-1] - ydim[0,0])*0.95 + ydim[0,0],f'z = {zs[k]}', backgroundcolor = 'white')
 
 
         
@@ -260,10 +261,15 @@ class Gradients:
         cbar_ax = f.add_axes([0.814, 0.1, 0.02, 0.8])
         f.colorbar(im, cax=cbar_ax, label=r'$\gamma$')  
         
-        f.subplots_adjust(left=0.05,bottom = 0.11,top = 0.89)
-        f.text(0.25, 0.93, 'Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16)
-        f.text(0.38, 0.01, r'$x$-coordinate (km)', fontsize = 12)
-        f.text(0.01, 0.5, r'$y$-coordinate (km)', va='center', rotation='vertical', fontsize = 12,)
+        #f.subplots_adjust(left=0.05,bottom = 0.11,top = 0.89)
+        #f.text(0.25, 0.93, 'Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16)
+        #f.text(0.38, 0.01, r'$x$-coordinate (km)', fontsize = 12)
+        #f.text(0.01, 0.5, r'$y$-coordinate (km)', va='center', rotation='vertical', fontsize = 12,)
+
+        middle_n = n//2
+        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)')
+        ax[0,0].set_ylabel(r'$y$-coordinate (km)')
+        ax[0,middle_n].set_title('Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16, pad = 20,)
 
         if savefig == True:
             plt.savefig(f'adiabaticities.png')
