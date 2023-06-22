@@ -101,40 +101,45 @@ class Gradients:
 
         #data
         self.merger_data_loc = merger_data_loc
+        self.merger_grid = h5py.File(merger_data_loc, 'r')
         self.gradient_filename = gradient_filename
 
-        #allgrad object (dims: spacetime up, spacetime (gradient) low, x,y,z, F, F)
+        #gradJ(b) = allgrad object (dims: spacetime up, spacetime (gradient) low, x,y,z, F, F)
         self.gradJ, self.gradJb, self.gradYe, self.x, self.y, self.z, self.it, self.limits = read_gradients(gradient_filename)
-
         
+        #matter parts and their gradients
+        self.Ye = np.array(self.merger_grid['Ye'])[self.limits[0,0]:self.limits[0,1]+1,
+                                                   self.limits[1,0]:self.limits[1,1]+1,
+                                                   self.limits[2,0]:self.limits[2,1]+1] # electron fraction
+        self.nb = np.array(self.merger_grid['rho(g|ccm)'])[self.limits[0,0]:self.limits[0,1]+1,
+                                                           self.limits[1,0]:self.limits[1,1]+1,
+                                                           self.limits[2,0]:self.limits[2,1]+1]/M_p*(hbar**3 * c**3)#eV^3 (baryon number density)
+        self.gradYe = self.gradYe[:,:,:,:,0,0] #(spacetime down, x,y,z)
+        self.gradnb = self.gradJb[0,:,:,:,:,0,0] #(spacetime down, x,y,z). Time part of Jb. last two indices are redundant
+
         # S_R/L_nu gradient (spacetime up, spacetime (gradient) low, x,y,z, F, F) [tranpose gradJ so new lower index is last and the sigma function works properly, then transpose back]
         self.grad_S_R_nu, self.grad_S_L_nu = sigma(np.transpose(self.gradJ, axes = (0,5,6,1,2,3,4)))
         self.grad_S_R_nu = np.transpose(self.grad_S_R_nu, axes = (0,3,4,5,6,1,2))
         self.grad_S_L_nu = np.transpose(self.grad_S_L_nu, axes = (0,3,4,5,6,1,2))        
     
-        #THIS NEEDS GR TREATMENT
-        ####################################
-        #Electron fraction, baryon density
-        self.merger_grid = h5py.File(merger_data_loc, 'r')
-        self.rho = np.array(self.merger_grid['rho(g|ccm)']) #g/cm^3 (baryon mass density)
-        self.Ye = np.array(self.merger_grid['Ye'])[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1]] #electron fraction 
-        self.n_b = self.rho[self.limits[0,0]:self.limits[0,1], self.limits[1,0]:self.limits[1,1], self.limits[2,0]:self.limits[2,1] ]/M_p*(hbar**3 * c**3) #eV^3 (baryon number density)
-        #differentials for matter gradients
-        dx = self.x[1]-self.x[0]
-        dy = self.y[1]-self.y[0]
-        dz = self.z[1]-self.z[0]
-        #electron fraction gradients #probably wont use these since they don't account for christoffel symbols
-        self.grad_Ye = np.array(np.gradient(self.Ye, dx,dy,dz)) #(3, x,y,z)
-        #append lower t axis (what to make time derivative?)
-        self.grad_Ye = np.append(self.grad_Ye, np.zeros((1,self.grad_Ye.shape[1],self.grad_Ye.shape[2],self.grad_Ye.shape[3])), axis = 0) #(4, x,y,z)
-        #baryon number density gradients
-        self.grad_nb = np.array(np.gradient(self.n_b, dx,dy,dz)) #(3, x,y,z)
-        #fix time derivative
-        self.grad_nb = np.append(self.grad_nb, np.zeros((1,self.grad_nb.shape[1],self.grad_nb.shape[2],self.grad_nb.shape[3])), axis = 0) #(4, x,y,z)
-        ####################################
         #need matter part gradients from changing Y_e, n_b
-        self.grad_S_R_mat = np.zeros(np.shape(self.grad_S_R_nu))
-        self.grad_S_L_mat = np.zeros(np.shape(self.grad_S_L_nu))
+        self.grad_S_R_mat    = np.zeros_like(self.grad_S_R_nu)
+        self.grad_S_R_mat[0] = -2**(-1/2)*G*(
+                                            np.transpose(
+                                                self.gradnb[:,np.newaxis,np.newaxis,:,:,:]
+                                                * np.array([[3*self.Ye-1, np.zeros_like(self.Ye),  np.zeros_like(self.Ye)],
+                                                            [np.zeros_like(self.Ye), self.Ye-1,    np.zeros_like(self.Ye)],
+                                                            [np.zeros_like(self.Ye),  np.zeros_like(self.Ye),   self.Ye-1]]),
+                                                axes = (0,3,4,5,1,2)) #multiplying (spacetime, 1, 1, x,y,z) by (1, F, F, x,y,z) gives (spacetime, F, F, x,y,z) and reshape to make (spacetime, x,y,z, F,F)
+                                        +   np.transpose(
+                                                self.nb
+                                                * np.array([[3*self.gradYe,  np.zeros_like(self.gradYe),   np.zeros_like(self.gradYe)],
+                                                            [ np.zeros_like(self.gradYe), self.gradYe,     np.zeros_like(self.gradYe)],
+                                                            [ np.zeros_like(self.gradYe), np.zeros_like(self.gradYe),   self.gradYe]]),
+                                                axes = (2,3,4,5,0,1)) #multiplying (1, 1, 1, x,y,z) by (F, F, spacetime, x,y,z) gives ( F, F, spacetime, x,y,z) and reshape to make (spacetime, x,y,z, F,F)
+                                            )
+                
+        self.grad_S_L_mat = (-1)*np.transpose(self.grad_S_R_mat, axes=(0,1,2,3,4,6,5))   
             
         #total Sigma Gradients (spacetime up, spacetime (gradient) low, x,y,z, F, F
         self.grad_S_R = self.grad_S_R_nu + self.grad_S_R_mat
@@ -200,6 +205,8 @@ class Gradients:
             plt.savefig('min_gradient.png')
         plt.show()
         np.where
+    
+    #plots average
 
         
 
@@ -717,7 +724,9 @@ class SpinParams:
         print('minimum resonance magnitude = ', str(np.min(gradients)))
         print('minimizing resonant phi = ', str(min_phi))
         print('minimizing theta = ', str(self.resonant_theta(phi=min_phi)))
-        f, ax = plt.subplots(1,2, figsize=(8,6))
+        
+        
+        f, ax = plt.subplots(1,2, figsize=(12,6))
         ax[0].plot(phis, gradients)
         #shade region of plot where adiab>1
         ax[0].fill_between(phis, 0, np.max(gradients), where=adiab > adiabaticity_threshold,
