@@ -156,7 +156,7 @@ class Gradients:
    
         
     # calculates magnitude of gradient along minimizing resonant direction in each grid cell
-    def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5):
+    def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5, method = 'simplified'):
         min_gradients = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], self.gradJ.shape[4])) #x,y,z
         if z == None:
             z_range = range(self.gradJ.shape[4])
@@ -180,18 +180,22 @@ class Gradients:
                             grad_H_L = self.grad_H_L(theta, phi)[:,x,y,z] 
                             direction = Basis(theta,phi).n_vector
                             grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
-                            gradients.append(gm.magnitude(grad_along_direction))
+                            if method == 'simplified':
+                                gradients.append(grad_along_direction[0,0])
+                            elif method == 'GM':
+                                gradients.append(gm.magnitude(grad_along_direction))
+                            else:
+                                raise(ValueError('method must be "simplified" or "GM"'))
                         min_gradients[x,y,z] = np.min(gradients)
         
         return min_gradients
     
     #plots output of the above for a z slice
+    #set min_gradients to the output of the above if precomputed
     def gradientsPlot(self, emu_data_loc, p_abs, z, vmin = -14, vmax = -9, phi_resolution = 5 , savefig=False, min_gradients = None):
         if type(min_gradients) == type(None):
             min_gradients = self.minGradients(emu_data_loc=emu_data_loc, p_abs=p_abs, z=z,
                                           phi_resolution = phi_resolution)
-        else:
-            min_gradients = min_gradients   
         plt.figure(figsize=(8,6))
         plt.pcolormesh(np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][0,:,:],
                        np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][1,:,:], 
@@ -204,10 +208,67 @@ class Gradients:
         if savefig == True:
             plt.savefig('min_gradient.png')
         plt.show()
-        np.where
+       
     
-    #plots average
+    #finds average adiabaticity on resonant band at each grid cell over a z slice. Uses simplified resonance
+    def averageAdiabaticities(self, zs, emu_data_loc, p_abs, phi_resolution = 20):
+        phis = np.linspace(0, 2*np.pi, phi_resolution)
+        avg_adiabaticity = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], len(zs))) #x,y
+        for zn in enumerate(zs):
+            z = zn[1] - self.limits[2,0] # z index in the gradient file
+            n = zn[0]
+            for x in range(self.gradJ.shape[2]):
+                for y in range(self.gradJ.shape[3]):
+                    location = [x + self.limits[0,0],
+                                y + self.limits[1,0],
+                                z + self.limits[2,0]]
+                    emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+                    SP = SpinParams(t_sim = self.it, resonance_type = 'simplified', emu_file = emu_filename, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = location, p_abs=p_abs)
+                    if SP.resonant_theta(phi=0) == None:
+                        avg_adiabaticity[x,y,n] = None
+                    else:
+                        adiabs = []
+                        for phi in phis: 
+                            theta = SP.resonant_theta(phi=phi)
+                            grad_H_L_ee = self.grad_H_L(theta, phi)[:,x,y,z,0,0] 
+                            direction = Basis(theta,phi).n_vector
+                            grad_along_direction = np.abs(np.tensordot(grad_H_L_ee, direction, axes = ([0],[0])) )
+                            H_LR_ee_along_direction = np.abs(SP.H_LR(theta, phi)[0,0])
+                            adiabs.append(2*H_LR_ee_along_direction**2/grad_along_direction)
+                        avg_adiabaticity[x,y,n] = np.average(adiabs)
+        return avg_adiabaticity
+    
+    def plotAdiabaticities(self, zs, emu_data_loc, p_abs, vmin, vmax, phi_resolution = 20, savefig = False, adiabaticities = None):
+        if type(adiabaticities) == type(None):
+            adiabaticities = self.averageAdiabaticities(zs, emu_data_loc, p_abs, phi_resolution = phi_resolution)
+        xdim = 1E-5*self.merger_grid['x(cm)'][self.limits[0,0]:self.limits[0,1]+1,
+                                                   self.limits[1,0]:self.limits[1,1]+1,
+                                                   zs[0]]
+        ydim = 1E-5*self.merger_grid['y(cm)'][self.limits[0,0]:self.limits[0,1]+1,
+                                                    self.limits[1,0]:self.limits[1,1]+1,
+                                                    zs[0]]
+        n = len(zs)
+        f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True)
+        for k in range(n):
+            im = ax[k].pcolormesh(xdim, ydim, adiabaticities[:,:,k], vmin = vmin, vmax = vmax, cmap = 'jet')
+            ax[k].text(xdim[0,0],ydim[0,-1],f'z = {zs[k]}', backgroundcolor = 'white')
 
+
+        
+        plt.tight_layout()
+        f.subplots_adjust(right=0.8)
+        cbar_ax = f.add_axes([0.814, 0.1, 0.02, 0.8])
+        f.colorbar(im, cax=cbar_ax, label=r'$\gamma$')  
+        
+        f.subplots_adjust(left=0.05,bottom = 0.11,top = 0.89)
+        f.text(0.25, 0.93, 'Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16)
+        f.text(0.38, 0.01, r'$x$-coordinate (km)', fontsize = 12)
+        f.text(0.01, 0.5, r'$y$-coordinate (km)', va='center', rotation='vertical', fontsize = 12,)
+
+        if savefig == True:
+            plt.savefig(f'adiabaticities.png')
+        plt.show()
+        
         
 
         
