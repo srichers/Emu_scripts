@@ -33,24 +33,26 @@ mpl.rcParams['axes.facecolor'] = 'white'
 mpl.rcParams['figure.facecolor'] = 'white'
 mpl.rcParams['font.size'] = 12
 mpl.rcParams['font.family'] = 'serif'
-COLOR = 'black'
-mpl.rcParams['text.color'] = COLOR
-mpl.rcParams['axes.labelcolor'] = COLOR
-mpl.rcParams['xtick.color'] = COLOR
-mpl.rcParams['ytick.color'] = COLOR
-#mpl.rc('text', usetex=True)
+mpl.rc('text', usetex=True)
+
 mpl.rcParams['xtick.major.size'] = 7
 mpl.rcParams['xtick.major.width'] = 2
-mpl.rcParams['xtick.major.pad'] = 8
 mpl.rcParams['xtick.minor.size'] = 4
 mpl.rcParams['xtick.minor.width'] = 2
+mpl.rcParams['xtick.minor.visible'] = True
+mpl.rcParams['xtick.top'] = True
+
 mpl.rcParams['ytick.major.size'] = 7
 mpl.rcParams['ytick.major.width'] = 2
 mpl.rcParams['ytick.minor.size'] = 4
 mpl.rcParams['ytick.minor.width'] = 2
+mpl.rcParams['ytick.minor.visible'] = True
+mpl.rcParams['ytick.right'] = True
+
 mpl.rcParams['axes.linewidth'] = 2
-mpl.rcParams['axes.grid'] = True
-plt.minorticks_on()
+mpl.rcParams['xtick.direction'] = 'in'
+mpl.rcParams['ytick.direction'] = 'in'
+mpl.rcParams['axes.grid'] = False
 
 
 #####################
@@ -126,6 +128,17 @@ resonant_thetas = SP_0.linearEigenvectorPlot(300,
                               flavor_resonances = [(0,0,'cyan'), (1,1,'lime'), (0,1,'magenta')],
                               savefig = 'linear_eigenvector_plot_t0')
 
-
+#sometimes scipy fails to find the exactly correct theta value for super narrow bands, 
+#in which case we can manually input the correct value which can be found by reducing the search bounds (needs to be done manually)
+#in this example case, the third angle is wrong
+resonant_thetas[2] = 1.3633226584851739
+    
 ### Diagnonalizer plot for identified resonance bands: shows evolution of resonant state for the resonant hamiltonians identified in the last plot
+
+
+
+
+
+
+
 ### Single-Point Adiabaticity plot: shows adiabaticity and gradient vs azimuthal angle over resonance band for selected point ###
