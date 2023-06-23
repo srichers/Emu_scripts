@@ -79,9 +79,9 @@ p_abs = 1e7 # eV
 
 
 
-###########
-###plots###
-###########
+###########################################
+### PART 1: INITIAL STATE OF THE MERGER ###
+###########################################
 
 ### Resonance and FFI Regions Plot: plots resonance and FFI regions on z-cross sections ###
 mg.Merger_Grid(zvals, merger_data_loc=merger_data_filename, p_abs=p_abs
@@ -89,13 +89,39 @@ mg.Merger_Grid(zvals, merger_data_loc=merger_data_filename, p_abs=p_abs
                               y=[None,location[1],None], 
                               rect_xmin = xmins, rect_xmax = xmaxs,
                               rect_ymin = ymins, rect_ymax = ymaxs,
-                              savefig = True)
+                              savefig = 'merger_grid_t0')
 
 ### Adiabaticity Plot: plots average value of adiabaticity on resonance band at each grid cell###
 #(averaging over azimuthal anglues, picking phi_resolution of these at each cell)
 #Plots for z-cross sections - first input is a list of z's to plot. We can do 3 cross sections for the paper
 sft.Gradients(gradient_filename, merger_data_filename
-              ).plotAdiabaticities(zvals, emu_data_loc, p_abs, 1E-8, 1E-7)
+              ).plotAdiabaticities(zvals, emu_data_loc, p_abs, 1E-8, 1E-7,
+                                   savefig = 'adiabaticity_grid_t0')
+
+
+
+######################################
+### PART 2: 3-FLAVOR, 3D SPIN-FLIP ###
+######################################
+
+### Angular plot of Eigenvector Resonance value (1-|L-R|) and zoomed in version of the same ###
+SP_0 = sft.SpinParams(0, emu_filename, merger_data_filename, location, p_abs, resonance_type = 'simplified', gradient_filename = gradient_filename)
+SP_0.angularEigenvectorPlot(200, 200,
+                             value = 'lminusr',
+                             phi_optimal = 3/4*np.pi, zoom = 0.1, shift = [-0.05,0],
+                             vmax = -4,
+                             zoom_resolution = 200, initvector = 'default', 
+                             method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)], 
+                             savefig='angular_eigenvector_plot_t0',  linearPlot = False)
+
+### Linear plot of Eigenvector resonance value vs theta for phi = 3/4 pi (shows 1D phi-slice of zoomed in picture from previous plot)###
+#not quite finalized. This currently plots every simplified resonance band(eg, e to e, mu to mu, e to mu, etc) for a total of 9 lines, most of which almost overlap. For final plot we should pick a subset of these 
+SP_0.linearEigenvectorPlot(300,  
+                              initvector = None, value = 'lminusr',
+                              zoom = 0.1, shift = -0.05, phi_optimal= np.pi,
+                              method = 'Nelder-Mead',
+                              extra_lines = None, extra_init_vectors = None)
+
+
 
 ### Single-Point Adiabaticity plot: shows adiabaticity and gradient vs azimuthal angle over resonance band for selected point ###
-SP = sft.SpinParams(1, emu_filename, merger_data_filename, location, p_abs, resonance_type = 'simplified')

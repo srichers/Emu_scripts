@@ -117,7 +117,6 @@ class Merger_Grid:
             ax[0,k].grid(False)
 
         plt.tight_layout()
-        #f.text(0.25, 0.93, 'Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16)
         
         #legend
         proxy = [plt.Rectangle((1, 1), 2, 2, fc=ELNcolor),
@@ -145,9 +144,8 @@ class Merger_Grid:
         middle_n = n//2
         ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)')
         ax[0,0].set_ylabel(r'$y$-coordinate (km)')
-        ax[0,middle_n].set_title('Resonant Spin-Flip and Fast-Flavor Instability Regions', fontsize = 16, pad = 20,)
+        #ax[0,middle_n].set_title('Resonant Spin-Flip and Fast-Flavor Instability Regions', fontsize = 16, pad = 20,)
 
-        if savefig ==True:
-            plt.savefig('contour_plot_'+str(zval)+'.png', dpi=300)
-        else:
-            pass
+        if type(savefig) == str: 
+            plt.savefig(savefig + '.png', dpi=300)
+
