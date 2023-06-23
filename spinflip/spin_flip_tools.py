@@ -472,7 +472,7 @@ class SpinParams:
         elif type(resonance_type) == type([]):
             diag1 = resonance_type[0]
             diag2 = resonance_type[1]
-            return self.H(theta,phi)[diag1,diag1]-self.H(theta,phi)[diag2,diag2]
+            return np.real(self.H(theta,phi)[diag1,diag1])-np.real(self.H(theta,phi)[diag2,diag2])
 
 
     #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
@@ -480,7 +480,7 @@ class SpinParams:
         if self.resonance(0,phi, resonance_type)*self.resonance(np.pi,phi, resonance_type) > 0:
             return None
         else:
-            theta = opt.bisect(self.resonance,0,np.pi,args = (phi,resonance_type))
+            theta = opt.bisect(self.resonance,0,np.pi,args = (phi,resonance_type),  rtol=9.88178e-16)
         return theta
     
     #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
@@ -586,6 +586,20 @@ class SpinParams:
         if min_eigenvec == True:
             return optimal.x[0], optimal.fun, self.leftMinusRight(optimal.x[0], phi, min_eigenvec = True)[1]
         return optimal.x[0], optimal.fun
+    
+    #returns the resonant ket at each resonant theta in thetas
+    def resonant_states(self, thetas, P = True):
+        init_state_array = []
+        for theta in thetas:
+            ket = self.leftMinusRight(theta = theta, phi= np.pi, min_eigenvec = True)[1]
+            ket[3:6] = 0
+            ket = ket/np.linalg.norm(ket)
+            if P == True:
+                density_matrix = np.outer(ket, ket.conj())
+                init_state_array.append(density_matrix)
+            else: 
+                init_state_array.append(ket)
+        return np.array(init_state_array)
     
     #plots magnitude of right handed part of largest energy eigenvector component of initial ket vector (should be large for resonance)
     #phi max is the phi along which a theta_optimal is found (maximizing right handed part of largest eigenvector component)
@@ -753,13 +767,15 @@ class SpinParams:
             plt.savefig(savefig + '.png', dpi=300)
 
 
-        
+    #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
+    # whose location will be plotted in color 'color'   
+    #function also returns the resonant thetas.
     def linearEigenvectorPlot(self, theta_resolution,  
                               initvector = None, value = 'rmax',
                               zoom = None, shift = 0, phi_optimal= np.pi,
                               method = 'Nelder-Mead',
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
-                              extra_lines = None, extra_init_vectors = None,
+                              extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'cyan'), (1,1,'lime'), (0,2,'magenta')],
                               savefig = False):
     
         plt.figure(figsize = (8,6))
@@ -807,12 +823,10 @@ class SpinParams:
         #plot vlines
         neutrino_flavors = {0:'e', 1:'mu', 2:'tau'}
         resonant_thetas = []
-        colors = plt.cm.rainbow(np.linspace(0, 1, 9))
-        for n in range(3):
-            for k in range(3):
-                resonant_thetas.append((self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]), n,k))
-        for theta,n,k in resonant_thetas:
-            plt.vlines([theta],[0],[max(plot_vals)], linestyles = '-.', label = f'Simplified Resonance ({neutrino_flavors[n]} to {neutrino_flavors[k]})', color = colors[n*3+k])
+        for n,k,color in flavor_resonances:
+            resonant_thetas.append((self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]), n,k,color))
+        for theta,n,k,color in resonant_thetas:
+            plt.vlines([theta],[0],[max(plot_vals)], linestyles = '-.', label = f'Simplified Resonance ({neutrino_flavors[n]} to {neutrino_flavors[k]})', color = color)
         #theta_resonant_e    = self.resonant_theta(phi=phi_optimal, resonance_type = [0,3]) 
         ##theta_resonant_tau  = self.resonant_theta(phi=phi_optimal, resonance_type = [2,5])
         #e_resonance_vline   = plt.vlines([theta_resonant_e],[0],[max(plot_vals)], linestyles = '--', label = 'Simplified Resonance (electron)', color='cyan')
@@ -820,8 +834,8 @@ class SpinParams:
         #tau_resonance_vline = plt.vlines([theta_resonant_tau],[0],[max(plot_vals)], linestyles = '-.', label = 'Simplified Resonance (tau)', color='lime')
         
         if max_point != False:
-            max_point_vline =          plt.vlines([theta_optimal],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
-            bounds_vlines =            plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
+            max_point_vline =  plt.vlines([theta_optimal],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+            bounds_vlines =    plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
             print("Optimal theta in Range = ", str(theta_optimal))
 
         if extra_lines != None:
@@ -832,7 +846,9 @@ class SpinParams:
 
         if type(savefig) == str: 
             plt.savefig(savefig + '.png', dpi=300)
-
+        
+        thetas_precise = np.array([self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]) for n,k,color in flavor_resonances], dtype = np.float64)
+        return thetas_precise
 
 
     ###################
@@ -867,19 +883,20 @@ class SpinParams:
         #shade region of plot where adiab>1
         ax[0].fill_between(phis, 0, np.max(gradients), where=adiab > adiabaticity_threshold,
                 color='red', alpha=0.5)
-        ax[0].set_xlabel('Azimuthal Angle')
+        ax[0].set_xlabel(r'$\phi$')
         ax[0].set_ylabel('Gradient Magnitude')
-        ax[0].set_title('Gradient Along Resonant Directions at a Point')
+        ax[0].set_title('Gradient Magnitude', fontsize = 12)
 
         ax[1].plot(phis,adiab)
-        ax[1].set_xlabel('Azimuthal Angle')
-        ax[1].set_ylabel('Adiabaticity Parameter')
-        #ax[1].set_title('Adiabaticity Parameter Along Resonant Directions at a Point')
+        ax[1].set_xlabel(r'$\phi$')
+        ax[1].set_ylabel(r'$\gamma$')
+        ax[1].set_title('Adiabatic Index', fontsize = 12)
         #ax[1].set_ylim(0,1)
         plt.tight_layout()
+        plt.minorticks_on()
 
-        if savefig == True:
-            plt.savefig('azimuthal_gradient.png')
+        if type(savefig) == str: 
+            plt.savefig(savefig + '.png', dpi=300)
         
         
     

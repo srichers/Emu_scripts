@@ -115,13 +115,17 @@ SP_0.angularEigenvectorPlot(200, 200,
                              savefig='angular_eigenvector_plot_t0',  linearPlot = False)
 
 ### Linear plot of Eigenvector resonance value vs theta for phi = 3/4 pi (shows 1D phi-slice of zoomed in picture from previous plot)###
-#not quite finalized. This currently plots every simplified resonance band(eg, e to e, mu to mu, e to mu, etc) for a total of 9 lines, most of which almost overlap. For final plot we should pick a subset of these 
-SP_0.linearEigenvectorPlot(300,  
+# this identifies resonance bands in the channels given in flavor-resonances with the given colors. There are 9 resonance bands total, and we can show 3
+# after showing 3 resonance bands we can plot their evolution in the next plot to show they are resonant.
+# function outputs the relevant resonant thetas for use in the next plot
+resonant_thetas = SP_0.linearEigenvectorPlot(300,  
                               initvector = None, value = 'lminusr',
                               zoom = 0.1, shift = -0.05, phi_optimal= np.pi,
                               method = 'Nelder-Mead',
-                              extra_lines = None, extra_init_vectors = None)
+                              extra_lines = None, extra_init_vectors = None,
+                              flavor_resonances = [(0,0,'cyan'), (1,1,'lime'), (0,1,'magenta')],
+                              savefig = 'linear_eigenvector_plot_t0')
 
 
-
+### Diagnonalizer plot for identified resonance bands: shows evolution of resonant state for the resonant hamiltonians identified in the last plot
 ### Single-Point Adiabaticity plot: shows adiabaticity and gradient vs azimuthal angle over resonance band for selected point ###
