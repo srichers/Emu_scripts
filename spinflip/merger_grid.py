@@ -23,7 +23,7 @@ class Merger_Grid:
         #x,y axes
         self.x_km = np.array(self.merger_grid['x(cm)'])[:,:,0] / 1e5
         self.y_km = np.array(self.merger_grid['y(cm)'])[:,:,0] / 1e5
-       
+        self.z_km = np.array(self.merger_grid['z(cm)'])[0,0,:] / 1e5
         #momentum
         self.p_abs = p_abs
         
@@ -82,10 +82,11 @@ class Merger_Grid:
                      xmin = 30, xmax = 170, ymin = 30, ymax = 170,
                      rect_xmin = None, rect_xmax = None, rect_ymin = None, rect_ymax = None):
         zval = self.zval
+        zval_km = self.z_km[zval]
         n = len(zval)
 
         ELNcolor = '#005070'
-        resonancecolor = '#FFC6E5'
+        resonancecolor = '#FFB380' #pink was hard to see
         bothcolor_fill = '#E61F39'
         adiabcolor = 'yellow'
         f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True, squeeze = False)
@@ -95,7 +96,7 @@ class Merger_Grid:
                                    levels=[-1,0.5,2], alpha=1, colors=['white',ELNcolor])
         
             #zval text
-            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],f'z = {zval[k]}', backgroundcolor = 'white')
+            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],rf'$z$ = {zval_km[k]:.1f} km', backgroundcolor = 'white')
 
             #resonance val
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.resonance_sign[:,:,k], levels=[0.5,1], colors=[resonancecolor] )
@@ -142,8 +143,8 @@ class Merger_Grid:
         ax[0,0].set_xlim([self.x_km[xmin,ymin],self.x_km[xmax,ymax]])
         ax[0,0].set_ylim([self.y_km[xmin,ymin],self.y_km[xmax,ymax]])
         middle_n = n//2
-        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)')
-        ax[0,0].set_ylabel(r'$y$-coordinate (km)')
+        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
+        ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
         #ax[0,middle_n].set_title('Resonant Spin-Flip and Fast-Flavor Instability Regions', fontsize = 16, pad = 20,)
 
         if type(savefig) == str: 
