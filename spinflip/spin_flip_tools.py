@@ -263,8 +263,6 @@ class Gradients:
             #zval text
             ax[0,k].text((xdim[0,0] - xdim[-1,0])*0.99 + xdim[-1,0],
                          (ydim[0,-1] - ydim[0,0])*0.95 + ydim[0,0],rf'$z$ = {zs_km[k]:.1f} km', backgroundcolor = 'white')
-
-
         
         plt.tight_layout()
 
@@ -280,9 +278,9 @@ class Gradients:
         ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
         #ax[0,middle_n].set_title('Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16, pad = 20,)
 
-        if savefig == True:
-            plt.savefig(f'adiabaticities.png')
-        plt.show()
+        if type(savefig) == str: 
+            f.savefig(savefig + '.png', dpi=300, bbox_inches = 'tight')
+
         
         
 
@@ -771,7 +769,7 @@ class SpinParams:
     
 
         if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+            f.savefig(savefig + '.png', dpi=300)
 
 
     #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
@@ -818,8 +816,11 @@ class SpinParams:
                                    for theta in thetas])
             
         #plot full resonance value
-        plt.plot(thetas, plot_vals*factor, color = 'r', vmax = vmax)
+        plt.plot(thetas, plot_vals*factor, color = 'r')
 
+        if vmax != None:
+            plt.ylim(0,vmax)
+        
         #extra_init_vector to see specific resonance condition solutions over plot of the general resonance condition
         if extra_init_vectors != None:
             extra_thetas = np.array([self.maxRightHanded(extra_init_vector, phi=phi_optimal, method = method, bounds = bounds)[0]
