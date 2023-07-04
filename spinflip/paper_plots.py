@@ -116,6 +116,8 @@ SP_0.angularEigenvectorPlot(200, 200,
                              method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)], 
                              savefig='angular_eigenvector_plot_t0',  linearPlot = False)
 
+
+
 ### Linear plot of Eigenvector resonance value vs theta for phi = 3/4 pi (shows 1D phi-slice of zoomed in picture from previous plot)###
 # this identifies resonance bands in the channels given in flavor-resonances with the given colors. There are 9 resonance bands total, and we can show 3
 # after showing 3 resonance bands we can plot their evolution in the next plot to show they are resonant.
@@ -132,6 +134,7 @@ resonant_thetas = SP_0.linearEigenvectorPlot(300,
 #in which case we can manually input the correct value which can be found by reducing the search bounds (needs to be done manually)
 #in this example case, the third angle is wrong
 resonant_thetas[2] = 1.3633226584851739
+  
     
 ### Diagnonalizer plot for identified resonance bands: shows evolution of resonant state for the resonant hamiltonians identified in the last plot
 
@@ -142,3 +145,11 @@ resonant_thetas[2] = 1.3633226584851739
 
 
 ### Single-Point Adiabaticity plot: shows adiabaticity and gradient vs azimuthal angle over resonance band for selected point ###
+SP_0.azimuthalGradientsPlot(phi_resolution = 300,  vmax = 5,
+                            savefig = 'azimuthal_gradients_t0')
+
+# Adiabaticity width for single-point: prints and returns the angular width of the adiabatic region on the resonance band at the given point
+# We'll quote this value when describing the plot
+SP_0.findAdiabaticRegions(phi_resolution = 50, min_dist_between_peaks = 10,
+                                          adiabaticity_threshold = 1, max_peak_count = 3,
+                                          savefig=False, vmax = 1E-5, method = 'Nelder-Mead')

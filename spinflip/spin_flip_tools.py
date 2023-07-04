@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-#CHDIR COMMAND ONLY FOR JUPYTER
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
@@ -17,6 +13,7 @@ from basis import Basis
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import gellmann as gm
+from scipy import signal
 from scipy import optimize as opt
 from four_current import four_current, read_gradients
 
@@ -783,6 +780,7 @@ class SpinParams:
                               extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'cyan'), (1,1,'lime'), (0,2,'magenta')],
                               savefig = False):
     
+        #factor to multiply the y axis by. Have to manually change the label 
         factor = 1000
 
         plt.figure(figsize = (8,6))
@@ -794,7 +792,7 @@ class SpinParams:
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             #plt.title(f'Linear Plot of L-minus-R vs theta (phi = {phi_optimal:.3})')
-            plt.ylabel(r'$\Omega$ $\times 10^{-3}$', rotation = 0)
+            plt.ylabel(r'$\Omega$ $(\times 10^{-3})$', rotation = 0, labelpad = 20)
             if zoom == None:
                 thetas = np.linspace(0, np.pi, theta_resolution)
                 plt.xlim(0,np.pi)
@@ -860,51 +858,110 @@ class SpinParams:
 
 
     ###################
+    
+    
+    #initial adiabaticity and gradient computations (using simplified conditions)
+    #flavor is the flavor of the neutrino that is being considered (0,1,2) default is electron
+    def resonantGradAndAdiabaticity(self, phi, flavor = 0):
+        theta = self.resonant_theta(phi=phi)
+        grad_H_L = self.grad_H_L(theta, phi) 
+        direction = Basis(theta,phi).n_vector
+        grad_along_direction = np.abs(np.tensordot(grad_H_L, direction, axes = ([0],[0]))[flavor,flavor]) #grad[H_L]_ee
+        H_LR_along_direction = np.abs(self.H_LR(theta, phi)[flavor,flavor])
+        adiabaticity = 2*H_LR_along_direction**2/grad_along_direction
+        return grad_along_direction, adiabaticity
 
 
-
-    def azimuthalGradientsPlot(self, phi_resolution = 100, savefig=False, adiabaticity_threshold = 1):
+    def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5,
+                               ):
+        #factors to scale plots by to avoid the scale number in the corner. Have to manually change the label
+        factor_grad = 1E14
+        factor_gamma = 1E7
+        
         phis = np.linspace(0, 2*np.pi, phi_resolution)
-        gradients = []
-        H_LR_ee = []
-        for phi in phis: 
-            theta = self.resonant_theta(phi=phi)
-            grad_H_L = self.grad_H_L(theta, phi) 
-            direction = Basis(theta,phi).n_vector
-            grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
-            H_LR_ee_along_direction = self.H_LR(theta, phi)[0,0]
-            gradients.append(grad_along_direction[0,0])
-            H_LR_ee.append(H_LR_ee_along_direction)
+        gradients = np.array([self.resonantGradAndAdiabaticity(phi)[0] for phi in phis])
+        adiab     = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in phis])        
         
-        gradients = np.array(np.abs(gradients))
-        H_LR_ee = np.array(np.abs(H_LR_ee))
-
-        adiab = 2*H_LR_ee**2/gradients
-        min_phi = np.linspace(0,2*np.pi, phi_resolution)[np.argmin(gradients)]
-        print('minimum resonance magnitude = ', str(np.min(gradients)))
-        print('minimizing resonant phi = ', str(min_phi))
-        print('minimizing theta = ', str(self.resonant_theta(phi=min_phi)))
-        
-        
-        f, ax = plt.subplots(1,2, figsize=(12,6))
-        ax[0].plot(phis, gradients)
+        f, ax = plt.subplots(2,1, figsize=(10,7), sharex = True)
+        ax[0].plot(phis, gradients*factor_grad)
         #shade region of plot where adiab>1
-        ax[0].fill_between(phis, 0, np.max(gradients), where=adiab > adiabaticity_threshold,
-                color='red', alpha=0.5)
-        ax[0].set_xlabel(r'$\phi$')
-        ax[0].set_ylabel('Gradient Magnitude')
-        ax[0].set_title('Gradient Magnitude', fontsize = 12)
+        ax[0].set_ylabel(r'$|\nabla_{\nu} [H_{L}]_{ee}| \ \  (eV \times 10^{-14}) $', fontsize = 14)
 
-        ax[1].plot(phis,adiab)
-        ax[1].set_xlabel(r'$\phi$')
-        ax[1].set_ylabel(r'$\gamma$')
-        ax[1].set_title('Adiabatic Index', fontsize = 12)
-        #ax[1].set_ylim(0,1)
+        ax[1].plot(phis,adiab*factor_gamma)
+        ax[1].set_xlabel(r'$\phi$', fontsize = 14)
+        ax[1].set_ylabel(r'$\gamma$  $(\times 10^{-7})$', fontsize = 14)
+        ax[1].set_ylim(-vmax/30,vmax)
+        ax[1].set_xlim(0,2*np.pi)
+
         plt.tight_layout()
         plt.minorticks_on()
 
         if type(savefig) == str: 
             plt.savefig(savefig + '.png', dpi=300)
+    
+    def findAdiabaticRegions(self, phi_resolution = 200, min_dist_between_peaks = 10,
+                                          adiabaticity_threshold = 1, max_peak_count = 2,
+                                          method = 'Nelder-Mead',
+                                          makeplot = False):
+        
+        #find approximate maxima of adiabaticity azimuthal function
+        phis = np.linspace(0, 2*np.pi, phi_resolution)
+        adiabs = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in phis])
+        max_phis_approx = phis[signal.find_peaks(adiabs, distance = min_dist_between_peaks)[0]]
+        
+        #use only the max_peak_count largest maxima
+        if len (max_phis_approx) > max_peak_count:
+            max_phis_approx = np.sort(max_phis_approx)[-1*max_peak_count:]
+        
+        #define function for scipy optimization
+        def find_intercepts(phi):
+            if type(phi) == np.ndarray: #opt is calling in phi as a list ( [phi] ) instead of just phi. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
+                phi = phi[0]
+            return -1*self.resonantGradAndAdiabaticity(phi)[1] + adiabaticity_threshold
+        
+        #find the exact maxima of the adiabaticity azimuthal function
+        search_dist = min_dist_between_peaks/phi_resolution*2*np.pi
+        max_phis = np.array([opt.minimize(find_intercepts, x0 = phi_max_approx, method = method, options = {'xtol':1E-11},
+                                          bounds = [(phi_max_approx-search_dist,phi_max_approx+search_dist)]).x[0]
+                             for phi_max_approx in max_phis_approx])
+    
+        print()
+        print('max_phis = ', max_phis)
+        print('computed adiabaticities (only registered if greater than 1) = ', [self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis])
+        
+        #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
+        ranges = []
+        bounds = []
+        for phi in max_phis:
+            if find_intercepts(phi) < 0:
+               bound_1 = opt.brentq(find_intercepts, phi, phi + search_dist)
+               bound_2 = opt.brentq(find_intercepts, phi, phi - search_dist)
+               ranges.append(abs(bound_1-bound_2))
+               bounds.append((bound_1, bound_2))
+        1,
+        print('individual widths = ', ranges) 
+        print()
+        
+        #total adiabatic width
+        total_adiabatic_width = np.sum(ranges)
+        print('Total Adiabatic Width =', str(total_adiabatic_width), 'Radians') 
+      
+        #render plots of locations of maxima
+        if makeplot == True:
+            if len(bounds)>0:
+                f, ax = plt.subplots(1,len(bounds), figsize=(5*len(bounds),5), squeeze = False)
+    
+            for n, bound in enumerate(bounds):
+                diff = np.sort(bound)[1] - np.sort(bound)[0]
+                plotting_phis = np.linspace(np.sort(bound)[0] - diff, np.sort(bound)[1] + diff, phi_resolution)
+                plotting_adiabs = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in plotting_phis])
+                ax[0,n].plot(plotting_phis, plotting_adiabs)
+                ax[0,n].axvline(np.sort(bound)[0], color = 'red')
+                ax[0,n].axvline(np.sort(bound)[1], color = 'red')
+                ax[0,n].set_ylim(0, 2*adiabaticity_threshold)
+                
+        return total_adiabatic_width
+    
         
         
     
