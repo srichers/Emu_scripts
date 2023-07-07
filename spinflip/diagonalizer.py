@@ -20,6 +20,7 @@ class Diagonalizer:
         
     
         #(inverted) array of normalized eigenvectors
+        #first index specifies which eigenvector, second index is the flavor component
         #a.k.a. change of basis matrix from Energy to flavor/spin
         #ket_e = f_to_e(ket_f)
         #H_f = (f_to_e)^-1 H_e (f_to_e)
@@ -53,6 +54,7 @@ class Diagonalizer:
     
     #calculates the largest component of initial_ket_f and returns the component and the corresponding eigenvector
     def largest_ket_component(self, init_ket_f):
+        #components is the array of components of init_ket_f in the eigenbasis
         components = self.f_to_e @ init_ket_f
         return np.max(np.abs(components)), (1+0j)*self.f_to_e[np.argmax(components)]
 
@@ -97,7 +99,6 @@ class Diagonalizer:
             plt.tight_layout()
             plt.savefig('evolvedstate.png', dpi=300)
         
-        f.show()
 
 #generates a multiplot of state evolution plotter output but for different Hamiltonians
 #currently only works for quantity = [...] (dont imagine we will use other quantities)
@@ -106,6 +107,7 @@ def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.arra
     #flavors for labels
     neutrino_flavors = {0:'e, L', 1:'mu, L', 2:'tau, L', 3:'e, R', 4:'mu, R', 5:'tau, R'}
 
+    #N is the number of Hamiltonians to be plotted
     N = H_array.shape[0]
     Diagonalizer_class_array = np.array([Diagonalizer(H) for H in H_array])
 
@@ -151,7 +153,6 @@ def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.arra
     plt.tight_layout()
     plt.minorticks_on()
 
-    f.show()
     if type(savefig) == str: 
             plt.savefig(savefig + '.png', dpi=300)
 

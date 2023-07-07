@@ -78,12 +78,12 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
                 xcoord = (n)*grid_subdivisions
                 ycoord = 1 - (m+1/2)*grid_subdivisions
                 ax.text(xcoord, ycoord, str(round(np.real(M[m,n]), ndigits=2))+'+'+str(round(np.imag(M[m,n]), ndigits=2))+'i', color='cyan', size=9)
-    f.show()
     if savefig == True: 
         plt.tight_layout()
         plt.savefig('visualizer.png', dpi=300)
 
-def derivative(H,P, n=1):
+#returns the n'th time derivative of a density matrix P given a constsant hamiltonian H
+def dstate_dt(H,P, n=1):
     from constants import hbar
     for k in np.arange(n):
         P = -1.j/hbar*( H @ P - P @ H)
