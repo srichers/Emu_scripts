@@ -1,4 +1,4 @@
-import numpy as np
+if_mport numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from constants import hbar
@@ -23,6 +23,8 @@ class Diagonalizer:
         #a.k.a. change of basis matrix from Energy to flavor/spin
         #ket_e = f_to_e(ket_f)
         #H_f = (f_to_e)^-1 H_e (f_to_e)
+        #indices of f_to_e are are [energy, flavor] (i.e., an array of energy eigenvectors, where each vector has components in flavor space)
+        #indices of inv(f_to_e) are [flavor, energy]
         self.f_to_e = (1+0*1j)*np.linalg.inv(np.linalg.eig(self.H)[1]) 
         
     #Time evolution operator in energy basis
