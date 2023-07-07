@@ -98,8 +98,8 @@ class Diagonalizer:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('evolvedstate.png', dpi=300)
-        
-        f.show()
+        else:
+            f.show()
 
 #generates a multiplot of state evolution plotter output but for different Hamiltonians
 #currently only works for quantity = [...] (dont imagine we will use other quantities)
@@ -153,7 +153,8 @@ def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.arra
     plt.tight_layout()
     plt.minorticks_on()
 
-    f.show()
     if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+        plt.savefig(savefig + '.png', dpi=300)
+    else:
+        f.show()
 

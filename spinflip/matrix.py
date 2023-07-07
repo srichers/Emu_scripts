@@ -78,10 +78,11 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
                 xcoord = (n)*grid_subdivisions
                 ycoord = 1 - (m+1/2)*grid_subdivisions
                 ax.text(xcoord, ycoord, str(round(np.real(M[m,n]), ndigits=2))+'+'+str(round(np.imag(M[m,n]), ndigits=2))+'i', color='cyan', size=9)
-    f.show()
     if savefig == True: 
         plt.tight_layout()
         plt.savefig('visualizer.png', dpi=300)
+    else:
+        f.show()
 
 def derivative(H,P, n=1):
     from constants import hbar
