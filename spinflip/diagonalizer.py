@@ -102,12 +102,13 @@ class Diagonalizer:
             f.show()
 
 #generates a multiplot of state evolution plotter output but for different Hamiltonians
-#currently only works for quantity = [...] (dont imagine we will use other quantities)
+#quantities is the list of values to plot, defined by the dictionary "neutrino_flavors" below
 def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.array([0,1,2,3,4,5]),
                     resolution = 500, ylim = None, init_state_array = np.diag([1,0,0,0,0,0]), savefig = False):
     #flavors for labels
     neutrino_flavors = {0:'e, L', 1:'mu, L', 2:'tau, L', 3:'e, R', 4:'mu, R', 5:'tau, R'}
 
+    # N is the number of Hamiltonians to be plotted
     N = H_array.shape[0]
     Diagonalizer_class_array = np.array([Diagonalizer(H) for H in H_array])
 
