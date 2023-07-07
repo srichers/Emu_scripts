@@ -8,15 +8,13 @@ import numpy as np
 class TimePlots:
     def __init__(self, data_loc,  merger_data_loc, location, p_abs, resonance_type, initial_ket):
         
-        self.precision = 1
-        
         self.data_loc = data_loc
         self.h5file = h5py.File(self.data_loc, "r")
  
         self.time_axis = np.array(self.h5file["t(s)"])*1E9 #ns
-        self.nt = self.time_axis.shape[0]-1
+        self.nt = self.time_axis.shape[0]
     
-        self.spin_params_timearray = [SpinParams(t, data_loc, merger_data_loc, location, p_abs, resonance_type = resonance_type, initial_ket = initial_ket) for t in np.arange(0,self.nt,self.precision)]
+        self.spin_params_timearray = [SpinParams(t, data_loc, merger_data_loc, location, p_abs, resonance_type = resonance_type, initial_ket = initial_ket) for t in range(self.nt)]
         
     #(spacetime, F, F, z)
     def J_spatial_flavoravg(self, avg_method = 'GM'): 
@@ -52,21 +50,21 @@ class TimePlots:
         if quantity == 'J_spatial': 
             J = self.J_spatial_flavoravg(avg_method)
             J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-            plt.semilogy(np.arange(0,self.nt,self.precision),J_directional_projection)
+            plt.semilogy(range(self.nt),J_directional_projection)
             ax.set_ylabel(r"$eV^3$")
             ax.set_title(r'Directional Component of $J_\mu$ vs time')
 
         elif quantity == 'J_time': 
             J = self.J_time_flavoravg(avg_method)
             J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-            plt.semilogy(np.arange(0,self.nt,self.precision),J_directional_projection)
+            plt.semilogy(range(self.nt),J_directional_projection)
             ax.set_ylabel(r"$eV^3$")
             ax.set_title(r'Time Component of $J_\mu$ vs time')
 
             
         elif quantity == 'H_LR':
             H_LR=self.H_LR(avg_method, theta, phi)
-            plt.semilogy(np.arange(0,self.nt,self.precision),H_LR)            
+            plt.semilogy(range(self.nt),H_LR)
             ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
             ax.set_title(r'$|H_{LR}|$ vs time')
 

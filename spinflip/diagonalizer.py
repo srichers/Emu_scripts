@@ -23,6 +23,8 @@ class Diagonalizer:
         #a.k.a. change of basis matrix from Energy to flavor/spin
         #ket_e = f_to_e(ket_f)
         #H_f = (f_to_e)^-1 H_e (f_to_e)
+        #indices of f_to_e are are [energy, flavor] (i.e., an array of energy eigenvectors, where each vector has components in flavor space)
+        #indices of inv(f_to_e) are [flavor, energy]
         self.f_to_e = (1+0*1j)*np.linalg.inv(np.linalg.eig(self.H)[1]) 
         
     #Time evolution operator in energy basis
@@ -96,16 +98,17 @@ class Diagonalizer:
         if savefig == True: 
             plt.tight_layout()
             plt.savefig('evolvedstate.png', dpi=300)
-        
-        f.show()
+        else:
+            f.show()
 
 #generates a multiplot of state evolution plotter output but for different Hamiltonians
-#currently only works for quantity = [...] (dont imagine we will use other quantities)
+#quantities is the list of values to plot, defined by the dictionary "neutrino_flavors" below
 def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.array([0,1,2,3,4,5]),
                     resolution = 500, ylim = None, init_state_array = np.diag([1,0,0,0,0,0]), savefig = False):
     #flavors for labels
     neutrino_flavors = {0:'e, L', 1:'mu, L', 2:'tau, L', 3:'e, R', 4:'mu, R', 5:'tau, R'}
 
+    # N is the number of Hamiltonians to be plotted
     N = H_array.shape[0]
     Diagonalizer_class_array = np.array([Diagonalizer(H) for H in H_array])
 
@@ -151,7 +154,8 @@ def multi_H_Plotter(H_array, t_lim_array = 'timescale', quantity_array = np.arra
     plt.tight_layout()
     plt.minorticks_on()
 
-    f.show()
     if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+        plt.savefig(savefig + '.png', dpi=300)
+    else:
+        f.show()
 
