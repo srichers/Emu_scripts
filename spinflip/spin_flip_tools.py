@@ -479,13 +479,13 @@ class SpinParams:
             return np.real(self.H(theta,phi)[diag1,diag1])-np.real(self.H(theta,phi)[diag2,diag2])
 
 
-    #uses scipy rootfinder to locate polar angle of resonance contour. Assumes rotational symmetry (picks phi=0)
+    #uses scipy rootfinder to locate polar angle of resonance contour. 
     def resonant_theta(self, phi=0, resonance_type = None):
         if self.resonance(0,phi, resonance_type)*self.resonance(np.pi,phi, resonance_type) > 0:
             return None
         else:
-            theta = opt.bisect(self.resonance,0,np.pi,args = (phi,resonance_type),  rtol=9.88178e-16)
-        return theta
+            theta = opt.bisect(self.resonance,0,np.pi,args = (phi,resonance_type),  xtol=9.88178e-10)
+        return np.float64(theta)
     
     #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
     def resonant_Hamiltonian(self, phi=0):
@@ -578,6 +578,11 @@ class SpinParams:
         if min_eigenvec == True:
             return min(left_minus_right), eigenvectors[:,np.argmin(left_minus_right)]
         return min(left_minus_right)
+    
+    def Omega(self, theta, phi): #Omega parameter at resonant theta as described in paper. Mostly defined for use in scipy optimization functions.
+        if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
+                theta = theta[0]
+        return 1 - self.leftMinusRight(theta, phi)
     
     #finds minimum of leftMinusRight over theta for some phi
     #returns theta and min value
@@ -834,11 +839,6 @@ class SpinParams:
             resonant_thetas.append((self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]), n,k,color))
         for theta,n,k,color in resonant_thetas:
             plt.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'{neutrino_flavors[n]} $\rightarrow$ {neutrino_flavors[k]} resonance', color = color)
-        #theta_resonant_e    = self.resonant_theta(phi=phi_optimal, resonance_type = [0,3]) 
-        ##theta_resonant_tau  = self.resonant_theta(phi=phi_optimal, resonance_type = [2,5])
-        #e_resonance_vline   = plt.vlines([theta_resonant_e],[0],[max(plot_vals)], linestyles = '--', label = 'Simplified Resonance (electron)', color='cyan')
-        #mu_resonance_vline  = plt.vlines([theta_resonant_mu],[0],[max(plot_vals)], linestyles = '--', label = 'Simplified Resonance (mu)', color='magenta')
-        #tau_resonance_vline = plt.vlines([theta_resonant_tau],[0],[max(plot_vals)], linestyles = '-.', label = 'Simplified Resonance (tau)', color='lime')
         
         if max_point != False:
             max_point_vline =  plt.vlines([theta_optimal],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
@@ -855,6 +855,74 @@ class SpinParams:
             plt.savefig(savefig + '.png', dpi=300)
         
         return np.array(resonant_thetas)[:,0]
+    
+    
+    #finds width of lminusr resonance condition
+    #works best if limits are reduced to near the resonance band
+    def findResonantRegions(self, theta_resolution = 300, phi_optimal = np.pi,
+                                          min_dist_between_peaks = 10, limits = [0,np.pi],
+                                          resonance_threshold = 1 + 1/6 - np.sqrt(1 - (1/6)**2),
+                                          max_peak_count = 6,
+                                          method = 'Nelder-Mead',
+                                          makeplot = False):
+        
+        #find approximate maxima of resonance parameter 
+        thetas = np.linspace(limits[0], limits[1], theta_resolution)
+        resonances = np.array([self.Omega(theta, phi_optimal) for theta in thetas])
+        max_thetas_approx = thetas[signal.find_peaks(resonances, distance = min_dist_between_peaks)[0]]
+        
+        #use only the max_peak_count largest maxima
+        if len (max_thetas_approx) > max_peak_count:
+            max_thetas_approx = np.sort(max_thetas_approx)[-1*max_peak_count:]
+        
+        #define function for scipy optimization
+        def find_intercepts(theta):
+            if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
+                theta = theta[0]
+            return -1*self.Omega(theta,phi_optimal) + resonance_threshold
+        
+        #find the exact maxima of the adiabaticity azimuthal function
+        search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
+        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':1E-11},
+                                          bounds = [(theta_max_approx-search_dist,theta_max_approx+search_dist)]).x[0]
+                             for theta_max_approx in max_thetas_approx])
+    
+        print()
+        print('max_thetas = ', max_thetas)
+        print('computed Omega (only registered if greater than threshold, default is ~0.18) = ', [self.Omega(theta,phi_optimal) for theta in max_thetas])
+        
+        #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
+        ranges = []
+        bounds = []
+        for theta in max_thetas:
+            if find_intercepts(theta) < 0:
+               bound_1 = opt.brentq(find_intercepts, theta, theta + search_dist)
+               bound_2 = opt.brentq(find_intercepts, theta, theta - search_dist)
+               ranges.append(abs(bound_1-bound_2))
+               bounds.append((bound_1, bound_2))
+        
+        print('individual widths = ', ranges) 
+        print()
+        
+        #total resonant width
+        total_resonant_width = np.sum(ranges)
+        print('Total Resonant Width =', str(total_resonant_width), 'Radians') 
+      
+        #render plots of locations of maxima
+        if makeplot == True:
+            if len(bounds)>0:
+                f, ax = plt.subplots(1,len(bounds), figsize=(5*len(bounds),5), squeeze = False)
+    
+            for n, bound in enumerate(bounds):
+                diff = np.sort(bound)[1] - np.sort(bound)[0]
+                plotting_thetas = np.linspace(np.sort(bound)[0] - diff, np.sort(bound)[1] + diff, theta_resolution)
+                plotting_Omegas = np.array([self.Omega(theta,phi_optimal) for theta in plotting_thetas])
+                ax[0,n].plot(plotting_thetas, plotting_Omegas)
+                ax[0,n].axvline(np.sort(bound)[0], color = 'red')
+                ax[0,n].axvline(np.sort(bound)[1], color = 'red')
+                ax[0,n].set_ylim(0, 2*resonance_threshold)
+                
+        return total_resonant_width
 
 
     ###################
@@ -871,9 +939,8 @@ class SpinParams:
         adiabaticity = 2*H_LR_along_direction**2/grad_along_direction
         return grad_along_direction, adiabaticity
 
-
-    def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5,
-                               ):
+    #generates plot of gradient and of adiabaticity along the resonance band, parameterized by phi
+    def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5,):
         #factors to scale plots by to avoid the scale number in the corner. Have to manually change the label
         factor_grad = 1E14
         factor_gamma = 1E7
@@ -899,6 +966,8 @@ class SpinParams:
         if type(savefig) == str: 
             plt.savefig(savefig + '.png', dpi=300)
     
+    
+    #calculates total angular width of resonance band that satisfies adiabaticity> adiabaticity_threshold 
     def findAdiabaticRegions(self, phi_resolution = 200, min_dist_between_peaks = 10,
                                           adiabaticity_threshold = 1, max_peak_count = 2,
                                           method = 'Nelder-Mead',
@@ -938,7 +1007,7 @@ class SpinParams:
                bound_2 = opt.brentq(find_intercepts, phi, phi - search_dist)
                ranges.append(abs(bound_1-bound_2))
                bounds.append((bound_1, bound_2))
-        1,
+        
         print('individual widths = ', ranges) 
         print()
         
