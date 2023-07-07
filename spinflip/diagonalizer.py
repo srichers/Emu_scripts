@@ -1,4 +1,4 @@
-if_mport numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from constants import hbar
