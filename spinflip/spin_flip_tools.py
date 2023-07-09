@@ -786,10 +786,10 @@ class SpinParams:
                               savefig = False):
     
         #factor to multiply the y axis by. Have to manually change the label 
-        factor = 1000
+        factor = 10000
 
         plt.figure(figsize = (8,6))
-        plt.xlabel(r'$\theta$')
+        plt.xlabel(r'$\theta$', fontsize = 14)
 
         if type(initvector) == type(None):
             initvector =  self.initial_ket
@@ -797,7 +797,7 @@ class SpinParams:
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             #plt.title(f'Linear Plot of L-minus-R vs theta (phi = {phi_optimal:.3})')
-            plt.ylabel(r'$\Omega$ $(\times 10^{-3})$', rotation = 0, labelpad = 20)
+            plt.ylabel(r'$\Omega$ $(\times 10^{-4})$')
             if zoom == None:
                 thetas = np.linspace(0, np.pi, theta_resolution)
                 plt.xlim(0,np.pi)
@@ -864,7 +864,8 @@ class SpinParams:
                                           resonance_threshold = 1 + 1/6 - np.sqrt(1 - (1/6)**2),
                                           max_peak_count = 6,
                                           method = 'Nelder-Mead',
-                                          makeplot = False):
+                                          makeplot = False,
+                                          printvalues = False):
         
         #find approximate maxima of resonance parameter 
         thetas = np.linspace(limits[0], limits[1], theta_resolution)
@@ -883,14 +884,14 @@ class SpinParams:
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
-        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':1E-11},
+        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':1E-13},
                                           bounds = [(theta_max_approx-search_dist,theta_max_approx+search_dist)]).x[0]
                              for theta_max_approx in max_thetas_approx])
-    
-        print()
-        print('max_thetas = ', max_thetas)
-        print('computed Omega (only registered if greater than threshold, default is ~0.18) = ', [self.Omega(theta,phi_optimal) for theta in max_thetas])
-        
+        if printvalues:
+            print()
+            print('max_thetas = ', max_thetas)
+            print('computed Omega (only registered if greater than threshold, default is ~0.18) = ', [self.Omega(theta,phi_optimal) for theta in max_thetas])
+            
         #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
         ranges = []
         bounds = []
@@ -901,12 +902,15 @@ class SpinParams:
                ranges.append(abs(bound_1-bound_2))
                bounds.append((bound_1, bound_2))
         
-        print('individual widths = ', ranges) 
-        print()
-        
+        if printvalues:  
+            print('individual widths = ', ranges) 
+            print()
+            
         #total resonant width
         total_resonant_width = np.sum(ranges)
-        print('Total Resonant Width =', str(total_resonant_width), 'Radians') 
+       
+        if printvalues:
+            print('Total Resonant Width =', str(total_resonant_width), 'Radians') 
       
         #render plots of locations of maxima
         if makeplot == True:
@@ -922,7 +926,7 @@ class SpinParams:
                 ax[0,n].axvline(np.sort(bound)[1], color = 'red')
                 ax[0,n].set_ylim(0, 2*resonance_threshold)
                 
-        return total_resonant_width
+        return {'resonant_thetas':max_thetas, 'total_width':total_resonant_width}
 
 
     ###################
@@ -971,7 +975,8 @@ class SpinParams:
     def findAdiabaticRegions(self, phi_resolution = 200, min_dist_between_peaks = 10,
                                           adiabaticity_threshold = 1, max_peak_count = 2,
                                           method = 'Nelder-Mead',
-                                          makeplot = False):
+                                          makeplot = False,
+                                          printvalues = False):
         
         #find approximate maxima of adiabaticity azimuthal function
         phis = np.linspace(0, 2*np.pi, phi_resolution)
@@ -993,11 +998,12 @@ class SpinParams:
         max_phis = np.array([opt.minimize(find_intercepts, x0 = phi_max_approx, method = method, options = {'xtol':1E-11},
                                           bounds = [(phi_max_approx-search_dist,phi_max_approx+search_dist)]).x[0]
                              for phi_max_approx in max_phis_approx])
-    
-        print()
-        print('max_phis = ', max_phis)
-        print('computed adiabaticities (only registered if greater than 1) = ', [self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis])
-        
+
+        if printvalues:
+            print()
+            print('max_phis = ', max_phis)
+            print('computed adiabaticities (only registered if greater than 1) = ', [self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis])
+            
         #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
         ranges = []
         bounds = []
@@ -1008,12 +1014,14 @@ class SpinParams:
                ranges.append(abs(bound_1-bound_2))
                bounds.append((bound_1, bound_2))
         
-        print('individual widths = ', ranges) 
-        print()
+        if printvalues:
+            print('individual widths = ', ranges) 
+            print()
         
         #total adiabatic width
         total_adiabatic_width = np.sum(ranges)
-        print('Total Adiabatic Width =', str(total_adiabatic_width), 'Radians') 
+        if printvalues:
+            print('Total Adiabatic Width =', str(total_adiabatic_width), 'Radians') 
       
         #render plots of locations of maxima
         if makeplot == True:
