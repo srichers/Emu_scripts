@@ -183,9 +183,9 @@ class Gradients:
                                 gradients.append(gm.magnitude(grad_along_direction))
                             else:
                                 raise(ValueError('method must be "simplified" or "GM"'))
-                        min_gradients[x,y,z] = np.min(gradients)
-        
+                        min_gradients[x,y,z] = np.min(gradients) 
         return min_gradients
+    
     
     #plots output of the above for a z slice
     #set min_gradients to the output of the above if precomputed
@@ -239,8 +239,10 @@ class Gradients:
                            emu_data_loc, p_abs, vmin, vmax, 
                            phi_resolution = 2,
                            savefig = False, adiabaticities = None):
+  
         if type(adiabaticities) == type(None):
             adiabaticities = self.averageAdiabaticities(zs, emu_data_loc, p_abs, phi_resolution = phi_resolution)
+      
         xdim = 1E-5*self.merger_grid['x(cm)'][self.limits[0,0]:self.limits[0,1]+1,
                                                    self.limits[1,0]:self.limits[1,1]+1,
                                                    zs[0]]
@@ -250,7 +252,8 @@ class Gradients:
         zs_km = 1E-5*self.merger_grid['z(cm)'][0,0,zs]
         
         n = len(zs)
-        f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True, squeeze = False,)
+      
+        f,ax = plt.subplots(1,n,figsize=(n*6,8), sharex = True, sharey = True, squeeze = False,)
         for k in range(n):
             #colorplot
             im = ax[0,k].pcolormesh(xdim, ydim, np.log10(adiabaticities[:,:,k]),
@@ -260,16 +263,9 @@ class Gradients:
             #zval text
             ax[0,k].text((xdim[0,0] - xdim[-1,0])*0.99 + xdim[-1,0],
                          (ydim[0,-1] - ydim[0,0])*0.95 + ydim[0,0],rf'$z$ = {zs_km[k]:.1f} km', backgroundcolor = 'white')
-        
         plt.tight_layout()
 
-        #colorbar
-        f.subplots_adjust(right=0.8)
-        cbar_ax = f.add_axes([0.814, 0.1, 0.02, 0.8])
-        cbar = f.colorbar(im, cax=cbar_ax)
-        cbar.ax.set_ylabel(r'log$(\gamma)$', 
-                         fontsize = 14, labelpad=10)
-        
+        f.colorbar(im, label=r'log$(\gamma)$', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
         middle_n = n//2
         ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
         ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
@@ -287,10 +283,19 @@ class Gradients:
 #resonance type = 'full' or 'simplified'. 'full' uses the full resonance condition, 'simplified' uses the simplified resonance condition
 #if 'full', density_matrix is the initial density matrix. 
 class SpinParams:
-    def __init__(self, t_sim, emu_file, merger_data_loc, location, p_abs, resonance_type = 'full', initial_ket = np.array([1,0,0,0,0,0]), gradient_filename = None):
+    def __init__(self, 
+                 t_sim,
+                 emu_file,
+                 merger_data_loc,
+                 location,
+                 p_abs,
+                 resonance_type = 'full',
+                 initial_ket = np.array([1,0,0,0,0,0]),
+                 gradient_filename = None):
         
         self.p_abs = p_abs
         self.t_sim = t_sim
+        self.t_seconds = h5py.File(emu_file, 'r')['t(s)'][t_sim]
 
         self.gradient_filename = gradient_filename
          
@@ -414,7 +419,7 @@ class SpinParams:
         x1 = basis.x1
         x2 = basis.x2
         #grad_S_L is the Jacobian, indices are [spacetime_up, spacetime_down, F, F]
-        # we want the derivative along x_i of component x_j of the gradient
+        #we want the derivative along x_i of component x_j of the gradient
         #given by x_j @ grad_S_L @ x^i
 
         #d_2 S_L ^1
@@ -455,7 +460,6 @@ class SpinParams:
         return np.concatenate((np.concatenate( (self.H_R(theta, phi), np.conjugate(self.H_LR(theta,phi).transpose(1,0))), axis=0),
                 np.concatenate((self.H_LR(theta,phi), self.H_L(theta,phi)), axis = 0)), axis = 1)
 
-        
     ## kappa component of just neutrino part of potential. Need for Resonance condition so matter contribution isnt counted twice
     def S_L_nu_kappa(self, theta, phi):
         basis = Basis(theta,phi)
@@ -494,7 +498,6 @@ class SpinParams:
     
 
     def angularPlot(self, theta_resolution, phi_resolution, savefig=False, use_gm=True, direction_point=False):
-        
         if use_gm==True:
             H_LR_array = np.array([[np.abs(np.trace(self.H_LR(theta, phi))) 
                                    for phi in np.linspace(0, 2*np.pi, phi_resolution)]
@@ -567,7 +570,6 @@ class SpinParams:
     
     #initial ket -independent resonance condition. assures existence of resonance for some initial ket
     #min_eigenvec = True returns the eigenvector that minimizes leftMinusRight
-
     def leftMinusRight(self, theta, phi, min_eigenvec = False):
         if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
             theta = theta[0]
@@ -1041,4 +1043,132 @@ class SpinParams:
     
         
         
+def multi_HLR_Plotter( 
+                    t_sim_1, t_sim_2,
+                    emu_file,
+                    merger_data_loc,
+                    location,
+                    p_abs,
+                    theta_resolution,
+                    phi_resolution, 
+                    resonance_type = 'simplified',
+                    savefig=False,
+                    use_gm=True,
+                    direction_point=False):
     
+    SP1 = SpinParams(t_sim_1,
+                    emu_file,
+                    merger_data_loc,
+                    location,
+                    p_abs,
+                    resonance_type=resonance_type
+                    )
+    SP2 = SpinParams(t_sim_2,
+                    emu_file,
+                    merger_data_loc,
+                    location,
+                    p_abs,
+                    resonance_type=resonance_type
+                    )
+    
+    scalefactor = 1E13 #change labels manually! 
+    
+    if use_gm==True:
+        H_LR_array_1 = np.array([[gm.magnitude(SP1.H_LR(theta, phi))
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+        H_LR_array_2 = np.array([[gm.magnitude(SP2.H_LR(theta, phi))
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+    else: 
+        H_LR_array_1 = np.array([[gm.sum_magnitude(SP1.H_LR(theta, phi)) 
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+        H_LR_array_2 = np.array([[gm.sum_magnitude(SP2.H_LR(theta, phi)) 
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+
+    resonance_array_1 = np.array([[SP1.resonance(theta,phi)
+                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                   for theta in np.linspace(0, np.pi, theta_resolution)]) 
+
+
+    resonance_array_2 = np.array([[SP2.resonance(theta,phi)
+                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                   for theta in np.linspace(0, np.pi, theta_resolution)]) 
+
+    f, ax = plt.subplots(1,2, subplot_kw=dict(projection='mollweide'), figsize=(12,4))
+    ax[0]
+    
+    #colorplot
+    H_LR_im_1 = ax[0].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                            H_LR_array_1*scalefactor, 
+                            cmap=plt.cm.hot, shading='auto')
+
+    H_LR_im_2 = ax[1].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                            H_LR_array_2*scalefactor, 
+                            cmap=plt.cm.hot, shading='auto')
+
+
+
+    #resonance 
+    res_im_1 = ax[0].contour(np.linspace(-np.pi, np.pi, phi_resolution),
+                        np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                        resonance_array_1, levels=[0.], colors='cyan')
+    res_im_2 = ax[1].contour(np.linspace(-np.pi, np.pi, phi_resolution),
+                        np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                        resonance_array_2, levels=[0.], colors='cyan')
+        
+        
+    
+    #time text
+    ax[0].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP1.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
+    ax[1].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP2.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
+
+    h1,l1 = res_im_1.legend_elements()
+    
+    
+
+    #add net flux point 
+    J_avg_1 = np.array([gm.magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
+    flux_point_1 = ax[0].scatter([np.arctan2(J_avg_1[2],J_avg_1[1])],[np.arctan2(J_avg_1[3],
+                                        (J_avg_1[1]**2+J_avg_1[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
+    
+    J_avg_2 = np.array([gm.magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])        
+    flux_point_2 = ax[1].scatter([np.arctan2(J_avg_2[2],J_avg_2[1])],[np.arctan2(J_avg_2[3],
+                                        (J_avg_2[1]**2+J_avg_2[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
+    
+    #add (electron) neutrino direction point 
+    #flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
+    #direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
+
+    f.legend([h1[0], flux_point_2], [r"$e\rightarrow e$ resonance", r"$|J^{\mu}|$ Direction"], loc = (0.435,0.85))
+        
+        
+    #axes
+    yT=[np.pi/2, np.pi/3, np.pi/6, 0, -np.pi/6, -np.pi/3, -np.pi/2]
+    yL=['0', r'$\frac{1}{6}\pi$', r'$\frac{1}{3}\pi$',r'$\frac{1}{2}\pi$',
+        r'$\frac{2}{3}\pi$',r'$\frac{5}{6}\pi$',
+        r'$\pi$']
+    ax[0].set_yticks(yT, yL)
+    ax[1].set_yticks(yT, yL)
+
+    xT=[ -2*np.pi/3, -np.pi/3, 0, np.pi/3, 2*np.pi/3]
+    xL=[  r'$\frac{1}{3}\pi$', r'$\frac{2}{3}\pi$',
+          r'$\pi$',r'$\frac{4}{3}\pi$',
+          r'$\frac{5}{3}\pi$']
+    ax[0].set_xticks([], [])
+    ax[1].set_xticks([], [])
+    
+    ax[0].set_ylabel(r'$\theta$', rotation = 0, labelpad = 8, fontsize = 14)
+    f.tight_layout(pad = 1.6)
+    f.colorbar(H_LR_im_2, label=r"$|H_{LR}| \ (eV \times 10^{-13})$", location = 'bottom',ax=ax.ravel().tolist(),
+               pad = 0.1, aspect = 30)
+
+    if type(savefig) == str: 
+        plt.savefig(savefig + '.png', dpi=300)
+
+    plt.show()
+    return

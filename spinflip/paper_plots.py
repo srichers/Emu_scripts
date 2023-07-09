@@ -208,3 +208,22 @@ adiabatic_width = SP_0.findAdiabaticRegions(phi_resolution = 50,
 
 print('total initial adiabatic width = ', adiabatic_width)
 
+
+
+###############################
+### PART 3: FFI SIMULATION  ###
+###############################
+
+### Angular Plot of H_LR, before and after simulation ###
+sft.multi_HLR_Plotter( 
+                    0, 200,
+                    emu_filename,
+                    merger_data_filename,
+                    location,
+                    p_abs,
+                    300,
+                    300, 
+                    resonance_type = 'simplified',
+                    savefig= plot_output_file + 'angular_hlr_init',
+                    use_gm=True,
+                    direction_point=False)
