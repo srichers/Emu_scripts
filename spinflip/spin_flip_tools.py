@@ -910,8 +910,10 @@ class SpinParams:
         print(max_thetas_approx)
         #use only the max_peak_count largest maxima
         if len (max_thetas_approx) > max_peak_count:
-            max_thetas_approx = np.sort(max_thetas_approx)[-1*max_peak_count:]
+            max_resonances_approx = np.sort([self.Omega(theta, phi_optimal) for theta in max_thetas_approx])[-1*max_peak_count:]
+            max_thetas_approx = np.array([theta for theta in max_thetas_approx if self.Omega(theta, phi_optimal) in max_resonances_approx])
         print(max_thetas_approx)
+        
         #define function for scipy optimization
         def find_intercepts(theta):
             if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
@@ -921,8 +923,9 @@ class SpinParams:
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
         max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':1E-13},
-                                          bounds = [(theta_max_approx-search_dist,theta_max_approx+search_dist)]).x[0]
+                                          bounds = [(theta_max_approx-search_dist/2,theta_max_approx+search_dist/2)]).x[0]
                              for theta_max_approx in max_thetas_approx])
+        
         if printvalues:
             print()
             print('max_thetas = ', max_thetas)
@@ -1021,6 +1024,7 @@ class SpinParams:
         
         #use only the max_peak_count largest maxima
         if len (max_phis_approx) > max_peak_count:
+            max_adiabs_approx =  np.sort([self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis_approx])[-1*max_peak_count:]
             max_phis_approx = np.sort(max_phis_approx)[-1*max_peak_count:]
         
         #define function for scipy optimization
@@ -1032,7 +1036,7 @@ class SpinParams:
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/phi_resolution*2*np.pi
         max_phis = np.array([opt.minimize(find_intercepts, x0 = phi_max_approx, method = method, options = {'xtol':1E-11},
-                                          bounds = [(phi_max_approx-search_dist,phi_max_approx+search_dist)]).x[0]
+                                          bounds = [(phi_max_approx-search_dist/2,phi_max_approx+search_dist/2)]).x[0]
                              for phi_max_approx in max_phis_approx])
 
         if printvalues:
