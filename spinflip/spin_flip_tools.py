@@ -597,7 +597,6 @@ class SpinParams:
                 theta = theta[0]
         if type(negate) == np.ndarray:
             negate = negate[0]
-            
         H = self.H(theta, phi)
         eigenvectors = np.linalg.eig(H)[1]
         left_minus_right = [abs(np.linalg.norm(eigenvectors[0:3,n])**2 - np.linalg.norm(eigenvectors[3:6,n])**2)
@@ -896,8 +895,9 @@ class SpinParams:
     #finds width of lminusr resonance condition
     #works best if limits are reduced to near the resonance band
     def findResonantRegions(self, theta_resolution = 300, phi_optimal = np.pi,
-                                          min_dist_between_peaks = 10, limits = [0,np.pi],
-                                          resonance_threshold = 1/18,
+                                          min_dist_between_peaks = 10,
+                                          limits = [0,np.pi],
+                                          resonance_threshold = 1/(np.sqrt(2)*3),
                                           max_peak_count = 6,
                                           method = 'Nelder-Mead',
                                           makeplot = False,
@@ -907,12 +907,10 @@ class SpinParams:
         thetas = np.linspace(limits[0], limits[1], theta_resolution)
         resonances = np.array([self.Omega(theta, phi_optimal) for theta in thetas])
         max_thetas_approx = thetas[signal.find_peaks(resonances, distance = min_dist_between_peaks)[0]]
-        print(max_thetas_approx)
         #use only the max_peak_count largest maxima
         if len (max_thetas_approx) > max_peak_count:
             max_resonances_approx = np.sort([self.Omega(theta, phi_optimal) for theta in max_thetas_approx])[-1*max_peak_count:]
             max_thetas_approx = np.array([theta for theta in max_thetas_approx if self.Omega(theta, phi_optimal) in max_resonances_approx])
-        print(max_thetas_approx)
         
         #define function for scipy optimization
         def find_intercepts(theta):
@@ -929,7 +927,7 @@ class SpinParams:
         if printvalues:
             print()
             print('max_thetas = ', max_thetas)
-            print('computed Omega (only registered if greater than threshold, default is ~0.18) = ', [self.Omega(theta,phi_optimal) for theta in max_thetas])
+            print(f'computed Omega (only registered if greater than {resonance_threshold}) = ', [self.Omega(theta,phi_optimal) for theta in max_thetas])
             
         #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
         ranges = []
