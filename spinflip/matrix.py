@@ -81,6 +81,8 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
     if savefig == True: 
         plt.tight_layout()
         plt.savefig('visualizer.png', dpi=300)
+    else:
+        f.show()
 
 #returns the n'th time derivative of a density matrix P given a constsant hamiltonian H
 def dstate_dt(H,P, n=1):

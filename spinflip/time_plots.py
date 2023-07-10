@@ -29,8 +29,8 @@ class TimePlots:
                                                  resonance_type = resonance_type, 
                                                  initial_ket = initial_ket)
                                                  for t in np.arange(it_lim[0],it_lim[1],1)]
+
         
-    
     #(spacetime, F, F, z)
     def J_spatial_flavoravg(self, avg_method = 'GM'): 
         if avg_method == 'GM':
@@ -65,18 +65,26 @@ class TimePlots:
         if quantity == 'J_spatial': 
             J = self.J_spatial_flavoravg(avg_method)
             J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
+
             plt.semilogy(self.time_axis,J_directional_projection)
+
+            plt.semilogy(range(self.nt),J_directional_projection)
+
             ax.set_ylabel(r"$eV^3$")
 
         elif quantity == 'J_time': 
             J = self.J_time_flavoravg(avg_method)
             J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
+
             plt.semilogy(self.time_axis,J_directional_projection)
+
             ax.set_ylabel(r"$eV^3$")
             
         elif quantity == 'H_LR':
             H_LR=self.H_LR(avg_method, theta, phi)
+
             plt.semilogy(self.time_axis,H_LR)            
+
             ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
 
 

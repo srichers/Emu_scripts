@@ -50,29 +50,3 @@ p_abs = 1e7 # eV
 # Calculate gradients
 #store_gradients(merger_data_filename, emu_data_loc, gradient_filename_start, xmin, xmax, ymin, ymax, zmin, zmax, 0)
 #store_gradients(merger_data_filename, emu_data_loc, gradient_filename_end, xmin, xmax, ymin, ymax, zmin, zmax, -1)
-
-##########
-# STEP 5 #
-##########
-# Draw adiabaticity/resonance for many points
-# Draw angular distribution at one point
-# Draw diagonalizer sinusoidal distribution
-# Draw Hamiltonian matrix
-#(resonance_type = 'full', 'simplified', or [n,k] which gives the P dot H, tian paper, and H[n,n] = H[k,k] respectively, so simplified is equivalent to [0,3])
-#if full resonance, density_matrix gives the P used in the P dot H. also P will be the initial density matrix in the diagonalizer plot (unless you specify otherwise by calling init_array in pointPlots)
-sft.MultiPlot(location[0], location[1], location[2], emu_filename, xmin, xmax, ymin, ymax,merger_data_filename,
-               resonance_type = [0,3], density_matrix = np.array([1,0,0,0,0,0]), p_abs=p_abs).pointPlots(0,traceless=True, text = 'mag', savefig=True)
-######################
-# Diagonalizer Tests #
-######################
-Htest= np.zeros((6,6))
-Htest[3,0]=1
-Htest[0,3]=1
-
-Htest_2f= np.zeros((4,4))
-Htest_2f[2,0]=1
-Htest_2f[0,2]=1
-
-sft.Diagonalizer(H = Htest).state_evolution_plotter(init_array = np.diag((1,0,0,0,0,0)))
-sft.Diagonalizer(H=Htest_2f).state_evolution_plotter(init_array = np.diag((1,0,0,0)))
-sft.Diagonalizer(H= np.array([[0,1],[1,0]])).state_evolution_plotter(init_array = np.diag((1,0)))

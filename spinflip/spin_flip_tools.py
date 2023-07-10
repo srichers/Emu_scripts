@@ -204,7 +204,8 @@ class Gradients:
         plt.ylabel('y index')
         if savefig == True:
             plt.savefig('min_gradient.png')
-        plt.show()
+        else:
+            plt.show()
        
     
     #finds average adiabaticity on resonant band at each grid cell over a z slice. Uses simplified resonance
@@ -791,7 +792,6 @@ class SpinParams:
 
         #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
         plt.tight_layout(pad = 2)           
-        plt.show()
 
         #add linearPlot graphic
         if linearPlot == True:
@@ -800,6 +800,8 @@ class SpinParams:
 
         if type(savefig) == str: 
             f.savefig(savefig + '.png', dpi=300)
+        else:
+            plt.show()
 
 
     #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
