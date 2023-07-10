@@ -581,11 +581,6 @@ class SpinParams:
             return min(left_minus_right), eigenvectors[:,np.argmin(left_minus_right)]
         return min(left_minus_right)
     
-    def Omega(self, theta, phi): #Omega parameter at resonant theta as described in paper. Mostly defined for use in scipy optimization functions.
-        if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
-                theta = theta[0]
-        return 1 - self.leftMinusRight(theta, phi)
-    
     #finds minimum of leftMinusRight over theta for some phi
     #returns theta and min value
     def minLeftMinusRight(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)], min_eigenvec = False):
@@ -593,6 +588,28 @@ class SpinParams:
         optimal = opt.minimize(self.leftMinusRight, x0 = x0, args = (phi), bounds = bounds,  method = method)
         if min_eigenvec == True:
             return optimal.x[0], optimal.fun, self.leftMinusRight(optimal.x[0], phi, min_eigenvec = True)[1]
+        return optimal.x[0], optimal.fun
+    
+    #Omega parameter at resonant theta as described in paper. Mostly defined for use in scipy optimization functions.
+    #negate = True returns -1*omega for minimize
+    def Omega(self, theta, phi, negate = False): 
+        if type(theta)  == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
+                theta = theta[0]
+        if type(negate) == np.ndarray:
+            negate = negate[0]
+            
+        H = self.H(theta, phi)
+        eigenvectors = np.linalg.eig(H)[1]
+        left_minus_right = [abs(np.linalg.norm(eigenvectors[0:3,n])**2 - np.linalg.norm(eigenvectors[3:6,n])**2)
+                            for n in range(0,6)]
+        if negate:
+            return -1*np.sqrt(1 - min(left_minus_right))
+        else:
+            return    np.sqrt(1 - min(left_minus_right))
+    
+    def maxOmega(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)], min_eigenvec = False):
+        x0 = (bounds[0][0]+bounds[0][1])/2
+        optimal = opt.minimize(self.Omega, x0 = x0, args = (phi, True), bounds = bounds,  method = method)
         return optimal.x[0], optimal.fun
     
     #returns the resonant ket at each resonant theta in thetas
@@ -613,7 +630,7 @@ class SpinParams:
     #phi max is the phi along which a theta_optimal is found (maximizing right handed part of largest eigenvector component)
     #zoom is None (giving a full mollweide plot like angularPlot) or a number (giving a zoomed in plot around phi_optimal, theta_optimal)
     def angularEigenvectorPlot(self, theta_resolution, phi_resolution,
-                                value = 'rmax', # = 'lminusr' or 'rmax'
+                                value = 'Omega', # = 'lminusr' or 'rmax' or 'Omega'
                                 phi_optimal = np.pi, zoom = None, shift = [0,0],
                                 vmin = -8, vmax = -5,
                                 zoom_resolution = 50, initvector = None, 
@@ -626,14 +643,20 @@ class SpinParams:
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             colorplot_vals = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
-                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi, theta_resolution)]))
+                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
 
         elif value == 'rmax':
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
             colorplot_vals = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
-                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi, theta_resolution)]))
+                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
+        
+        elif value == 'Omega':
+            theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
+            colorplot_vals = np.log10(np.array([[self.Omega(theta,phi)
+                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
            
         
         print('theta_optimal = ', str(theta_optimal),
@@ -715,6 +738,10 @@ class SpinParams:
                  colorplot_vals_zoom = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
                                     for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
                                     for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0], zoom_resolution)]))
+            elif value == 'Omega':
+                 colorplot_vals_zoom = np.log10(np.array([[self.Omega(theta, phi)
+                                    for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
+                                    for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0], zoom_resolution)]))
             
             #colorplot
             colorplot_im_z = ax_z.pcolormesh(
@@ -780,7 +807,7 @@ class SpinParams:
     # whose location will be plotted in color 'color'   
     #function also returns the resonant thetas.
     def linearEigenvectorPlot(self, theta_resolution,  
-                              initvector = None, value = 'rmax',
+                              initvector = None, value = 'Omega',
                               zoom = None, shift = 0, phi_optimal= np.pi,
                               method = 'Nelder-Mead', vmax = None,
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
@@ -796,30 +823,38 @@ class SpinParams:
         if type(initvector) == type(None):
             initvector =  self.initial_ket
 
+        #find theta_optimal and set y-axis label
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
-            #plt.title(f'Linear Plot of L-minus-R vs theta (phi = {phi_optimal:.3})')
-            plt.ylabel(r'$\Omega$ $(\times 10^{-4})$')
-            if zoom == None:
-                thetas = np.linspace(0, np.pi, theta_resolution)
-                plt.xlim(0,np.pi)
-            else:
-                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
-                plt.xlim( theta_optimal - zoom + shift, theta_optimal + zoom + shift)
-            plot_vals = 1 - np.array([self.leftMinusRight(theta, phi_optimal)
-                                   for theta in thetas]) 
+            plt.ylabel(r'$1- |L - R|$ $(\times 10^{-4})$')
         elif value == 'rmax':
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
-            #plt.title(f'Linear Plot of Right-Handed Component of Ket vs theta (phi = {phi_optimal:.3})')
-            if zoom == None:
-                thetas = np.linspace(0, np.pi/2, theta_resolution)
-                plt.xlim(0,np.pi)
-            else:
-                thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
-                plt.xlim(theta_optimal - zoom + shift, theta_optimal + zoom + shift)
+            plt.ylabel(r'$r_{max}$ $(\times 10^{-4})$')
+        elif value == 'Omega':
+            theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
+            plt.ylabel(r'$\Omega$ $(\times 10^{-4})$')
+            
+        #find bounds of plot accourding to zoom
+        if zoom == None:
+            thetas = np.linspace(0, np.pi, theta_resolution)
+            plt.xlim(0,np.pi)
+        else:
+            thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
+            plt.xlim( theta_optimal - zoom + shift, theta_optimal + zoom + shift)
+            
+        
+        if value == 'lminusr':
+            plot_vals = 1 - np.array([self.leftMinusRight(theta, phi_optimal)
+                                   for theta in thetas]) 
+            
+        elif value == 'rmax':
             plot_vals = np.array([-1*self.rightHandedPart(theta, phi_optimal, initvector)
                                    for theta in thetas])
-            
+        
+        elif value == 'Omega':
+            plot_vals = np.array([self.Omega(theta, phi_optimal)
+                                   for theta in thetas])
+        
         #plot full resonance value
         plt.plot(thetas, plot_vals*factor, color = 'r')
 
@@ -832,7 +867,6 @@ class SpinParams:
                                     for extra_init_vector in extra_init_vectors])
             print('Extra Thetas = ', extra_thetas)
             extra_thetas_vlines = plt.vlines(extra_thetas, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
-
 
         #plot vlines
         neutrino_flavors = {0:'$e$', 1:'$\mu$', 2:r'$\tau$'}
@@ -863,7 +897,7 @@ class SpinParams:
     #works best if limits are reduced to near the resonance band
     def findResonantRegions(self, theta_resolution = 300, phi_optimal = np.pi,
                                           min_dist_between_peaks = 10, limits = [0,np.pi],
-                                          resonance_threshold = 1 + 1/6 - np.sqrt(1 - (1/6)**2),
+                                          resonance_threshold = 1/18,
                                           max_peak_count = 6,
                                           method = 'Nelder-Mead',
                                           makeplot = False,
@@ -873,16 +907,16 @@ class SpinParams:
         thetas = np.linspace(limits[0], limits[1], theta_resolution)
         resonances = np.array([self.Omega(theta, phi_optimal) for theta in thetas])
         max_thetas_approx = thetas[signal.find_peaks(resonances, distance = min_dist_between_peaks)[0]]
-        
+        print(max_thetas_approx)
         #use only the max_peak_count largest maxima
         if len (max_thetas_approx) > max_peak_count:
             max_thetas_approx = np.sort(max_thetas_approx)[-1*max_peak_count:]
-        
+        print(max_thetas_approx)
         #define function for scipy optimization
         def find_intercepts(theta):
             if type(theta) == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
                 theta = theta[0]
-            return -1*self.Omega(theta,phi_optimal) + resonance_threshold
+            return self.Omega(theta,phi_optimal, negate = True) + resonance_threshold
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
@@ -1144,7 +1178,7 @@ def multi_HLR_Plotter(
     #flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
     #direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
 
-    f.legend([h1[0], flux_point_2], [r"$e\rightarrow e$ resonance", r"$|J^{\mu}|$ Direction"], loc = (0.435,0.85))
+    f.legend([h1[0], flux_point_2], [r"$e\rightarrow e$ resonance", r"$|J^{i}|$ Direction"], loc = (0.435,0.85))
         
         
     #axes
