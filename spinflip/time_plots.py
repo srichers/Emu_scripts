@@ -28,7 +28,7 @@ class TimePlots:
                                                  p_abs,
                                                  resonance_type = resonance_type, 
                                                  initial_ket = initial_ket)
-                                                 for t in np.arange(it_lim[0],it_lim[1]-1,1)]
+                                                 for t in np.arange(it_lim[0],it_lim[1],1)]
         
     
     #(spacetime, F, F, z)
