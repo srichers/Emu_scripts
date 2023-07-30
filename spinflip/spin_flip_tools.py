@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.dirname(os.path.realpath(__file__))+"/../data_reduction")
 import numpy as np
 import h5py
+from tqdm.notebook import tqdm
 from constants import hbar, c, M_p, M_3flavor, G
 import diagonalizer as dg
 from matrix import visualizer
@@ -808,7 +809,7 @@ class SpinParams:
     # whose location will be plotted in color 'color'   
     #function also returns the resonant thetas.
     def linearEigenvectorPlot(self, theta_resolution,  
-                              initvector = None, value = 'Omega',
+                              initvector = None, zoom_on_vector = None, value = 'Omega',
                               zoom = None, shift = 0, phi_optimal= np.pi,
                               method = 'Nelder-Mead', vmax = None,
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
@@ -821,14 +822,15 @@ class SpinParams:
         plt.figure(figsize = (8,6))
         plt.xlabel(r'$\theta$', fontsize = 14)
 
-        if type(initvector) == type(None):
-            initvector =  self.initial_ket
+        
 
         #find theta_optimal and set y-axis label
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             plt.ylabel(r'$1- |L - R|$ $(\times 10^{-4})$')
         elif value == 'rmax':
+            if type(initvector) == type(None):
+                initvector =  self.initial_ket
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
             plt.ylabel(r'$r_{max}$ $(\times 10^{-4})$')
         elif value == 'Omega':
@@ -840,8 +842,10 @@ class SpinParams:
             thetas = np.linspace(0, np.pi, theta_resolution)
             plt.xlim(0,np.pi)
         else:
-            thetas = np.linspace(theta_optimal - zoom + shift, theta_optimal + zoom + shift, theta_resolution)
-            plt.xlim( theta_optimal - zoom + shift, theta_optimal + zoom + shift)
+            if not zoom_on_vector:
+                 zoom_on_vector = theta_optimal
+            thetas = np.linspace(zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift, theta_resolution)
+            plt.xlim( zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift)
             
         
         if value == 'lminusr':
@@ -877,13 +881,13 @@ class SpinParams:
         for theta,n,k,color in resonant_thetas:
             plt.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'{neutrino_flavors[n]} $\rightarrow$ {neutrino_flavors[k]} resonance', color = color)
         
-        if max_point != False:
-            max_point_vline =  plt.vlines([theta_optimal],[0],[max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
-            bounds_vlines =    plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
+        if max_point:
+            max_point_vline =  plt.vlines([theta_optimal],[0],[factor*max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+            bounds_vlines =    plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*factor*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
             print("Optimal theta in Range = ", str(theta_optimal))
 
         if extra_lines != None:
-            extra_vlines = plt.vlines(extra_lines, [0], [max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
+            extra_vlines = plt.vlines(extra_lines, [0], [factor*max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
 
         plt.legend()
         plt.minorticks_on()
@@ -891,6 +895,9 @@ class SpinParams:
         if type(savefig) == str: 
             plt.savefig(savefig + '.png', dpi=300)
         
+        if max_point:
+            return theta_optimal
+            
         return np.array(resonant_thetas)[:,0]
     
     
@@ -902,9 +909,12 @@ class SpinParams:
                                           resonance_threshold = 1/(np.sqrt(2)*3),
                                           max_peak_count = 6,
                                           method = 'Nelder-Mead',
+                                          xtol = 1E-13,
+                                          return_arrays = False,
                                           makeplot = False,
-                                          printvalues = False):
-        
+                                          printvalues = False,
+                                          **kwargs):
+
         #find approximate maxima of resonance parameter 
         thetas = np.linspace(limits[0], limits[1], theta_resolution)
         resonances = np.array([self.Omega(theta, phi_optimal) for theta in thetas])
@@ -922,7 +932,7 @@ class SpinParams:
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
-        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':1E-13},
+        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':xtol},
                                           bounds = [(theta_max_approx-search_dist/2,theta_max_approx+search_dist/2)]).x[0]
                              for theta_max_approx in max_thetas_approx])
         
@@ -934,12 +944,22 @@ class SpinParams:
         #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
         ranges = []
         bounds = []
+        optimal_thetas = []
         for theta in max_thetas:
             if find_intercepts(theta) < 0:
-               bound_1 = opt.brentq(find_intercepts, theta, theta + search_dist)
-               bound_2 = opt.brentq(find_intercepts, theta, theta - search_dist)
-               ranges.append(abs(bound_1-bound_2))
-               bounds.append((bound_1, bound_2))
+                #make sure the two boundaries have different signs so an intercept can be found
+                counter = 0
+                while find_intercepts(theta + search_dist) < 0 or find_intercepts(theta - search_dist) < 0:
+                   search_dist = search_dist*2
+                   counter += 1
+                   if counter == 3:
+                       print('Warning: search_dist is too small or too big to find intercepts. Try changing min_dist_between_peaks')
+                       continue
+                bound_1 = opt.brentq(find_intercepts, theta, theta + search_dist)
+                bound_2 = opt.brentq(find_intercepts, theta, theta - search_dist)
+                ranges.append(abs(bound_1-bound_2))
+                bounds.append((bound_1, bound_2))
+                optimal_thetas.append(theta)
         
         if printvalues:  
             print('individual widths = ', ranges) 
@@ -964,13 +984,14 @@ class SpinParams:
                 ax[0,n].axvline(np.sort(bound)[0], color = 'red')
                 ax[0,n].axvline(np.sort(bound)[1], color = 'red')
                 ax[0,n].set_ylim(0, 2*resonance_threshold)
-                
-        return {'resonant_thetas':max_thetas, 'total_width':total_resonant_width}
-
+        if return_arrays:        
+            return np.array(optimal_thetas), np.array(ranges)
+        else:
+            return {'resonant_thetas':optimal_thetas, 'total_width':total_resonant_width}
+        
 
     ###################
-    
-    
+
     #initial adiabaticity and gradient computations (using simplified conditions)
     #flavor is the flavor of the neutrino that is being considered (0,1,2) default is electron
     def resonantGradAndAdiabaticity(self, phi, flavor = 0):
@@ -1014,8 +1035,10 @@ class SpinParams:
     def findAdiabaticRegions(self, phi_resolution = 200, min_dist_between_peaks = 10,
                                           adiabaticity_threshold = 1, max_peak_count = 2,
                                           method = 'Nelder-Mead',
+                                          return_arrays = False,
                                           makeplot = False,
-                                          printvalues = False):
+                                          printvalues = False,
+                                          **kwargs):
         
         #find approximate maxima of adiabaticity azimuthal function
         phis = np.linspace(0, 2*np.pi, phi_resolution)
@@ -1049,6 +1072,16 @@ class SpinParams:
         bounds = []
         for phi in max_phis:
             if find_intercepts(phi) < 0:
+               #make sure the two boundaries have different signs so an intercept can be found
+               counter = 0
+               while find_intercepts(phi+search_dist) < 0 or find_intercepts(phi-search_dist) < 0:
+                   search_dist = search_dist*2
+                   counter += 1
+                   if counter == 3:
+                       print('Warning: search_dist is too small or too big to find intercepts. Try changing min_dist_between_peaks')
+                       continue
+               
+               #find bounds
                bound_1 = opt.brentq(find_intercepts, phi, phi + search_dist)
                bound_2 = opt.brentq(find_intercepts, phi, phi - search_dist)
                ranges.append(abs(bound_1-bound_2))
@@ -1076,10 +1109,45 @@ class SpinParams:
                 ax[0,n].axvline(np.sort(bound)[0], color = 'red')
                 ax[0,n].axvline(np.sort(bound)[1], color = 'red')
                 ax[0,n].set_ylim(0, 2*adiabaticity_threshold)
-                
-        return total_adiabatic_width
-    
         
+        if return_arrays:
+            return np.array(ranges), np.array(max_phis)
+        else:
+            return total_adiabatic_width
+        
+    #find total solid angle at this point that is both resonant and adiabatic
+    def solidAngle(self, separate_ranges = False, **kwargs # if true, computes a single resonant angle for all adiabatic ones instead of one for each (more efficient)
+                   ):
+        
+        solid_angle = 0
+        
+        #check resonance exists
+        if self.resonant_theta(phi=0) == None:
+            return 0
+        
+        #compute adiabatic ranges and their locations
+        adiabatic_ranges, max_phis = self.findAdiabaticRegions(return_arrays=True,**kwargs)
+        
+        #check if adiabatic ranges is empty
+        if adiabatic_ranges.size == 0:
+            return 0
+        
+        #if not separate_ranges, make the following for-loop just loop through the most significant phi, instead of all of them
+        if not separate_ranges:
+            max_phis = np.array([max_phis[np.argmax(adiabatic_ranges)]])
+            adiabatic_ranges = np.array([np.sum(adiabatic_ranges)])
+        
+        #loop through phis
+        for k, max_phi in enumerate(max_phis):
+            #find resonant thetas and ranges
+            resonant_thetas, resonant_ranges = self.findResonantRegions(
+                                                    phi_optimal = max_phi,
+                                                    return_arrays=True,
+                                                    **kwargs)
+            #compute and add on solid angle at this direction
+            solid_angle += np.sum(resonant_ranges*adiabatic_ranges[k]*np.sin(resonant_thetas))
+       
+        return solid_angle
         
 def multi_HLR_Plotter( 
                     t_sim_1, t_sim_2,
@@ -1210,3 +1278,106 @@ def multi_HLR_Plotter(
 
     plt.show()
     return
+
+def solid_angles_plot(it, zs, 
+                      method, # = solid angle, adiabatic angle, resonant angle
+                      emu_data_loc,
+                      merger_data_file,
+                      gradient_data_file, 
+                      p_abs, 
+                      limits = None,
+                      vmin=None, vmax=None,
+                      savefig = False,
+                      tqdm_args = {'disable':False},
+                      separate_ranges = False,
+                      **kwargs):
+    
+    #initialize Gradients
+    Gr = Gradients(gradient_data_file,
+              merger_data_file)
+    #find limits of calculation  
+    if type(limits) == type(None):  
+        limits = Gr.limits
+        for z in zs: #check z is within the computed datapoints
+            assert(z >= limits[2,0] and z <= limits[2,1]) 
+    
+    #define ranges for the computation
+    x_range = range(limits[0,0], limits[0,1])
+    y_range = range(limits[1,0], limits[1,1])
+    
+    #initialize 
+    angle = np.zeros((len(x_range),
+                      len(y_range),
+                      len(zs)))
+
+    #loop through positions
+    for nz, z  in enumerate(zs):
+        for nx, x in enumerate(tqdm(x_range, desc = 'x range', leave = True, position = 0, **tqdm_args)):
+            for ny, y in enumerate(tqdm(y_range, desc = 'y range', leave = False, position = 1, **tqdm_args)):
+                
+                #initialize SpinParams
+                location = [x, y, z]
+                emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+                SP = SpinParams(t_sim = it, 
+                                emu_file = emu_filename,
+                                merger_data_loc = merger_data_file,
+                                gradient_filename = gradient_data_file,
+                                location = location,
+                                p_abs = p_abs)
+                
+                #check if there is resonance 
+                if SP.resonant_theta(phi=0) == None:
+                    continue
+                else: #compute quantity
+                    if   method == 'solid angle':
+                        angle[nx,ny,nz] = SP.solidAngle(separate_ranges=separate_ranges, **kwargs)
+                    elif method == 'adiabatic angle': 
+                        angle[nx,ny,nz] = SP. findAdiabaticRegions(**kwargs)
+                    elif method == 'resonant angle':
+                        angle[nx,ny,nz] = SP.findResonantRegions(**kwargs)['total_width']
+    
+    
+    #prepare plot axes
+    xdim = 1E-5*Gr.merger_grid['x(cm)'][limits[0,0]:limits[0,1]+1,
+                                                limits[1,0]:limits[1,1]+1,
+                                                zs[0]]
+    ydim = 1E-5*Gr.merger_grid['y(cm)'][limits[0,0]:limits[0,1]+1,
+                                                limits[1,0]:limits[1,1]+1,
+                                                zs[0]]
+    zs_km = 1E-5*Gr.merger_grid['z(cm)'][0,0,zs]
+    
+    #vmin, vmax 
+    if vmin != None:
+        vmin = np.log10(vmin)
+    if vmax != None:
+        vmax = np.log10(vmax)
+    n = len(zs)
+    
+    #plot
+    f,ax = plt.subplots(1,n,figsize=(n*6,8), sharex = True, sharey = True, squeeze = False,)
+    for k in range(n):
+        #colorplot
+        im = ax[0,k].pcolormesh(xdim, ydim, np.log10(angle[:,:,k]),
+                                    vmin = vmin, vmax = vmax, 
+                                    cmap = 'YlGnBu_r')
+        
+        #zval text
+        ax[0,k].text((xdim[0,0] - xdim[-1,0])*0.99 + xdim[-1,0],
+                        (ydim[0,-1] - ydim[0,0])*0.95 + ydim[0,0],rf'$z$ = {zs_km[k]:.1f} km', backgroundcolor = 'white')
+   
+    #colorbar
+    plt.tight_layout()
+    f.colorbar(im, label=r'Solid Angle (log)', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
+    
+    #axis labels
+    middle_n = n//2
+    ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
+    ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
+    #ax[0,middle_n].set_title('Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16, pad = 20,)
+
+    #savefig
+    if type(savefig) == str: 
+        f.savefig(savefig + '.png', dpi=300, bbox_inches = 'tight')
+
+    
+    
