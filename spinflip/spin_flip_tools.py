@@ -477,12 +477,13 @@ class SpinParams:
 
         if resonance_type == 'full':
             return gm.dotprod(self.H(theta,phi),self.density_matrix)
-        if resonance_type == 'simplified':
-            return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])
+        elif resonance_type == 'simplified':
+            return np.real(2**(-1/2)*G*self.n_b*(3.*self.Ye-np.ones_like(self.Ye))+self.S_L_nu_kappa(theta,phi)[0,0])            
         elif type(resonance_type) == type([]):
             diag1 = resonance_type[0]
             diag2 = resonance_type[1]
-            return np.real(self.H(theta,phi)[diag1,diag1])-np.real(self.H(theta,phi)[diag2,diag2])
+            return np.real(self.H_L(theta,phi)[diag1,diag1])-np.real(self.H_R(theta,phi)[diag2-3,diag2-3])
+
 
 
     #uses scipy rootfinder to locate polar angle of resonance contour. 
@@ -1282,6 +1283,26 @@ def multi_HLR_Plotter(
     plt.show()
     return
 
+def angle_at_point(location):
+    emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+    SP = SpinParams(t_sim = it, 
+                    emu_file = emu_filename,
+                    merger_data_loc = merger_data_file,
+                    gradient_filename = gradient_data_file,
+                    location = location,
+                    p_abs = p_abs)
+    
+    #check if there is resonance 
+    if SP.resonant_theta(phi=0) == None:
+        continue
+    else: #compute quantity
+        if   method == 'solid angle':
+            angle[nx,ny,nz] = SP.solidAngle(separate_ranges=separate_ranges, **kwargs)
+        elif method == 'adiabatic angle': 
+            angle[nx,ny,nz] = SP. findAdiabaticRegions(**kwargs)
+        elif method == 'resonant angle':
+            angle[nx,ny,nz] = SP.findResonantRegions(**kwargs)['total_width']
+        )
 def solid_angles_plot(it, zs, 
                       method, # = solid angle, adiabatic angle, resonant angle
                       emu_data_loc,
