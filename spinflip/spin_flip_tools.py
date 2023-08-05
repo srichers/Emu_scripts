@@ -154,7 +154,7 @@ class Gradients:
    
         
     # calculates magnitude of gradient along minimizing resonant direction in each grid cell
-    def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5, method = 'simplified'):
+    def minGradients(self, emu_data_loc, p_abs, z = None, phi_resolution = 5, method = 'simplified', resonance_type = None):
         min_gradients = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], self.gradJ.shape[4])) #x,y,z
         if z == None:
             z_range = range(self.gradJ.shape[4])
@@ -169,12 +169,12 @@ class Gradients:
                                 z + self.limits[2,0]]
                     emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
                     SP = SpinParams(t_sim = self.it, resonance_type = 'simplified', emu_file = emu_filename, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = location, p_abs=p_abs)
-                    if SP.resonant_theta(phi=0) == None:
+                    if SP.resonant_theta(phi=0, resonance_type=resonance_type) == None:
                         min_gradients[x,y,z] = None
                     else:
                         gradients = []
                         for phi in np.linspace(0, 2*np.pi, phi_resolution): 
-                            theta = SP.resonant_theta(phi=phi)
+                            theta = SP.resonant_theta(phi=phi, resonance_type=resonance_type)
                             grad_H_L = self.grad_H_L(theta, phi)[:,x,y,z] 
                             direction = Basis(theta,phi).n_vector
                             grad_along_direction = np.tensordot(grad_H_L, direction, axes = ([0],[0])) # (F,F)
@@ -190,10 +190,10 @@ class Gradients:
     
     #plots output of the above for a z slice
     #set min_gradients to the output of the above if precomputed
-    def gradientsPlot(self, emu_data_loc, p_abs, z, vmin = -14, vmax = -9, phi_resolution = 5 , savefig=False, min_gradients = None):
+    def gradientsPlot(self, emu_data_loc, p_abs, z, vmin = -14, vmax = -9, phi_resolution = 5 , savefig=False, min_gradients = None, resonance_type = None):
         if type(min_gradients) == type(None):
             min_gradients = self.minGradients(emu_data_loc=emu_data_loc, p_abs=p_abs, z=z,
-                                          phi_resolution = phi_resolution)
+                                          phi_resolution = phi_resolution, resonance_type=resonance_type)
         plt.figure(figsize=(8,6))
         plt.pcolormesh(np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][0,:,:],
                        np.mgrid[self.limits[0,0]:self.limits[0,1]+1:1,self.limits[1,0]:self.limits[1,1]+1:1][1,:,:], 
@@ -210,7 +210,7 @@ class Gradients:
        
     
     #finds average adiabaticity on resonant band at each grid cell over a z slice. Uses simplified resonance
-    def averageAdiabaticities(self, zs, emu_data_loc, p_abs, phi_resolution = 20):
+    def averageAdiabaticities(self, zs, emu_data_loc, p_abs, phi_resolution = 20, resonance_type = None):
         phis = np.linspace(0, 2*np.pi, phi_resolution)
         avg_adiabaticity = np.zeros((self.gradJ.shape[2], self.gradJ.shape[3], len(zs))) #x,y
         for zn in enumerate(zs):
@@ -223,12 +223,12 @@ class Gradients:
                                 z + self.limits[2,0]]
                     emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
                     SP = SpinParams(t_sim = self.it, resonance_type = 'simplified', emu_file = emu_filename, merger_data_loc = self.merger_data_loc, gradient_filename = self.gradient_filename, location = location, p_abs=p_abs)
-                    if SP.resonant_theta(phi=0) == None:
+                    if SP.resonant_theta(phi=0, resonance_type = resonance_type) == None:
                         avg_adiabaticity[x,y,n] = None
                     else:
                         adiabs = []
                         for phi in phis: 
-                            theta = SP.resonant_theta(phi=phi)
+                            theta = SP.resonant_theta(phi=phi, resonance_type = resonance_type)
                             grad_H_L_ee = self.grad_H_L(theta, phi)[:,x,y,z,0,0] 
                             direction = Basis(theta,phi).n_vector
                             grad_along_direction = np.abs(np.tensordot(grad_H_L_ee, direction, axes = ([0],[0])) )
@@ -494,8 +494,8 @@ class SpinParams:
         return np.float64(theta)
     
     #resonant Hamiltionian at azimuthal angle phi (should be independent of phi)
-    def resonant_Hamiltonian(self, phi=0):
-        theta = self.resonant_theta(phi)
+    def resonant_Hamiltonian(self, phi=0, resonance_type = None):
+        theta = self.resonant_theta(phi, resonance_type = resonance_type)
         return self.H(theta,phi)
     
 
@@ -994,8 +994,8 @@ class SpinParams:
 
     #initial adiabaticity and gradient computations (using simplified conditions)
     #flavor is the flavor of the neutrino that is being considered (0,1,2) default is electron
-    def resonantGradAndAdiabaticity(self, phi, flavor = 0):
-        theta = self.resonant_theta(phi=phi)
+    def resonantGradAndAdiabaticity(self, phi, flavor = 0, resonance_type = None):
+        theta = self.resonant_theta(phi=phi, resonance_type = resonance_type)
         grad_H_L = self.grad_H_L(theta, phi) 
         direction = Basis(theta,phi).n_vector
         grad_along_direction = np.abs(np.tensordot(grad_H_L, direction, axes = ([0],[0]))[flavor,flavor]) #grad[H_L]_ee
@@ -1004,14 +1004,14 @@ class SpinParams:
         return grad_along_direction, adiabaticity
 
     #generates plot of gradient and of adiabaticity along the resonance band, parameterized by phi
-    def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5,):
+    def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5, resonance_type = None):
         #factors to scale plots by to avoid the scale number in the corner. Have to manually change the label
         factor_grad = 1E14
         factor_gamma = 1E7
         
         phis = np.linspace(0, 2*np.pi, phi_resolution)
-        gradients = np.array([self.resonantGradAndAdiabaticity(phi)[0] for phi in phis])
-        adiab     = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in phis])        
+        gradients = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[0] for phi in phis])
+        adiab     = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in phis])        
         
         f, ax = plt.subplots(2,1, figsize=(10,7), sharex = True)
         ax[0].plot(phis, gradients*factor_grad)
@@ -1035,6 +1035,7 @@ class SpinParams:
     def findAdiabaticRegions(self, phi_resolution = 200, min_dist_between_peaks = 10,
                                           adiabaticity_threshold = 1, max_peak_count = 2,
                                           method = 'Nelder-Mead',
+                                          resonance_type = None,
                                           return_arrays = False,
                                           makeplot = False,
                                           printvalues = False,
@@ -1042,19 +1043,19 @@ class SpinParams:
         
         #find approximate maxima of adiabaticity azimuthal function
         phis = np.linspace(0, 2*np.pi, phi_resolution)
-        adiabs = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in phis])
+        adiabs = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in phis])
         max_phis_approx = phis[signal.find_peaks(adiabs, distance = min_dist_between_peaks)[0]]
         
         #use only the max_peak_count largest maxima
         if len (max_phis_approx) > max_peak_count:
-            max_adiabs_approx =  np.sort([self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis_approx])[-1*max_peak_count:]
+            max_adiabs_approx =  np.sort([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in max_phis_approx])[-1*max_peak_count:]
             max_phis_approx = np.sort(max_phis_approx)[-1*max_peak_count:]
         
         #define function for scipy optimization
         def find_intercepts(phi):
             if type(phi) == np.ndarray: #opt is calling in phi as a list ( [phi] ) instead of just phi. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
                 phi = phi[0]
-            return -1*self.resonantGradAndAdiabaticity(phi)[1] + adiabaticity_threshold
+            return -1*self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] + adiabaticity_threshold
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/phi_resolution*2*np.pi
@@ -1065,7 +1066,7 @@ class SpinParams:
         if printvalues:
             print()
             print('max_phis = ', max_phis)
-            print('computed adiabaticities (only registered if greater than 1) = ', [self.resonantGradAndAdiabaticity(phi)[1] for phi in max_phis])
+            print('computed adiabaticities (only registered if greater than 1) = ', [self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in max_phis])
             
         #find locations of intercepts near maxima, if the maxima is above the threshold (so that there is an intercept to the left and right)
         ranges = []
@@ -1104,7 +1105,7 @@ class SpinParams:
             for n, bound in enumerate(bounds):
                 diff = np.sort(bound)[1] - np.sort(bound)[0]
                 plotting_phis = np.linspace(np.sort(bound)[0] - diff, np.sort(bound)[1] + diff, phi_resolution)
-                plotting_adiabs = np.array([self.resonantGradAndAdiabaticity(phi)[1] for phi in plotting_phis])
+                plotting_adiabs = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in plotting_phis])
                 ax[0,n].plot(plotting_phis, plotting_adiabs)
                 ax[0,n].axvline(np.sort(bound)[0], color = 'red')
                 ax[0,n].axvline(np.sort(bound)[1], color = 'red')
@@ -1116,17 +1117,19 @@ class SpinParams:
             return total_adiabatic_width
         
     #find total solid angle at this point that is both resonant and adiabatic
-    def solidAngle(self, separate_ranges = False, **kwargs # if true, computes a single resonant angle for all adiabatic ones instead of one for each (more efficient)
+    def solidAngle(self, separate_ranges = False,
+                   resonance_type = None,
+                   **kwargs # if true, computes a single resonant angle for all adiabatic ones instead of one for each (more efficient)
                    ):
         
         solid_angle = 0
         
         #check resonance exists
-        if self.resonant_theta(phi=0) == None:
+        if self.resonant_theta(phi=0, resonance_type = resonance_type) == None:
             return 0
         
         #compute adiabatic ranges and their locations
-        adiabatic_ranges, max_phis = self.findAdiabaticRegions(return_arrays=True,**kwargs)
+        adiabatic_ranges, max_phis = self.findAdiabaticRegions(return_arrays=True, resonance_type = resonance_type, **kwargs)
         
         #check if adiabatic ranges is empty
         if adiabatic_ranges.size == 0:
