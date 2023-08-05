@@ -47,7 +47,7 @@ class Angles:
         
         #find limits from Gradients object
         self.Gr = sft.Gradients(gradient_data_file,merger_data_file)
-        if xy_limits == None:
+        if type(xy_limits) == (None):
             self.xy_limits = self.Gr.limits[0:2,:]
         else:
             assert(xy_limits[0,0] >= self.Gr.limits[0,0] and xy_limits[0,1] <= self.Gr.limits[0,1]), "x limits out of range"
@@ -64,7 +64,9 @@ class Angles:
     #compute angle quantities at a single point
     #location = (x,y,z)
     def angle_at_point(self, location):
-
+        assert location[0] in self.x_range, f"x = {location[0]} out of range ({self.x_range[0]}, {self.x_range[-1]}))"
+        assert location[1] in self.y_range, f"y = {location[1]} out of range ({self.y_range[0]}, {self.y_range[-1]}))"
+        assert location[2] in self.zs, f"z = {location[2]} out of range ({self.zs[0]}, {self.zs[-1]}))"
         #write file location and initialize SpinParams
         emu_filename = self.emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
         SP = sft.SpinParams(t_sim = self.it, 
@@ -87,6 +89,7 @@ class Angles:
 
     #multiprocess above function for multiple points
     def multiprocess_angles(self,
+                            n_cores = 32,
                             h5_filename = None): #set to filename to store to
         xs = self.x_range
         ys = self.y_range
@@ -95,7 +98,7 @@ class Angles:
         iterable = [[x,y,z] for x in xs for y in ys for z in zs]
         
         #compute angles at each point in ranges using multiprocess
-        with Pool() as pool:
+        with Pool(n_cores) as pool:
             output_angles = pool.map(self.angle_at_point, iterable)              
 
         #reshape output
@@ -176,7 +179,10 @@ def main(args):
     it = args.it
     y_limits = args.y_limits
     x_limits = args.x_limits
-    xy_limits = np.array([x_limits,y_limits])
+    if type(x_limits) == type(None) or type(y_limits) == type(None):
+        xy_limits = None
+    else:
+        xy_limits = np.array([x_limits,y_limits])
     zs = args.zs
     method = args.method
     emu_data_loc = args.emu_data_loc
