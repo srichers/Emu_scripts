@@ -62,7 +62,7 @@ np.set_printoptions(precision=16)
 #####################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-o", "--outputfile", help="where to store plots")
+parser.add_argument("-o", "--outputfile", help="where to store plots", default = "/mnt/scratch/shared/5-figures/")
 parser.add_argument("-l", "--lowres", help="make plots lowres to debug quickly (still takes a while)", action="store_true")
 args = parser.parse_args()
 

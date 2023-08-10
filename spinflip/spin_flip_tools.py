@@ -605,9 +605,9 @@ class SpinParams:
         left_minus_right = [abs(np.linalg.norm(eigenvectors[0:3,n])**2 - np.linalg.norm(eigenvectors[3:6,n])**2)
                             for n in range(0,6)]
         if negate:
-            return -1*np.sqrt(1 - min(left_minus_right))
+            return -1*(np.sqrt(2)*3)*np.sqrt(1 - min(left_minus_right))
         else:
-            return    np.sqrt(1 - min(left_minus_right))
+            return    (np.sqrt(2)*3)*np.sqrt(1 - min(left_minus_right))
     
     def maxOmega(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)], min_eigenvec = False):
         x0 = (bounds[0][0]+bounds[0][1])/2
@@ -907,7 +907,7 @@ class SpinParams:
     def findResonantRegions(self, theta_resolution = 300, phi_optimal = np.pi,
                                           min_dist_between_peaks = 10,
                                           limits = [0,np.pi],
-                                          resonance_threshold = 1/(np.sqrt(2)*3),
+                                          resonance_threshold = 1,
                                           max_peak_count = 6,
                                           method = 'Nelder-Mead',
                                           xtol = 1E-13,
