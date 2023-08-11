@@ -68,8 +68,6 @@ class TimePlots:
 
             plt.semilogy(self.time_axis,J_directional_projection)
 
-            plt.semilogy(range(self.nt),J_directional_projection)
-
             ax.set_ylabel(r"$eV^3$")
 
         elif quantity == 'J_time': 
