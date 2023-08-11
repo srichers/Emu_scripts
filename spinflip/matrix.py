@@ -84,7 +84,8 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
     else:
         f.show()
 
-def derivative(H,P, n=1):
+#returns the n'th time derivative of a density matrix P given a constsant hamiltonian H
+def dstate_dt(H,P, n=1):
     from constants import hbar
     for k in np.arange(n):
         P = -1.j/hbar*( H @ P - P @ H)
