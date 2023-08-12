@@ -40,7 +40,7 @@ def angle_at_point(args):
     
     #check if there is resonance 
     if SP.resonant_theta(phi=0) == None:
-        return
+        return 0
     else: #compute quantity
         if   args["method"] == 'solid angle':
             return SP.solidAngle(separate_ranges=args["separate_ranges"], **args["kwargs"])
@@ -131,14 +131,11 @@ class Angles:
 
     #plot processed angles
     def solid_angles_plot(self,
-                          angles = 'compute', #output of last function
+                          angles, #output of last function
                           vmin = None,
                           vmax = None,
                           savefig = False
                           ):
-        
-        if angles == 'compute':
-            angles = self.multiprocess_angles()
         
         #prepare plot axes
         xdim  = 1E-5*self.Gr.merger_grid['x(cm)'][self.xy_limits[0,0]:self.xy_limits[0,1]+1,
@@ -184,10 +181,7 @@ class Angles:
         if type(savefig) == str: 
             f.savefig(savefig + '.png', dpi=300, bbox_inches = 'tight')
           
-        if angles == 'compute':
-            return f,ax,angles  
-        else:
-            return f,ax
+        return f,ax
             
             
 def main(args):
@@ -228,7 +222,7 @@ def main(args):
     angles = Angles_obj.multiprocess_angles(h5_filename)
     
     #plot angles
-    Angles_obj.solid_angles_plot(angles = angles,
+    Angles_obj.solid_angles_plot(angles,
                              vmin = vmin,
                              vmax = vmax,
                              savefig = savefig,
