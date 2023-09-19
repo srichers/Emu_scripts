@@ -25,7 +25,7 @@ def dagger(matrix):
 def rm_trace(M):
     return np.array(M) - np.trace(M)*np.identity(np.array(M).shape[0])/np.array(M).shape[0]
 
-def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, savefig=False):
+def visualizer(M, log=True,  text='mag', title = None, traceless = True, vmin=None,vmax=None, savefig=False):
     if traceless ==True:
         M=rm_trace(M)
     else:
@@ -78,9 +78,14 @@ def visualizer(M, log=True,  text='mag', traceless = True, vmin=None,vmax=None, 
                 xcoord = (n)*grid_subdivisions
                 ycoord = 1 - (m+1/2)*grid_subdivisions
                 ax.text(xcoord, ycoord, str(round(np.real(M[m,n]), ndigits=2))+'+'+str(round(np.imag(M[m,n]), ndigits=2))+'i', color='cyan', size=9)
-    if savefig == True: 
+    
+    if title:
+        plt.title(title)
+    
+    if savefig: 
         plt.tight_layout()
-        plt.savefig('visualizer.png', dpi=300)
+        plt.savefig(savefig + '.png', dpi=300)
+        plt.close()
     else:
         f.show()
 

@@ -55,6 +55,9 @@ class TimePlots:
         elif avg_method == 'sum':
             return np.array([gm.sum_magnitude(SPclass.H_LR(theta,phi)) 
                                for SPclass in self.spin_params_timearray])
+        elif avg_method == None:
+            return np.array([SPclass.H_LR(theta,phi) 
+                               for SPclass in self.spin_params_timearray])
         
 
     def plot(self, quantity, avg_method = 'GM', theta=0, phi=0, savefig = False):
@@ -67,8 +70,6 @@ class TimePlots:
             J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
 
             plt.semilogy(self.time_axis,J_directional_projection)
-
-            plt.semilogy(range(self.nt),J_directional_projection)
 
             ax.set_ylabel(r"$eV^3$")
 
@@ -87,6 +88,13 @@ class TimePlots:
 
             ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
 
+        elif quantity == 'H_LR_components':
+            H_LR=self.H_LR(None, theta, phi)
+            for n in range(3):
+                for m in range(3):
+                    plt.semilogy(self.time_axis,np.abs(H_LR[:,n,m]), label = str(n)+'-'+ str(m))
+            ax.legend()
+                    
 
             #NOT ADAPTED THESE YET
   #      elif quantity == 'H_LR_00':
@@ -110,5 +118,5 @@ class TimePlots:
 
 
         if savefig: 
-            plt.savefig(savefig +'.png', dpi=300)
+            plt.savefig(savefig +'.pdf', dpi=300)
 

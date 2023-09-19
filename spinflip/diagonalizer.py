@@ -106,7 +106,7 @@ class Diagonalizer:
         
         if savefig == True: 
             plt.tight_layout()
-            plt.savefig('evolvedstate.png', dpi=300)
+            plt.savefig('evolvedstate.pdf', dpi=300)
         else:
             f.show()
         
@@ -115,13 +115,14 @@ class Diagonalizer:
 #currently only works for quantity = [...] (dont imagine we will use other quantities)
 def multi_H_Plotter(H_array,
                     t_lim_array = 'timescale',
+                    match_timescale = True,
                     quantity_array = np.array([0,1,2,3,4,5]),
                     resolution = 500, 
                     ylim = None, 
                     init_state_array = np.diag([1,0,0,0,0,0]),
                     savefig = False):
     #flavors for labels
-    neutrino_flavors = {0:'e, L', 1:'mu, L', 2:'tau, L', 3:'e, R', 4:'mu, R', 5:'tau, R'}
+    neutrino_flavors = {0:r'$\rho_{ee,L}$', 1:r'$\rho_{\mu\mu,L}$', 2:r'$\rho_{\tau\tau,L}$', 3:r'$\rho_{ee,R}$', 4:r'$\rho_{\mu\mu,R}$', 5:r'$\rho_{\tau\tau,R}$'}
 
     #N is the number of Hamiltonians to be plotted
 
@@ -143,35 +144,43 @@ def multi_H_Plotter(H_array,
     t_lim_array = np.array([Diagonalizer_class_array[i].timescale if t_lim_array[i] == 'timescale' 
                             else t_lim_array[i] 
                                 for i in np.arange(0,N)])    
+    if match_timescale == True:
+        t_lim_array = np.full(N, max(t_lim_array))
+        
     state_vs_time_array = np.array([np.real(Diagonalizer_class_array[i].state_evolution(resolution, t_lim_array[i], init_state_array[i]))
                                 for i in np.arange(0,N)])
     
     
     #make plot
-    f, ax = plt.subplots(1,N, figsize = (4*N,4), squeeze = False, sharey=True)
+    f, ax = plt.subplots(N,1, figsize = (8,8), squeeze = False, sharey=True, sharex  = True)
 
     for n in np.arange(0, N):
         for k in quantity_array[n]:
-            ax[0,n].plot(np.linspace(0,t_lim_array[n],resolution)*1000, state_vs_time_array[n,:,k,k], label = 
+            ax[n,0].plot(np.linspace(0,t_lim_array[n],resolution)*1000, state_vs_time_array[n,:,k,k], label = 
                          neutrino_flavors[k])
     
     #legend
-    plt.legend(fontsize = 10)
+    ax[N//2,0].legend(fontsize = 10)
     
     #axes
-    ax[0,0].set_ylabel('Diagonal Elements')
-    ax[0,N//2].set_xlabel('time (ms)')
+    ax[N//2,0].set_ylabel('Diagonal Elements')
+    ax[N-1,0].set_xlabel('Time (ms)')
     
+    #ylims
     if ylim != None:
         ax[0,0].set_ylim(0,ylim)
     else:
         ax[0,0].set_ylim(0,1)
 
+    #xlims
+    for n in np.arange(0,N):
+        ax[n,0].set_xlim(0, t_lim_array[n]*1000)
+    
     plt.tight_layout()
     plt.minorticks_on()
 
     if type(savefig) == str: 
-        plt.savefig(savefig + '.png', dpi=300)
+        plt.savefig(savefig + '.pdf', dpi=300)
     else:
         f.show()
 
