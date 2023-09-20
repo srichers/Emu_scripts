@@ -19,7 +19,7 @@ mpl.rcParams['ytick.minor.size'] = 4
 mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
-data = np.genfromtxt("/mnt/scratch/shared/3-Henry_NSM_box/i080_j073_k099/reduced0D.dat").transpose()
+data = np.genfromtxt("reduced0D.dat").transpose()
 
 # note, numpy index starts at 0, so subtract 1 from header value
 t = data[1]*1e9
@@ -53,4 +53,4 @@ ax.set_xlim(0,t[-1])
 ax.tick_params(axis='both',which="both", direction="in",top=True,right=True)
 ax.minorticks_on()
 
-plt.savefig("/mnt/scratch/shared/5-figures/flavortrans_i080_j073_k099.pdf", bbox_inches="tight")
+plt.savefig("flavortrans.pdf", bbox_inches="tight")
