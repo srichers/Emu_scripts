@@ -160,7 +160,7 @@ def multi_H_Plotter(H_array,
                          neutrino_flavors[k])
     
     #legend
-    ax[N//2,0].legend(fontsize = 10)
+    ax[N//2,0].legend(fontsize = 12, loc = 'center left', frameon = False)
     
     #axes
     ax[N//2,0].set_ylabel('Diagonal Elements')
