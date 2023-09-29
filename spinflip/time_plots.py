@@ -59,42 +59,41 @@ class TimePlots:
             return np.array([SPclass.H_LR(theta,phi) 
                                for SPclass in self.spin_params_timearray])
         
+    #plots quantity vs time. thetas and phis should be a list of tuples, one per plot in the subplots.
+    def plot(self, quantity, avg_method = 'GM', thetas_and_phis=[(0,0)], savefig = False):
 
-    def plot(self, quantity, avg_method = 'GM', theta=0, phi=0, savefig = False):
+        directions = [[np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)] for theta, phi in thetas_and_phis]
+        N = len(directions)
+        f, ax = plt.subplots(N,1, sharey = True)
+        for n, direction in enumerate(directions):
+        
+            if quantity == 'J_spatial': 
+                J = self.J_spatial_flavoravg(avg_method)
+                J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
+                ax[n].semilogy(self.time_axis,J_directional_projection)
+                ax.set_ylabel(r"$eV^3$")
 
-        direction = [np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)]
-        f, ax = plt.subplots()
+            elif quantity == 'J_time': 
+                J = self.J_time_flavoravg(avg_method)
+                J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
+                ax[n].semilogy(self.time_axis,J_directional_projection)
+                ax.set_ylabel(r"$eV^3$")
+                
+            elif quantity == 'H_LR':
+                theta, phi = thetas_and_phis[n]
+                H_LR=self.H_LR(avg_method, theta, phi)
+                ax[n].semilogy(self.time_axis,H_LR)            
+                ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
 
-        if quantity == 'J_spatial': 
-            J = self.J_spatial_flavoravg(avg_method)
-            J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-
-            plt.semilogy(self.time_axis,J_directional_projection)
-
-            ax.set_ylabel(r"$eV^3$")
-
-        elif quantity == 'J_time': 
-            J = self.J_time_flavoravg(avg_method)
-            J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-
-            plt.semilogy(self.time_axis,J_directional_projection)
-
-            ax.set_ylabel(r"$eV^3$")
-            
-        elif quantity == 'H_LR':
-            H_LR=self.H_LR(avg_method, theta, phi)
-
-            plt.semilogy(self.time_axis,H_LR)            
-
-            ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
-
-        elif quantity == 'H_LR_components':
-            H_LR=self.H_LR(None, theta, phi)
-            for n in range(3):
-                for m in range(3):
-                    plt.semilogy(self.time_axis,np.abs(H_LR[:,n,m]), label = str(n)+'-'+ str(m))
-            ax.legend()
-                    
+            elif quantity == 'H_LR_components':
+                flavor_labels = ['e',r'\mu',r'\tau']
+                theta, phi = thetas_and_phis[n]
+                H_LR=self.H_LR(None, theta, phi)
+                for n in range(3):
+                    for m in range(3):
+                        ax[n].semilogy(self.time_axis,np.abs(H_LR[:,n,m]), label = rf'${flavor_labels[n]} {flavor_labels[m]}$')
+                ax.legend()
+                        
 
             #NOT ADAPTED THESE YET
   #      elif quantity == 'H_LR_00':
@@ -112,7 +111,7 @@ class TimePlots:
   #         plt.plot(t*1E9,np.average(kappa[:,0,0,:], axis=1))
 
   
-        ax.set_xlabel("time (ns)")
+        ax[0].set_xlabel("time (ns)")
         plt.tick_params(axis='both',which="both", direction="in",top=True,right=True)
         plt.minorticks_on()
 
