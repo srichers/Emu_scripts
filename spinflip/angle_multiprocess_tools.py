@@ -26,9 +26,9 @@ from four_current import four_current, read_gradients
 #location = (x,y,z)
 def angle_at_point(args):
     location = args["location"]
-    assert location[0] in args["x_range"], f"x = {location[0]} out of range ({x_range[0]}, {x_range[-1]}))"
-    assert location[1] in args["y_range"], f"y = {location[1]} out of range ({y_range[0]}, {y_range[-1]}))"
-    assert location[2] in args["zs"], f"z = {location[2]} out of range ({zs[0]}, {zs[-1]}))"
+    assert location[0] in args["x_range"]
+    assert location[1] in args["y_range"]
+    assert location[2] in args["zs"]
     #write file location and initialize SpinParams
     emu_filename = args["emu_data_loc"] + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
     SP = sft.SpinParams(t_sim = args["it"], 
