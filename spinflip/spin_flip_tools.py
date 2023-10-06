@@ -933,7 +933,7 @@ class SpinParams:
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/theta_resolution*2*np.pi
-        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, options = {'xtol':xtol},
+        max_thetas = np.array([opt.minimize(find_intercepts, x0 = theta_max_approx, method = method, #options = {'xtol':xtol},
                                           bounds = [(theta_max_approx-search_dist/2,theta_max_approx+search_dist/2)]).x[0]
                              for theta_max_approx in max_thetas_approx])
         
@@ -1060,7 +1060,7 @@ class SpinParams:
         
         #find the exact maxima of the adiabaticity azimuthal function
         search_dist = min_dist_between_peaks/phi_resolution*2*np.pi
-        max_phis = np.array([opt.minimize(find_intercepts, x0 = phi_max_approx, method = method, options = {'xtol':1E-11},
+        max_phis = np.array([opt.minimize(find_intercepts, x0 = phi_max_approx, method = method, #options = {'xtol':1E-11},
                                           bounds = [(phi_max_approx-search_dist/2,phi_max_approx+search_dist/2)]).x[0]
                              for phi_max_approx in max_phis_approx])
 
