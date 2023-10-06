@@ -1362,6 +1362,66 @@ def multi_HLR_Plotter(
     return
 
 
+#plot magnitude of H_LR in certain direction at each point within limits at z slice
 
+def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
+                          z, #z location
+                          it, #timestep
+                          method, #quantity to plot. can be 'GM_magnitude' or a component of H_LR [a,b]
+                          theta, phi, #direction
+                          emu_data_loc,
+                          merger_data_loc,
+                          p_abs,
+                          vmin, vmax,
+                          mark_point = False,
+                          gradient_filename = None,
+                          savefig = False):
+    
+    #rotated data has ELN flux along z
+    merger_grid = h5py.File(merger_data_loc, 'r')
+    
+    #x,y axes
+    xy_limits = np.array(xy_limits)
+    x_km = np.array(merger_grid['x(cm)'])[xy_limits[0,0]:xy_limits[0,1],xy_limits[1,0]:xy_limits[1,1],0] / 1e5
+    y_km = np.array(merger_grid['y(cm)'])[xy_limits[0,0]:xy_limits[0,1],xy_limits[1,0]:xy_limits[1,1],0] / 1e5
+    z_km = np.array(merger_grid['z(cm)'])[0,0,z] / 1e5
+    
+    H_LR_array = np.zeros((xy_limits[0,1] - xy_limits[0,0],
+                           xy_limits[1,1] - xy_limits[1,0])) #x,y
+    
+    for x in range(xy_limits[0,0], xy_limits[0,1]):
+        for y in range(xy_limits[1,0], xy_limits[1,1]):
+            
+            location = [x,y,z]
+            emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
+            
+            SP = SpinParams(t_sim = it,
+                            emu_file = emu_filename,
+                            merger_data_loc = merger_data_loc, 
+                            gradient_filename=gradient_filename,
+                            location = location, 
+                            p_abs=p_abs)
+            H_LR = SP.H_LR(theta, phi)
+            if method == 'GM_magnitude':
+                qty = gm.magnitude(H_LR)
+            elif type(method) == list:
+                qty = np.abs(H_LR[method[0],method[1]])
+            H_LR_array[x-xy_limits[0,0],y-xy_limits[1,0]] = qty
+        
+    
+    plt.figure(figsize=(8,6))
+    plt.pcolormesh(x_km,y_km,
+                    np.log10(H_LR_array), cmap = 'jet',)
+                    #vmin = vmin, vmax = vmax)
+    plt.colorbar()
+
+    if mark_point:
+        plt.scatter([x_km[mark_point[0]-xy_limits[0,0],0]],[y_km[0,mark_point[1] - xy_limits[1,0]]], color = 'black')
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    if savefig:
+        plt.savefig(savefig + '.png', dpi=300)
+    else:
+        plt.show()
     
     
