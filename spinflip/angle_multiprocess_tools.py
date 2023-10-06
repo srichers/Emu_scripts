@@ -115,7 +115,10 @@ class Angles:
         
         #compute angles at each point in ranges using multiprocess
         with Pool(n_cores) as pool:
-            output_angles = pool.map(angle_at_point, iterable)
+            output_angles = []
+            for x in tqdm(pool.imap_unordered(angle_at_point, iterable), total = len(iterable)):
+                output_angles.append(x)
+            #output_angles = pool.map(angle_at_point, iterable)
 
         #reshape output
         output_angles = np.array(output_angles).reshape(len(xs),len(ys),len(zs))
@@ -170,7 +173,7 @@ class Angles:
         #colorbar
         plt.tight_layout()
         f.colorbar(im, label=r'Solid Angle (log)', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
-        
+
         #axis labels
         middle_n = n//2
         ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
@@ -219,7 +222,7 @@ def main(args):
                         **kwargs)
     
     #compute angles
-    angles = Angles_obj.multiprocess_angles(h5_filename)
+    angles = Angles_obj.multiprocess_angles(h5_filename=h5_filename)
     
     #plot angles
     Angles_obj.solid_angles_plot(angles,
@@ -244,7 +247,7 @@ if __name__ == '__main__':
     parser.add_argument("-v", "--vmin", help="vmin for plot", type=float, default=None)
     parser.add_argument("-w", "--vmax", help="vmax for plot", type=float, default=None)
     parser.add_argument("-o", "--savefig", help="where to save plot", type=str, default='solidangleplot')
-    parser.add_argument("-k", "--h5_filename", help="where to save h5 file", type=str, default=None)
+    parser.add_argument("-k", "--h5_filename", help="where to save h5 file", type=str, default="angles")
     parser.add_argument("-a", "--kwargs", help="kwargs for solid angle calculation", type=dict, default={})
     args = parser.parse_args()
     main(args)
