@@ -740,7 +740,7 @@ class SpinParams:
             r'$\frac{2\pi}{3}$',r'$\frac{5\pi}{6}$',
             r'$\pi$']
         plt.yticks(yT, yL, fontsize= fs)
-        ax.set_ylabel(r'$\theta$', rotation=0, )
+        ax.set_ylabel(r'$\theta$ (radians)',fontsize= fs)
         
         #xT=[ -2*np.pi/3, -np.pi/3, 0, np.pi/3, 2*np.pi/3]
         #xL=[  r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$',
@@ -804,14 +804,15 @@ class SpinParams:
             #legend
             f.legend(legend_arts,
                        legend_labels,
-                       fontsize = fs-2,
+                       fontsize = fs,
                        bbox_to_anchor = (0.515, 0.33),
                        frameon = False
                        )
         
             #x,y labels
-            ax_z.set_xlabel(r'$\phi$')
-            ax_z.set_ylabel(r'$\theta$', rotation=0, )
+            ax_z.set_xlabel(r'$\phi$ (radians)',fontsize = fs)
+            ax_z.set_ylabel(r'$\theta$ (radians)',fontsize = fs)
+            ax_z.text(3.15,1.4,"asdf", backgroundcolor = 'white', alpha=0.5,fontsize=12)
             plt.xticks(fontsize = fs)
             plt.yticks(fontsize = fs)
 
