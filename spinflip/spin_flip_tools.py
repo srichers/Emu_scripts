@@ -1260,7 +1260,7 @@ def multi_HLR_Plotter(
     #                               for phi in np.linspace(0, 2*np.pi, phi_resolution)]
     #                               for theta in np.linspace(0, np.pi, theta_resolution)]) 
 
-    f, ax = plt.subplots(1,2, subplot_kw=dict(projection='mollweide'), figsize=(12,4))
+    f, ax = plt.subplots(1,2, subplot_kw=dict(projection='mollweide'), figsize=(10,3.33))
     ax[0]
     
     #find vmin, vmax
@@ -1293,8 +1293,8 @@ def multi_HLR_Plotter(
         
     
     #time text
-    ax[0].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP1.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
-    ax[1].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP2.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
+    ax[0].text(.375, .8, rf'$t$ = {SP1.t_seconds*1E9:.1f} ns', transform=plt.gcf().transFigure)#, backgroundcolor = 'white')
+    ax[1].text(.825, .8, rf'$t$ = {SP2.t_seconds*1E9:.1f} ns', transform=plt.gcf().transFigure)#, backgroundcolor = 'white')
 
     #h1,l1 = res_im_1.legend_elements()
     
@@ -1312,7 +1312,9 @@ def multi_HLR_Plotter(
        # J_avg_2 = np.array([np.abs(np.average(SP2.J[n], axis = 2)[use_gm[0],use_gm[1]]) for n in range(0,4)])
         flavor_labels = {0:'e', 1:r'\mu', 2:r'\tau'}
         subscript = f'{flavor_labels[use_gm[0]]} {flavor_labels[use_gm[1]]}'
-        label = rf"$|J^i_{{subscript}}|$ Direction"
+        print(subscript)
+        #label = rf"$|J^i_{{subscript}}|$ Direction"
+        label = r"$|J^i_{"+subscript+"}|$ Direction"
     else:
         J_avg_1 = np.array([gm.sum_magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
         J_avg_2 = np.array([gm.sum_magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])
@@ -1331,10 +1333,10 @@ def multi_HLR_Plotter(
     #trace_point_2 = ax[1].scatter([np.arctan2(J_trace_2[2],J_trace_2[1])],[np.arctan2(J_trace_2[3],
     #                                    (J_trace_2[1]**2+J_trace_2[2]**2)**(1/2))],  label = r"$|J^{i}|$ Trace", color='cyan')
     #add (electron) neutrino direction point 
-    #flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
+    #flow_direction = np.array(SP1.merger_grid['fn_a(1|ccm)'])[:,merger_data_loc[0],merger_data_loc[1],merger_data_loc[2]]
     #direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
 
-    f.legend(handles = [flux_point_2], loc = (0.435,0.85))
+    f.legend(handles = [flux_point_2], loc = (0.435,0.85), frameon="false")
         
         
     #axes
