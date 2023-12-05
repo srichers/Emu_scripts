@@ -18,8 +18,8 @@ class TimePlots:
         self.emu_data_loc = emu_data_loc
         self.h5file = h5py.File(self.emu_data_loc, "r")
  
-        self.time_axis = np.array(self.h5file["t(s)"])[it_lim[0]:it_lim[1]]*1E9 #ns
-        self.nt = self.time_axis.shape[0]-1
+        self.time_axis = np.array(self.h5file["t(s)"])[it_lim[0]:it_lim[1]+1]*1E9 #ns
+        self.nt = self.time_axis.shape[0]
     
         self.spin_params_timearray = [SpinParams(t, 
                                                  emu_data_loc, 
@@ -93,7 +93,6 @@ class TimePlots:
                     for m in range(3):
                         ax[n].semilogy(self.time_axis,np.abs(H_LR[:,n,m]), label = rf'${flavor_labels[n]} {flavor_labels[m]}$')
                 ax.legend()
-                        
 
             #NOT ADAPTED THESE YET
   #      elif quantity == 'H_LR_00':
