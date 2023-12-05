@@ -675,7 +675,7 @@ class SpinParams:
                                 vmin = -8, vmax = -5,
                                 zoom_resolution = 50, initvector = None, 
                                 flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
-                                method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)],
+                                method = 'Nelder-Mead', bounds =[(0, np.pi)],
                                 fs = 20, 
                                 savefig=False,  linearPlot = True):
         
@@ -740,7 +740,7 @@ class SpinParams:
             r'$\frac{2\pi}{3}$',r'$\frac{5\pi}{6}$',
             r'$\pi$']
         plt.yticks(yT, yL, fontsize= fs)
-        ax.set_ylabel(r'$\theta$ (radians)',fontsize= fs)
+        ax.set_ylabel(r'$\theta$ (rad)',fontsize= fs)
         
         #xT=[ -2*np.pi/3, -np.pi/3, 0, np.pi/3, 2*np.pi/3]
         #xL=[  r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$',
@@ -805,14 +805,13 @@ class SpinParams:
             f.legend(legend_arts,
                        legend_labels,
                        fontsize = fs,
-                       bbox_to_anchor = (0.515, 0.33),
+                       bbox_to_anchor = (0.51, 0.27),
                        frameon = False
                        )
-        
+
             #x,y labels
-            ax_z.set_xlabel(r'$\phi$ (radians)',fontsize = fs)
-            ax_z.set_ylabel(r'$\theta$ (radians)',fontsize = fs)
-            ax_z.text(3.15,1.4,"asdf", backgroundcolor = 'white', alpha=0.5,fontsize=12)
+            ax_z.set_xlabel(r'$\phi$ (rad)',fontsize = fs)
+            ax_z.set_ylabel(r'$\theta$ (rad)',fontsize = fs)
             plt.xticks(fontsize = fs)
             plt.yticks(fontsize = fs)
 
@@ -821,8 +820,11 @@ class SpinParams:
             ax_z.set_ylim(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0])
             ax_z.invert_yaxis()
 
-        #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
-        plt.tight_layout(pad = 2)           
+            # Increase the pad between the subplots
+            f.subplots_adjust(wspace=0.25)
+
+            #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
+            #plt.tight_layout()          
 
         
         #savefig
@@ -835,7 +837,7 @@ class SpinParams:
         #add linearPlot graphic
         if linearPlot == True:
             self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
-    
+        return theta_optimal
 
 
     #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
@@ -1310,7 +1312,7 @@ def multi_HLR_Plotter(
        # J_avg_2 = np.array([np.abs(np.average(SP2.J[n], axis = 2)[use_gm[0],use_gm[1]]) for n in range(0,4)])
         flavor_labels = {0:'e', 1:r'\mu', 2:r'\tau'}
         subscript = f'{flavor_labels[use_gm[0]]} {flavor_labels[use_gm[1]]}'
-        label = rf"$|J^i_{subscript}|$ Direction"
+        label = rf"$|J^i_{{subscript}}|$ Direction"
     else:
         J_avg_1 = np.array([gm.sum_magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
         J_avg_2 = np.array([gm.sum_magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])
@@ -1389,12 +1391,17 @@ def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
     H_LR_array = np.zeros((xy_limits[0,1] - xy_limits[0,0],
                            xy_limits[1,1] - xy_limits[1,0])) #x,y
     
-    for x in range(xy_limits[0,0], xy_limits[0,1]):
+    for x in tqdm(range(xy_limits[0,0], xy_limits[0,1])):
         for y in range(xy_limits[1,0], xy_limits[1,1]):
             
             location = [x,y,z]
-            emu_filename = emu_data_loc + "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])+"/allData.h5"
-            
+            filename = "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])
+            emu_filename = emu_data_loc + filename +"/allData.h5"
+            if         filename not in list(os.listdir(emu_data_loc)) \
+                or 'allData.h5' not in list(os.listdir(emu_data_loc+filename)):
+                H_LR_array[x-xy_limits[0,0],y-xy_limits[1,0]] = 0
+                print('no data at ', location)
+                continue
             SP = SpinParams(t_sim = it,
                             emu_file = emu_filename,
                             merger_data_loc = merger_data_loc, 
