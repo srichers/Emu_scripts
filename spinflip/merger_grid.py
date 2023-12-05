@@ -107,9 +107,9 @@ class Merger_Grid:
             #chosen points
             if x[k] != None and y[k] != None:
                 points = ax[0,k].scatter(self.x_km[x[k],y[k]],self.y_km[x[k],y[k]], color = 'lime', marker = 'x')
-
+        
             #adiabaticity computation region
-            if rect_xmin[k] != None and rect_xmax[k] != None and rect_ymin[k] != None and rect_ymax[k] != None:
+            if type(rect_xmin) != type(None) and type(rect_xmax) != type(None) and type(rect_ymin) != type(None) and type(rect_ymax) != type(None):
                 ax[0,k].add_patch(plt.Rectangle((self.x_km[rect_xmin[k],rect_ymin[k]],self.y_km[rect_xmin[k],rect_ymin[k]]),
                                     self.x_km[rect_xmax[k],rect_ymax[k]]-self.x_km[rect_xmin[k],rect_ymin[k]],
                                     self.y_km[rect_xmax[k],rect_ymax[k]]-self.y_km[rect_xmin[k],rect_ymin[k]],
@@ -123,8 +123,10 @@ class Merger_Grid:
         proxy = [plt.Rectangle((1, 1), 2, 2, fc=ELNcolor),
                  plt.Rectangle((1, 1), 2, 2, fc=resonancecolor),
                  plt.Rectangle((1, 1), 2, 2, fc=bothcolor_fill),
-                 plt.Rectangle((1, 1), 2, 2, ec=adiabcolor, fc = 'gray', linestyle = 'dashed'),
-                 points]
+                 plt.Rectangle((1, 1), 2, 2, ec=adiabcolor, fc = 'gray', linestyle = 'dashed')]
+        if x[0] != None and y[0] != None:
+            proxy.append(points)
+        
         
         ax[0,-1].legend(proxy, ["Fast Flavor Instability Exists", 
                              "Spin-flip Resonance Exists",

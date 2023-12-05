@@ -43,8 +43,8 @@ ax.plot(t, Nmm, color="green", linestyle="-", label=r"$n_{\nu_\mu}=n_{\bar{\nu}_
 ax.plot(t, Ntt, color="red", linestyle="-", label=r"$n_{\nu_\tau}=n_{\bar{\nu}_\tau}$")
 
 legend = ax.legend(frameon=False, labelspacing=0.25,fontsize=22)
-ax.set_xlabel("t (ns)")
-ax.set_ylabel("$n_{ab}$ ($10^{32}$ g cm$^{-3}$)")
+ax.set_xlabel("Time (ns)")
+ax.set_ylabel("$n$ ($10^{32}$ g cm$^{-3}$)")
 ax.set_xlim(0,t[-1])
 
 #=================#
