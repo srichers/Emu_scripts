@@ -204,7 +204,7 @@ class Gradients:
         plt.xlabel('x index')
         plt.ylabel('y index')
         if savefig == True:
-            plt.savefig('min_gradient.png')
+            plt.savefig('min_gradient.pdf')
         else:
             plt.show()
        
@@ -269,12 +269,12 @@ class Gradients:
 
         f.colorbar(im, label=r'log$(\gamma)$', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
         middle_n = n//2
-        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
-        ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
-        #ax[0,middle_n].set_title('Average Adiabaticity in Resonant Directions at Each Cell', fontsize = 16, pad = 20,)
+        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)')
+        ax[0,0].set_ylabel(r'$y$-coordinate (km)')
+        #ax[0,middle_n].set_title('Average Adiabaticity in Resonant Directions at Each Cell', pad = 20,)
 
         if type(savefig) == str: 
-            f.savefig(savefig + '.png', dpi=300, bbox_inches = 'tight')
+            f.savefig(savefig + '.pdf', dpi=300, bbox_inches = 'tight')
 
         
         
@@ -548,9 +548,46 @@ class SpinParams:
             
         if type(savefig) == str: 
             plt.tight_layout()
-            plt.savefig(savefig + '.png', dpi=300)
+            plt.savefig(savefig + '.pdf', dpi=300)
 
-
+    #H_component_plotter: plots diagonals of H vs theta for a given phi. shows appearance of resonance bands
+    def H_component_plotter(self,
+                            phi,
+                            components, 
+                            resolution,
+                            savefig = None): 
+        
+        #calculate hamiltonians at each theta                    
+        Hs = [self.H(theta,phi) for theta in np.linspace(0,np.pi,resolution)]
+        labels = {0:r"$H^{ee}_L$",
+                  1:r"$H^{xx}_L$",
+                  2:r"$H^{\tau\tau}_L$",
+                  3:r"$H^{ee}_R$",
+                  4:r"$H^{xx}_R$",
+                  5:r"$H^{\tau\tau}_R$"}
+        
+        plt.figure(figsize=(8,6))
+        #plot each component
+        for c in components:
+            plt.plot(np.linspace(0,np.pi,resolution),[H[c,c]*1E4 for H in Hs],label = labels[c])
+        
+        #plot parameters
+        plt.xlim(0,np.pi)
+        xT = np.linspace(0,np.pi,5)
+        xL = [r"$0$",r"$\frac{1}{4}\pi$",r"$\frac{1}{2}\pi$",r"$\frac{3}{4}\pi$",r"$\pi$"]
+        plt.xticks(xT,xL)
+        plt.xlabel(r"$\theta$")
+        plt.ylabel(r"Diagonals of $H$ $(eV \times 10^{-4})$")
+        plt.legend(frameon = False)
+        plt.tight_layout()
+        
+        #savefig
+        if savefig:
+            plt.savefig(savefig + '.pdf', dpi=300)
+        else:
+            plt.show()
+            
+            
     #########################
     ##Eigenvector resonance##
     #########################
@@ -595,7 +632,7 @@ class SpinParams:
     
     #Omega parameter at resonant theta as described in paper. Mostly defined for use in scipy optimization functions.
     #negate = True returns -1*omega for minimize
-    def Omega(self, theta, phi, negate = False): 
+    def Omega(self, theta, phi, N_f = 3, negate = False): 
         if type(theta)  == np.ndarray: #opt is calling in theta as a list ( [theta] ) instead of just theta. This is leading to a ragged nested sequence bug. This fixes it (sloppily)
                 theta = theta[0]
         if type(negate) == np.ndarray:
@@ -605,13 +642,13 @@ class SpinParams:
         left_minus_right = [abs(np.linalg.norm(eigenvectors[0:3,n])**2 - np.linalg.norm(eigenvectors[3:6,n])**2)
                             for n in range(0,6)]
         if negate:
-            return -1*(np.sqrt(2)*3)*np.sqrt(1 - min(left_minus_right))
+            return -1*(2*N_f**2)*np.sqrt(1 - min(left_minus_right))
         else:
-            return    (np.sqrt(2)*3)*np.sqrt(1 - min(left_minus_right))
+            return    (2*N_f**2)*np.sqrt(1 - min(left_minus_right))
     
-    def maxOmega(self, phi=0, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)], min_eigenvec = False):
+    def maxOmega(self, phi=0, N_f = 3, method='Nelder-Mead', bounds = [(np.pi/4, 3*np.pi/4)]):
         x0 = (bounds[0][0]+bounds[0][1])/2
-        optimal = opt.minimize(self.Omega, x0 = x0, args = (phi, True), bounds = bounds,  method = method)
+        optimal = opt.minimize(self.Omega, x0 = x0, args = (phi, N_f, True), bounds = bounds,  method = method)
         return optimal.x[0], optimal.fun
     
     #returns the resonant ket at each resonant theta in thetas
@@ -633,47 +670,51 @@ class SpinParams:
     #zoom is None (giving a full mollweide plot like angularPlot) or a number (giving a zoomed in plot around phi_optimal, theta_optimal)
     def angularEigenvectorPlot(self, theta_resolution, phi_resolution,
                                 value = 'Omega', # = 'lminusr' or 'rmax' or 'Omega'
-                                phi_optimal = np.pi, zoom = None, shift = [0,0],
+                                phi_optimal = np.pi, theta_optimal = None, #if none, it will be calculated
+                                zoom = None, shift = [0,0],
                                 vmin = -8, vmax = -5,
                                 zoom_resolution = 50, initvector = None, 
-                                method = 'Nelder-Mead', bounds =[(np.pi/4, 3*np.pi/4)], 
+                                flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
+                                method = 'Nelder-Mead', bounds =[(0, np.pi)],
+                                fs = 20, 
                                 savefig=False,  linearPlot = True):
         
         if type(initvector) == type(None):
             initvector =  self.initial_ket
         
         if value == 'lminusr':
-            theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
+            if theta_optimal == None:
+                theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
             colorplot_vals = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
                                 for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
                                 for theta in np.linspace(0, np.pi,   theta_resolution)]))
 
         elif value == 'rmax':
-            theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
+            if theta_optimal == None:
+                theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
             colorplot_vals = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
                                 for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
                                 for theta in np.linspace(0, np.pi,   theta_resolution)]))
         
         elif value == 'Omega':
-            theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
-            colorplot_vals = np.log10(np.array([[self.Omega(theta,phi)
+            if theta_optimal == None:
+                theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
+            colorplot_vals = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
                                 for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
                                 for theta in np.linspace(0, np.pi,   theta_resolution)]))
            
         
         print('theta_optimal = ', str(theta_optimal),
-             ' along phi = ', str(phi_optimal),
-             ' with max_right = ', str(max_right))
+             ' along phi = ', str(phi_optimal))
         
-        f = plt.figure(figsize=(8,6))
+        f = plt.figure(figsize=(16,12))
         if zoom == None:
             ax = f.add_subplot(projection = 'mollweide') 
         else:
             ax = f.add_subplot(121,projection = 'mollweide') 
-
         ax.grid(False)
 
-         #colorplot
+        #colorplot
         colorplot_im = ax.pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
                                 np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
                                 colorplot_vals, 
@@ -681,15 +722,6 @@ class SpinParams:
         if zoom == None:
             plt.colorbar(colorplot_im)
 
-        #resonance 
-        resonance_array = np.array([[self.resonance(theta,phi)
-                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi, theta_resolution)]) 
-        res_im = ax.contour(np.linspace(-np.pi, np.pi, phi_resolution),
-                            np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
-                           resonance_array, levels=[0.], colors='cyan', zorder = 1)
-        h1,l1 = res_im.legend_elements()
-        
         #add net flux point 
         #J_avg = np.array([gm.magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
         #flux_point = ax.scatter([np.arctan2(J_avg[2],J_avg[1])],[np.arctan2(J_avg[3],
@@ -707,26 +739,17 @@ class SpinParams:
         yL=[0, r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$',r'$\frac{\pi}{2}$',
             r'$\frac{2\pi}{3}$',r'$\frac{5\pi}{6}$',
             r'$\pi$']
-        plt.yticks(yT, yL)
-        ax.set_ylabel(r'$\theta$', rotation=0, labelpad = 8, fontsize = 14)
+        plt.yticks(yT, yL, fontsize= fs)
+        ax.set_ylabel(r'$\theta$ (rad)',fontsize= fs)
         
         #xT=[ -2*np.pi/3, -np.pi/3, 0, np.pi/3, 2*np.pi/3]
         #xL=[  r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$',
         #    r'$\pi$',r'$\frac{4\pi}{3}$',
         #    r'$\frac{5\pi}{3}$']
-        plt.xticks([],[], zorder = 10, fontsize = 12)
+        plt.xticks([],[], zorder = 10, fontsize = fs)
         #ax.tick_params(axis='x', pad=100)        
         #ax.set_zorder(10)
         
-        #legend
-        plt.legend([h1[0], 
-                        plt.Rectangle((1, 1), 2, 2, ec= 'magenta', fc = 'white', linestyle = 'dashed')], 
-                        ["Simplified Resonance Condition Satisfied",
-                          'Zoomed-In Region'],
-                          bbox_to_anchor=(0.75, -0.1), fontsize = 10
-                         )
-
-        #ax.set_title('Full Angular Plot')
         #add zoomed in graphic
         if type(zoom) == float:
             f.set_size_inches(12.3,4.5)
@@ -735,15 +758,15 @@ class SpinParams:
             if value == 'lminusr':
                  colorplot_vals_zoom = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
                                     for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0] , zoom_resolution)]))
+                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0] , zoom_resolution)]))
             elif value == 'rmax':
                  colorplot_vals_zoom = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
                                     for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0], zoom_resolution)]))
+                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
             elif value == 'Omega':
-                 colorplot_vals_zoom = np.log10(np.array([[self.Omega(theta, phi)
+                 colorplot_vals_zoom = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
                                     for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0], zoom_resolution)]))
+                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
             
             #colorplot
             colorplot_im_z = ax_z.pcolormesh(
@@ -753,57 +776,68 @@ class SpinParams:
                                 cmap=plt.cm.hot, shading='auto',  vmin = vmin, vmax = vmax)
             cbar = f.colorbar(colorplot_im_z)
             cbar.ax.set_ylabel(r'log$(\Omega)$', 
-                         fontsize = 14, labelpad=10)
-
-            #resonance
-            resonance_array_zoom = np.array([[self.resonance(theta,phi)
+                          labelpad=10, fontsize = fs)
+            cbar.ax.tick_params(labelsize=fs)
+            #loop through chosen simplified resonances, find them and plot them
+            neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'} #label names (x because its for a general heavy lepton flavor.)
+            legend_arts   = [] #for legend
+            legend_labels = []
+            for n,k,color in flavor_resonances:
+                resonance_array = np.array([[self.resonance(theta, phi, resonance_type = [n,k+3]) 
                                     for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0], zoom_resolution)])
-            res_im_z = ax_z.contour(
+                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)])
+                contour = ax_z.contour(
                                 np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution), 
                                 np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution),
-                                resonance_array_zoom, levels=[0.], colors='cyan')
-            
-            #max point
-            #max_point_plot = ax_z.scatter([phi_optimal],
-            #                        [theta_optimal],
-            #                        label = 'maximum Right-Handed Component', 
-            #                        color='magenta')
-            
+                                resonance_array, levels=[0.], colors=color, linestyles = 'dashed')       
+                art, label = contour.legend_elements()
+                legend_arts.append(art[0])
+                legend_labels.append(rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$')  
+                                          
             # Create a Rectangle patch
-            rect = mpl.patches.Rectangle((phi_optimal-zoom - np.pi, np.pi/2-(theta_optimal+zoom)),
+            rect = mpl.patches.Rectangle(( phi_optimal   - np.pi   - zoom - shift[1],
+                                          -theta_optimal + np.pi/2 - zoom - shift[0], ),
                                           2*zoom, 2*zoom, linewidth=1, 
-                                          edgecolor='magenta', facecolor='none', linestyle = 'dashed')
+                                          edgecolor='white', facecolor='none', linestyle = 'dashed')
             ax.add_patch(rect)
 
+            #legend
+            f.legend(legend_arts,
+                       legend_labels,
+                       fontsize = fs,
+                       bbox_to_anchor = (0.51, 0.27),
+                       frameon = False
+                       )
+
             #x,y labels
-            ax_z.set_xlabel(r'$\phi$', fontsize = 14)
-            ax_z.set_ylabel(r'$\theta$', rotation=0, labelpad = 8, fontsize = 14)
-            plt.xticks(fontsize = 10)
-            plt.yticks(fontsize = 10)
+            ax_z.set_xlabel(r'$\phi$ (rad)',fontsize = fs)
+            ax_z.set_ylabel(r'$\theta$ (rad)',fontsize = fs)
+            plt.xticks(fontsize = fs)
+            plt.yticks(fontsize = fs)
 
             #x,y limits
             ax_z.set_xlim(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1])
             ax_z.set_ylim(theta_optimal - zoom + shift[0], theta_optimal + zoom + shift[0])
+            ax_z.invert_yaxis()
 
-            
-            
-            #ax_z.set_title('Zoomed-in Angular Plot')
+            # Increase the pad between the subplots
+            f.subplots_adjust(wspace=0.25)
 
+            #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
+            #plt.tight_layout()          
 
-
-        #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
-        plt.tight_layout(pad = 2)           
-
-        #add linearPlot graphic
-        if linearPlot == True:
-            self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
-    
-
+        
+        #savefig
         if type(savefig) == str: 
             f.savefig(savefig + '.png', dpi=300)
         else:
             plt.show()
+            
+            
+        #add linearPlot graphic
+        if linearPlot == True:
+            self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
+        return theta_optimal
 
 
     #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
@@ -814,29 +848,31 @@ class SpinParams:
                               zoom = None, shift = 0, phi_optimal= np.pi,
                               method = 'Nelder-Mead', vmax = None,
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
-                              extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'cyan'), (1,1,'lime'), (0,2,'magenta')],
+                              extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
+                              fs = 20, #fontsize
                               savefig = False):
     
         #factor to multiply the y axis by. Have to manually change the label 
-        factor = 10000
+        factor = 1E6
 
         plt.figure(figsize = (8,6))
-        plt.xlabel(r'$\theta$', fontsize = 14)
-
-        
+        plt.xlabel(r'$\theta$', fontsize = fs)
+        plt.locator_params(axis='x', nbins=7)
+        plt.xticks(fontsize = fs)
+        plt.yticks(fontsize = fs)
 
         #find theta_optimal and set y-axis label
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$1- |L - R|$ $(\times 10^{-4})$')
+            plt.ylabel(r'$1- |L - R|$ $(\times 10^{-6})$', fontsize = fs)
         elif value == 'rmax':
             if type(initvector) == type(None):
                 initvector =  self.initial_ket
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$r_{max}$ $(\times 10^{-4})$')
+            plt.ylabel(r'$r_{max}$ $(\times 10^{-6})$', fontsize = fs)
         elif value == 'Omega':
             theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$\Omega$ $(\times 10^{-4})$')
+            plt.ylabel(r'$\Omega$ $(\times 10^{-6})$', fontsize = fs)
             
         #find bounds of plot accourding to zoom
         if zoom == None:
@@ -875,12 +911,12 @@ class SpinParams:
             extra_thetas_vlines = plt.vlines(extra_thetas, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
 
         #plot vlines
-        neutrino_flavors = {0:'$e$', 1:'$\mu$', 2:r'$\tau$'}
+        neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'}
         resonant_thetas = []
         for n,k,color in flavor_resonances:
             resonant_thetas.append((self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]), n,k,color))
         for theta,n,k,color in resonant_thetas:
-            plt.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'{neutrino_flavors[n]} $\rightarrow$ {neutrino_flavors[k]} resonance', color = color)
+            plt.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', color = color)
         
         if max_point:
             max_point_vline =  plt.vlines([theta_optimal],[0],[factor*max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
@@ -890,11 +926,12 @@ class SpinParams:
         if extra_lines != None:
             extra_vlines = plt.vlines(extra_lines, [0], [factor*max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
 
-        plt.legend()
+        plt.legend(frameon = False, fontsize = fs-2, bbox_to_anchor = (0.28,0.7))
         plt.minorticks_on()
-
+        plt.tight_layout()
+        
         if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+            plt.savefig(savefig + '.pdf', dpi=300)
         
         if max_point:
             return theta_optimal
@@ -1008,28 +1045,36 @@ class SpinParams:
     def azimuthalGradientsPlot(self, phi_resolution = 300, savefig=False, vmax = 1E-5, resonance_type = None):
         #factors to scale plots by to avoid the scale number in the corner. Have to manually change the label
         factor_grad = 1E14
-        factor_gamma = 1E7
+        factor_gamma = 1E8
         
         phis = np.linspace(0, 2*np.pi, phi_resolution)
         gradients = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[0] for phi in phis])
         adiab     = np.array([self.resonantGradAndAdiabaticity(phi, resonance_type=resonance_type)[1] for phi in phis])        
         
-        f, ax = plt.subplots(2,1, figsize=(10,7), sharex = True)
+        f, ax = plt.subplots(2,1, figsize=(8,8), sharex = True)
+        
+        #gradient plot
         ax[0].plot(phis, gradients*factor_grad)
-        #shade region of plot where adiab>1
-        ax[0].set_ylabel(r'$|\nabla_{\nu} [H_{L}]_{ee}| \ \  (eV \times 10^{-14}) $', fontsize = 14)
+        ax[0].set_ylabel(r'$|\nabla_{\nu} H_{L}^{ee}| \ \  (eV^2 \times 10^{-14}) $')
 
+        #adiabaticity
         ax[1].plot(phis,adiab*factor_gamma)
-        ax[1].set_xlabel(r'$\phi$', fontsize = 14)
-        ax[1].set_ylabel(r'$\gamma$  $(\times 10^{-7})$', fontsize = 14)
+        ax[1].set_xlabel(r'$\phi$')
+        ax[1].set_ylabel(r'$\gamma$  $(\times 10^{-8})$')
         ax[1].set_ylim(-vmax/30,vmax)
         ax[1].set_xlim(0,2*np.pi)
 
+        #label x ticks in radians, fractions of pi
+        xT=[0, np.pi/2, np.pi, 3*np.pi/2, 2*np.pi]
+        xL=[r'$0$', r'$\frac{1}{2}\pi$', r'$\pi$', r'$\frac{3}{2}\pi$', r'$2\pi$']
+        plt.xticks(xT, xL)
+
         plt.tight_layout()
         plt.minorticks_on()
+        plt.xticks(xT, xL)
 
         if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+            plt.savefig(savefig + '.pdf', dpi=300)
     
     
     #calculates total angular width of resonance band that satisfies adiabaticity> adiabaticity_threshold 
@@ -1153,18 +1198,19 @@ class SpinParams:
        
         return solid_angle
         
+#plots H_LR angular distribution for an initial and final time (before, after instability.)
 def multi_HLR_Plotter( 
-                    t_sim_1, t_sim_2,
-                    emu_file,
-                    merger_data_loc,
-                    location,
-                    p_abs,
-                    theta_resolution,
-                    phi_resolution, 
-                    resonance_type = 'simplified',
+                    t_sim_1, t_sim_2, #time indices for inital and final plot
+                    emu_file,         #file location of emu data
+                    merger_data_loc,  #file location of merger data
+                    location,         #location of point for angular dist
+                    p_abs,            
+                    theta_resolution, #resolution of angular plot
+                    phi_resolution,   #resolution of angular plot
+                    resonance_type = 'simplified', #resonance type for resonance band
                     savefig=False,
-                    use_gm=True,
-                    direction_point=False):
+                    use_gm=True, #if [a,b] plots the [a,b] component of H_LR
+                    ):
     
     SP1 = SpinParams(t_sim_1,
                     emu_file,
@@ -1190,6 +1236,13 @@ def multi_HLR_Plotter(
         H_LR_array_2 = np.array([[gm.magnitude(SP2.H_LR(theta, phi))
                                 for phi in np.linspace(0, 2*np.pi, phi_resolution)]
                                 for theta in np.linspace(0, np.pi, theta_resolution)])
+    elif type(use_gm)==list:
+        H_LR_array_1 = np.array([[np.abs(SP1.H_LR(theta, phi)[use_gm[0],use_gm[1]])
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
+        H_LR_array_2 = np.array([[np.abs(SP2.H_LR(theta, phi)[use_gm[0],use_gm[1]])
+                                for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+                                for theta in np.linspace(0, np.pi, theta_resolution)])
     else: 
         H_LR_array_1 = np.array([[gm.sum_magnitude(SP1.H_LR(theta, phi)) 
                                 for phi in np.linspace(0, 2*np.pi, phi_resolution)]
@@ -1198,38 +1251,44 @@ def multi_HLR_Plotter(
                                 for phi in np.linspace(0, 2*np.pi, phi_resolution)]
                                 for theta in np.linspace(0, np.pi, theta_resolution)])
 
-    resonance_array_1 = np.array([[SP1.resonance(theta,phi)
-                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
-                                   for theta in np.linspace(0, np.pi, theta_resolution)]) 
+    #resonance_array_1 = np.array([[SP1.resonance(theta,phi)
+    #                               for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+    #                               for theta in np.linspace(0, np.pi, theta_resolution)]) 
 
 
-    resonance_array_2 = np.array([[SP2.resonance(theta,phi)
-                                   for phi in np.linspace(0, 2*np.pi, phi_resolution)]
-                                   for theta in np.linspace(0, np.pi, theta_resolution)]) 
+    #resonance_array_2 = np.array([[SP2.resonance(theta,phi)
+    #                               for phi in np.linspace(0, 2*np.pi, phi_resolution)]
+    #                               for theta in np.linspace(0, np.pi, theta_resolution)]) 
 
     f, ax = plt.subplots(1,2, subplot_kw=dict(projection='mollweide'), figsize=(12,4))
     ax[0]
+    
+    #find vmin, vmax
+    vmax = np.max([np.max(H_LR_array_1*scalefactor), np.max(H_LR_array_2*scalefactor)])
+    vmin = np.min([np.min(H_LR_array_1*scalefactor), np.min(H_LR_array_2*scalefactor)])
     
     #colorplot
     H_LR_im_1 = ax[0].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
                             np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
                             H_LR_array_1*scalefactor, 
-                            cmap=plt.cm.hot, shading='auto')
+                            cmap=plt.cm.hot, shading='auto',
+                            vmin = vmin, vmax = vmax)
 
     H_LR_im_2 = ax[1].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
                             np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
                             H_LR_array_2*scalefactor, 
-                            cmap=plt.cm.hot, shading='auto')
+                            cmap=plt.cm.hot, shading='auto',
+                            vmin = vmin, vmax = vmax)
 
 
 
     #resonance 
-    res_im_1 = ax[0].contour(np.linspace(-np.pi, np.pi, phi_resolution),
-                        np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
-                        resonance_array_1, levels=[0.], colors='cyan')
-    res_im_2 = ax[1].contour(np.linspace(-np.pi, np.pi, phi_resolution),
-                        np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
-                        resonance_array_2, levels=[0.], colors='cyan')
+    #res_im_1 = ax[0].contour(np.linspace(-np.pi, np.pi, phi_resolution),
+    #                    np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+    #                     resonance_array_1, levels=[0.], colors='cyan')
+    # res_im_2 = ax[1].contour(np.linspace(-np.pi, np.pi, phi_resolution),
+    #                     np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+    #                     resonance_array_2, levels=[0.], colors='cyan')
         
         
     
@@ -1237,24 +1296,45 @@ def multi_HLR_Plotter(
     ax[0].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP1.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
     ax[1].text(-0.7*np.pi, 0.25*np.pi, rf'$t$ = {SP2.t_seconds*1E9:.1f} ns', backgroundcolor = 'white')
 
-    h1,l1 = res_im_1.legend_elements()
+    #h1,l1 = res_im_1.legend_elements()
     
     
 
     #add net flux point 
-    J_avg_1 = np.array([gm.magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
+    if use_gm == True:
+        J_avg_1 = np.array([gm.magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
+        J_avg_2 = np.array([gm.magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])  
+        label = r"$|J^{i}|$ Direction"     
+    elif type(use_gm)==list:
+        J_avg_1 = np.array([np.real(np.trace(np.average(SP1.J[n], axis = 2))) for n in range(0,4)])
+        J_avg_2 = np.array([np.real(np.trace(np.average(SP2.J[n], axis = 2))) for n in range(0,4)])
+       # J_avg_1 = np.array([np.abs(np.average(SP1.J[n], axis = 2)[use_gm[0],use_gm[1]]) for n in range(0,4)])
+       # J_avg_2 = np.array([np.abs(np.average(SP2.J[n], axis = 2)[use_gm[0],use_gm[1]]) for n in range(0,4)])
+        flavor_labels = {0:'e', 1:r'\mu', 2:r'\tau'}
+        subscript = f'{flavor_labels[use_gm[0]]} {flavor_labels[use_gm[1]]}'
+        label = rf"$|J^i_{{subscript}}|$ Direction"
+    else:
+        J_avg_1 = np.array([gm.sum_magnitude(np.average(SP1.J[n], axis = 2)) for n in range(0,4)])
+        J_avg_2 = np.array([gm.sum_magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])
+        label = r"$|J^{i}|$ Direction"     
+
+    
+    
     flux_point_1 = ax[0].scatter([np.arctan2(J_avg_1[2],J_avg_1[1])],[np.arctan2(J_avg_1[3],
-                                        (J_avg_1[1]**2+J_avg_1[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
+                                        (J_avg_1[1]**2+J_avg_1[2]**2)**(1/2))],  label = label, color='lime')
     
-    J_avg_2 = np.array([gm.magnitude(np.average(SP2.J[n], axis = 2)) for n in range(0,4)])        
     flux_point_2 = ax[1].scatter([np.arctan2(J_avg_2[2],J_avg_2[1])],[np.arctan2(J_avg_2[3],
-                                        (J_avg_2[1]**2+J_avg_2[2]**2)**(1/2))],  label = 'ELN Flux Direction', color='lime')
+                                        (J_avg_2[1]**2+J_avg_2[2]**2)**(1/2))],  label = label, color='lime')
     
+    #trace_point_1 = ax[0].scatter([np.arctan2(J_trace_1[2],J_trace_1[1])],[np.arctan2(J_trace_1[3],
+    #                                    (J_trace_1[1]**2+J_trace_1[2]**2)**(1/2))],  label = r"$|J^{i}|$ Trace", color='cyan')
+    #trace_point_2 = ax[1].scatter([np.arctan2(J_trace_2[2],J_trace_2[1])],[np.arctan2(J_trace_2[3],
+    #                                    (J_trace_2[1]**2+J_trace_2[2]**2)**(1/2))],  label = r"$|J^{i}|$ Trace", color='cyan')
     #add (electron) neutrino direction point 
     #flow_direction = np.array(self.merger_grid['fn_a(1|ccm)'])[:,self.location[0],self.location[1],self.location[2]]
     #direction_point = ax.scatter([np.arctan2(flow_direction[1],flow_direction[0])],[np.arctan2(flow_direction[2], (flow_direction[0]**2+flow_direction[1]**2)**(1/2))],  label = 'Neutrino Flow Direction', color='magenta')
 
-    f.legend([h1[0], flux_point_2], [r"$e\rightarrow e$ resonance", r"$|J^{i}|$ Direction"], loc = (0.435,0.85))
+    f.legend(handles = [flux_point_2], loc = (0.435,0.85))
         
         
     #axes
@@ -1272,18 +1352,83 @@ def multi_HLR_Plotter(
     ax[0].set_xticks([], [])
     ax[1].set_xticks([], [])
     
-    ax[0].set_ylabel(r'$\theta$', rotation = 0, labelpad = 8, fontsize = 14)
+    ax[0].set_ylabel(r'$\theta$', rotation = 0, labelpad = 8)
     f.tight_layout(pad = 1.6)
     f.colorbar(H_LR_im_2, label=r"$|H_{LR}| \ (eV \times 10^{-13})$", location = 'bottom',ax=ax.ravel().tolist(),
                pad = 0.1, aspect = 30)
 
     if type(savefig) == str: 
-        plt.savefig(savefig + '.png', dpi=300)
+        plt.savefig(savefig + '.pdf', dpi=300)
 
     plt.show()
     return
 
 
+#plot magnitude of H_LR in certain direction at each point within limits at z slice
 
+def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
+                          z, #z location
+                          it, #timestep
+                          method, #quantity to plot. can be 'GM_magnitude' or a component of H_LR [a,b]
+                          theta, phi, #direction
+                          emu_data_loc,
+                          merger_data_loc,
+                          p_abs,
+                          vmin, vmax,
+                          mark_point = False,
+                          gradient_filename = None,
+                          savefig = False):
+    
+    #rotated data has ELN flux along z
+    merger_grid = h5py.File(merger_data_loc, 'r')
+    
+    #x,y axes
+    xy_limits = np.array(xy_limits)
+    x_km = np.array(merger_grid['x(cm)'])[xy_limits[0,0]:xy_limits[0,1],xy_limits[1,0]:xy_limits[1,1],0] / 1e5
+    y_km = np.array(merger_grid['y(cm)'])[xy_limits[0,0]:xy_limits[0,1],xy_limits[1,0]:xy_limits[1,1],0] / 1e5
+    z_km = np.array(merger_grid['z(cm)'])[0,0,z] / 1e5
+    
+    H_LR_array = np.zeros((xy_limits[0,1] - xy_limits[0,0],
+                           xy_limits[1,1] - xy_limits[1,0])) #x,y
+    
+    for x in tqdm(range(xy_limits[0,0], xy_limits[0,1])):
+        for y in range(xy_limits[1,0], xy_limits[1,1]):
+            
+            location = [x,y,z]
+            filename = "i{:03d}".format(location[0])+"_j{:03d}".format(location[1])+"_k{:03d}".format(location[2])
+            emu_filename = emu_data_loc + filename +"/allData.h5"
+            if         filename not in list(os.listdir(emu_data_loc)) \
+                or 'allData.h5' not in list(os.listdir(emu_data_loc+filename)):
+                H_LR_array[x-xy_limits[0,0],y-xy_limits[1,0]] = 0
+                print('no data at ', location)
+                continue
+            SP = SpinParams(t_sim = it,
+                            emu_file = emu_filename,
+                            merger_data_loc = merger_data_loc, 
+                            gradient_filename=gradient_filename,
+                            location = location, 
+                            p_abs=p_abs)
+            H_LR = SP.H_LR(theta, phi)
+            if method == 'GM_magnitude':
+                qty = gm.magnitude(H_LR)
+            elif type(method) == list:
+                qty = np.abs(H_LR[method[0],method[1]])
+            H_LR_array[x-xy_limits[0,0],y-xy_limits[1,0]] = qty
+        
+    
+    plt.figure(figsize=(8,6))
+    plt.pcolormesh(x_km,y_km,
+                    np.log10(H_LR_array), cmap = 'jet',)
+                    #vmin = vmin, vmax = vmax)
+    plt.colorbar()
+
+    if mark_point:
+        plt.scatter([x_km[mark_point[0]-xy_limits[0,0],0]],[y_km[0,mark_point[1] - xy_limits[1,0]]], color = 'black')
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    if savefig:
+        plt.savefig(savefig + '.png', dpi=300)
+    else:
+        plt.show()
     
     
