@@ -671,6 +671,7 @@ class SpinParams:
     def angularEigenvectorPlot(self, theta_resolution, phi_resolution,
                                 value = 'Omega', # = 'lminusr' or 'rmax' or 'Omega'
                                 phi_optimal = np.pi, theta_optimal = None, #if none, it will be calculated
+                                data = None, #feed in precomputed data (also outputs this so you can replot it)
                                 zoom = None, shift = [0,0],
                                 vmin = -8, vmax = -5,
                                 zoom_resolution = 50, initvector = None, 
@@ -681,28 +682,32 @@ class SpinParams:
         
         if type(initvector) == type(None):
             initvector =  self.initial_ket
+        if data != None:
+            theta_optimal = data[0]
+            colorplot_vals = data[1]
         
-        if value == 'lminusr':
-            if theta_optimal == None:
-                theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
-            colorplot_vals = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
-                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
+        else:
+            if value == 'lminusr':
+                if theta_optimal == None:
+                    theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
+                colorplot_vals = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
+                                    for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                    for theta in np.linspace(0, np.pi,   theta_resolution)]))
 
-        elif value == 'rmax':
-            if theta_optimal == None:
-                theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
-            colorplot_vals = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
-                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
-        
-        elif value == 'Omega':
-            if theta_optimal == None:
-                theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
-            colorplot_vals = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
-                                for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
-                                for theta in np.linspace(0, np.pi,   theta_resolution)]))
-           
+            elif value == 'rmax':
+                if theta_optimal == None:
+                    theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
+                colorplot_vals = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
+                                    for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                    for theta in np.linspace(0, np.pi,   theta_resolution)]))
+            
+            elif value == 'Omega':
+                if theta_optimal == None:
+                    theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
+                colorplot_vals = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
+                                    for phi   in np.linspace(0, 2*np.pi, phi_resolution)]
+                                    for theta in np.linspace(0, np.pi,   theta_resolution)]))
+            
         
         print('theta_optimal = ', str(theta_optimal),
              ' along phi = ', str(phi_optimal))
@@ -736,11 +741,11 @@ class SpinParams:
         
         #axes
         yT=[np.pi/2, np.pi/3, np.pi/6, 0, -np.pi/6, -np.pi/3, -np.pi/2]
-        yL=[0, r'$\frac{\pi}{6}$', r'$\frac{\pi}{3}$',r'$\frac{\pi}{2}$',
-            r'$\frac{2\pi}{3}$',r'$\frac{5\pi}{6}$',
+        yL=[0, r'$\frac{1}{6}\pi$', r'$\frac{1}{3}\pi$',r'$\frac{1}{2}\pi$',
+            r'$\frac{2}{3}\pi$',r'$\frac{5}{6}\pi$',
             r'$\pi$']
         plt.yticks(yT, yL, fontsize= fs)
-        ax.set_ylabel(r'$\theta$ (rad)',fontsize= fs)
+        ax.set_ylabel(r'$\theta$ (rad)',fontsize= fs, labelpad=10)
         
         #xT=[ -2*np.pi/3, -np.pi/3, 0, np.pi/3, 2*np.pi/3]
         #xL=[  r'$\frac{\pi}{3}$', r'$\frac{2\pi}{3}$',
@@ -755,18 +760,21 @@ class SpinParams:
             f.set_size_inches(12.3,4.5)
             ax_z = f.add_subplot(122)
             
-            if value == 'lminusr':
-                 colorplot_vals_zoom = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
-                                    for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0] , zoom_resolution)]))
-            elif value == 'rmax':
-                 colorplot_vals_zoom = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
-                                    for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
-            elif value == 'Omega':
-                 colorplot_vals_zoom = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
-                                    for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
+            if data != None and type(data[2]) != type(None):
+                colorplot_vals_zoom = data[2]
+            else:
+                if value == 'lminusr':
+                    colorplot_vals_zoom = np.log10(1 - np.array([[self.leftMinusRight(theta,phi)
+                                        for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
+                                        for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0] , zoom_resolution)]))
+                elif value == 'rmax':
+                    colorplot_vals_zoom = np.log10(np.array([[-1*self.rightHandedPart(theta,phi, initvector)
+                                        for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
+                                        for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
+                elif value == 'Omega':
+                    colorplot_vals_zoom = np.log10(np.array([[max(self.Omega(theta, phi), 10**(vmin))
+                                        for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
+                                        for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)]))
             
             #colorplot
             colorplot_im_z = ax_z.pcolormesh(
@@ -782,17 +790,33 @@ class SpinParams:
             neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'} #label names (x because its for a general heavy lepton flavor.)
             legend_arts   = [] #for legend
             legend_labels = []
-            for n,k,color in flavor_resonances:
-                resonance_array = np.array([[self.resonance(theta, phi, resonance_type = [n,k+3]) 
-                                    for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
-                                    for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)])
-                contour = ax_z.contour(
-                                np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution), 
-                                np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution),
-                                resonance_array, levels=[0.], colors=color, linestyles = 'dashed')       
-                art, label = contour.legend_elements()
-                legend_arts.append(art[0])
-                legend_labels.append(rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$')  
+            if data != None and len(data) == 5:
+                flavor_resonances = data[3]
+                flavor_resonance_data = data[4]
+                for i in range(len(flavor_resonances)):
+                    n,k,color = flavor_resonances[i]
+                    resonance_array = flavor_resonance_data[i]
+                    contour = ax_z.contour(
+                    np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution), 
+                    np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution),
+                    resonance_array, levels=[0.], colors=color, linestyles = 'dashed')       
+                    art, label = contour.legend_elements()
+                    legend_arts.append(art[0])
+                    legend_labels.append(rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$')  
+            else:
+                flavor_resonance_data = []
+                for n,k,color in flavor_resonances:
+                    resonance_array = np.array([[self.resonance(theta, phi, resonance_type = [n,k+3]) 
+                                        for phi in np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution)]
+                                        for theta in np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution)])
+                    flavor_resonance_data.append(resonance_array)
+                    contour = ax_z.contour(
+                                    np.linspace(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], zoom_resolution), 
+                                    np.linspace(theta_optimal + zoom + shift[0], theta_optimal - zoom + shift[0], zoom_resolution),
+                                    resonance_array, levels=[0.], colors=color, linestyles = 'dashed')       
+                    art, label = contour.legend_elements()
+                    legend_arts.append(art[0])
+                    legend_labels.append(rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$')  
                                           
             # Create a Rectangle patch
             rect = mpl.patches.Rectangle(( phi_optimal   - np.pi   - zoom - shift[1],
@@ -812,8 +836,10 @@ class SpinParams:
             #x,y labels
             ax_z.set_xlabel(r'$\phi$ (rad)',fontsize = fs)
             ax_z.set_ylabel(r'$\theta$ (rad)',fontsize = fs)
-            plt.xticks(fontsize = fs)
             plt.yticks(fontsize = fs)
+            plt.xticks([np.pi-zoom*3/4, np.pi, np.pi+zoom*3/4],
+                       [r"$\pi$" +f" - {zoom*3/4:.2f}", r"$\pi$", r"$\pi$" +f" + {zoom*3/4:.2f}"],
+                           fontsize = fs)
 
             #x,y limits
             ax_z.set_xlim(phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1])
@@ -829,7 +855,9 @@ class SpinParams:
         
         #savefig
         if type(savefig) == str: 
+            plt.show()
             f.savefig(savefig + '.png', dpi=300)
+            
         else:
             plt.show()
             
@@ -837,7 +865,7 @@ class SpinParams:
         #add linearPlot graphic
         if linearPlot == True:
             self.linearEigenvectorPlot(zoom_resolution, initvector = initvector, value = value, phi_optimal= phi_optimal, zoom = zoom,  method = method, bounds =[(np.pi/4, 3*np.pi/4)])
-        return theta_optimal
+        return [theta_optimal, colorplot_vals, colorplot_vals_zoom, flavor_resonances, flavor_resonance_data]
 
 
     #resonant thetas is a list of tuples (n,k,color) corresponding to classical resonances in the nth to kth diagonal, 
