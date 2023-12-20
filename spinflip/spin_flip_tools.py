@@ -555,10 +555,11 @@ class SpinParams:
                             phi,
                             components, 
                             resolution,
+                            xlims = [0,np.pi],
                             savefig = None): 
         
         #calculate hamiltonians at each theta                    
-        Hs = [self.H(theta,phi) for theta in np.linspace(0,np.pi,resolution)]
+        Hs = [self.H(theta,phi) for theta in np.linspace(xlims[0],xlims[1],resolution)]
         labels = {0:r"$H^{ee}_L$",
                   1:r"$H^{xx}_L$",
                   2:r"$H^{\tau\tau}_L$",
@@ -569,16 +570,13 @@ class SpinParams:
         plt.figure(figsize=(8,6))
         #plot each component
         for c in components:
-            plt.plot(np.linspace(0,np.pi,resolution),[H[c,c]*1E4 for H in Hs],label = labels[c])
+            plt.plot(np.linspace(xlims[0],xlims[1],resolution),[np.abs(H[c,c])*1E4 for H in Hs],label = labels[c])
         
         #plot parameters
-        plt.xlim(0,np.pi)
-        xT = np.linspace(0,np.pi,5)
-        xL = [r"$0$",r"$\frac{1}{4}\pi$",r"$\frac{1}{2}\pi$",r"$\frac{3}{4}\pi$",r"$\pi$"]
-        plt.xticks(xT,xL)
+        plt.xlim(xlims[0],xlims[1])
         plt.xlabel(r"$\theta$")
         plt.ylabel(r"Diagonals of $H$ $(eV \times 10^{-4})$")
-        plt.legend(frameon = False)
+        plt.legend(frameon = False, fontsize = 18)
         plt.tight_layout()
         
         #savefig
@@ -678,6 +676,7 @@ class SpinParams:
                                 flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
                                 method = 'Nelder-Mead', bounds =[(0, np.pi)],
                                 fs = 20, 
+                                rectangle = False,
                                 savefig=False,  linearPlot = True):
         
         if type(initvector) == type(None):
@@ -740,9 +739,9 @@ class SpinParams:
         #                            color='magenta')
         
         #axes
-        yT=[np.pi/2, np.pi/3, np.pi/6, 0, -np.pi/6, -np.pi/3, -np.pi/2]
-        yL=[0, r'$\frac{1}{6}\pi$', r'$\frac{1}{3}\pi$',r'$\frac{1}{2}\pi$',
-            r'$\frac{2}{3}\pi$',r'$\frac{5}{6}\pi$',
+        yT=[np.pi/2, np.pi/3, 0, -np.pi/3,  -np.pi/2]
+        yL=[0, r'$\frac{1}{6}\pi$',r'$\frac{1}{2}\pi$',
+            r'$\frac{5}{6}\pi$',
             r'$\pi$']
         plt.yticks(yT, yL, fontsize= fs)
         ax.set_ylabel(r'$\theta$ (rad)',fontsize= fs, labelpad=10)
@@ -790,7 +789,7 @@ class SpinParams:
             neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'} #label names (x because its for a general heavy lepton flavor.)
             legend_arts   = [] #for legend
             legend_labels = []
-            if data != None and len(data) == 5:
+            if data != None and len(data) == 5 and type(data[4]) != type(None):
                 flavor_resonances = data[3]
                 flavor_resonance_data = data[4]
                 for i in range(len(flavor_resonances)):
@@ -819,11 +818,12 @@ class SpinParams:
                     legend_labels.append(rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$')  
                                           
             # Create a Rectangle patch
-            rect = mpl.patches.Rectangle(( phi_optimal   - np.pi   - zoom - shift[1],
-                                          -theta_optimal + np.pi/2 - zoom - shift[0], ),
-                                          2*zoom, 2*zoom, linewidth=1, 
-                                          edgecolor='white', facecolor='none', linestyle = 'dashed')
-            ax.add_patch(rect)
+            if rectangle:
+                rect = mpl.patches.Rectangle(( phi_optimal   - np.pi   - zoom - shift[1],
+                                            -theta_optimal + np.pi/2 - zoom - shift[0], ),
+                                            2*zoom, 2*zoom, linewidth=1, 
+                                            edgecolor='white', facecolor='none', linestyle = 'dashed')
+                ax.add_patch(rect)
 
             #legend
             f.legend(legend_arts,
@@ -837,6 +837,7 @@ class SpinParams:
             ax_z.set_xlabel(r'$\phi$ (rad)',fontsize = fs)
             ax_z.set_ylabel(r'$\theta$ (rad)',fontsize = fs)
             plt.yticks(fontsize = fs)
+            plt.locator_params(axis='y', nbins=5)
             plt.xticks([np.pi-zoom*3/4, np.pi, np.pi+zoom*3/4],
                        [r"$\pi$" +f" - {zoom*3/4:.2f}", r"$\pi$", r"$\pi$" +f" + {zoom*3/4:.2f}"],
                            fontsize = fs)
@@ -847,7 +848,7 @@ class SpinParams:
             ax_z.invert_yaxis()
 
             # Increase the pad between the subplots
-            f.subplots_adjust(wspace=0.25)
+            f.subplots_adjust(wspace=0.29)
 
             #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
             #plt.tight_layout()          
@@ -856,7 +857,7 @@ class SpinParams:
         #savefig
         if type(savefig) == str: 
             plt.show()
-            f.savefig(savefig + '.png', dpi=300)
+            f.savefig(savefig + '.png', dpi=300,bbox_inches='tight')
             
         else:
             plt.show()
@@ -873,7 +874,7 @@ class SpinParams:
     #function also returns the resonant thetas.
     def linearEigenvectorPlot(self, theta_resolution,  
                               initvector = None, zoom_on_vector = None, value = 'Omega',
-                              zoom = None, shift = 0, phi_optimal= np.pi,
+                              zoom = None, shift = 0, phi_optimal= np.pi, legend_loc = (0.695,1.02),
                               method = 'Nelder-Mead', vmax = None,
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
                               extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
@@ -884,7 +885,7 @@ class SpinParams:
         factor = 1E6
 
         plt.figure(figsize = (8,6))
-        plt.xlabel(r'$\theta$', fontsize = fs)
+        plt.xlabel(r'$\theta$ (rad)', fontsize = fs)
         plt.locator_params(axis='x', nbins=7)
         plt.xticks(fontsize = fs)
         plt.yticks(fontsize = fs)
@@ -954,10 +955,10 @@ class SpinParams:
         if extra_lines != None:
             extra_vlines = plt.vlines(extra_lines, [0], [factor*max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
 
-        plt.legend(frameon = False, fontsize = fs-2, bbox_to_anchor = (0.28,0.7))
         plt.minorticks_on()
         plt.tight_layout()
-        
+        plt.legend(frameon = False, fontsize = fs-2, bbox_to_anchor = (legend_loc[0], legend_loc[1]))
+
         if type(savefig) == str: 
             plt.savefig(savefig + '.pdf', dpi=300)
         
