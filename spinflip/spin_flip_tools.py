@@ -957,7 +957,7 @@ class SpinParams:
 
         plt.minorticks_on()
         plt.tight_layout()
-        plt.legend(frameon = False, fontsize = fs-2, bbox_to_anchor = (legend_loc[0], legend_loc[1]))
+        plt.legend(frameon = False, fontsize = fs-2, loc = 'lower right', bbox_to_anchor = (legend_loc[0], legend_loc[1]))
 
         if type(savefig) == str: 
             plt.savefig(savefig + '.pdf', dpi=300)

@@ -96,7 +96,7 @@ class Merger_Grid:
                                    levels=[-1,0.5,2], alpha=1, colors=['white',ELNcolor])
         
             #zval text
-            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],rf'$z$ = {zval_km[k]:.1f} km', backgroundcolor = 'white')
+            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],rf'$z$ = {zval_km[k]:.1f} km', backgroundcolor = [0.85,0.85,0.85])
 
             #resonance val
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.resonance_sign[:,:,k], levels=[0.5,1], colors=[resonancecolor] )
@@ -105,11 +105,11 @@ class Merger_Grid:
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.both_conditions[:,:,k], levels=[0.5,1], colors=[bothcolor_fill] )
 
             #chosen points
-            if x[k] != None and y[k] != None:
+            if x!= None and y!= None and x[k] != None and y[k] != None:
                 points = ax[0,k].scatter(self.x_km[x[k],y[k]],self.y_km[x[k],y[k]], color = 'lime', marker = 'x')
         
             #adiabaticity computation region
-            if type(rect_xmin) != type(None) and type(rect_xmax) != type(None) and type(rect_ymin) != type(None) and type(rect_ymax) != type(None):
+            if type(rect_xmin[k]) != type(None) and type(rect_xmax[k]) != type(None) and type(rect_ymin[k]) != type(None) and type(rect_ymax[k]) != type(None):
                 ax[0,k].add_patch(plt.Rectangle((self.x_km[rect_xmin[k],rect_ymin[k]],self.y_km[rect_xmin[k],rect_ymin[k]]),
                                     self.x_km[rect_xmax[k],rect_ymax[k]]-self.x_km[rect_xmin[k],rect_ymin[k]],
                                     self.y_km[rect_xmax[k],rect_ymax[k]]-self.y_km[rect_xmin[k],rect_ymin[k]],
@@ -123,18 +123,23 @@ class Merger_Grid:
         proxy = [plt.Rectangle((1, 1), 2, 2, fc=ELNcolor),
                  plt.Rectangle((1, 1), 2, 2, fc=resonancecolor),
                  plt.Rectangle((1, 1), 2, 2, fc=bothcolor_fill),
-                 plt.Rectangle((1, 1), 2, 2, ec=adiabcolor, fc = 'gray', linestyle = 'dashed')]
-        if x[0] != None and y[0] != None:
+                 plt.Rectangle((1, 1), 2, 2, ec=adiabcolor, fc = [0.85,0.85,0.85], linestyle = 'dashed', linewidth = 3)]
+        if type(x) != type(None) and type(y) != type(None):
             proxy.append(points)
         
         
         ax[0,-1].legend(proxy, ["Fast Flavor Instability Exists", 
                              "Spin-flip Resonance Exists",
-                             "Both",
+                             "Both Conditions Satisfied",
                              "Adiabaticity Computed",
-                             "Analyzed Points"],
+                             ],
                              loc = 'upper right', 
-                             fontsize = 10)
+                             bbox_to_anchor = (1.,-0.15),
+                             ncol = 4,
+                             fontsize = 20,
+                             facecolor = [0.85,0.85,0.85], 
+                             )
+                             
         
         
        
@@ -145,10 +150,10 @@ class Merger_Grid:
         ax[0,0].set_xlim([self.x_km[xmin,ymin],self.x_km[xmax,ymax]])
         ax[0,0].set_ylim([self.y_km[xmin,ymin],self.y_km[xmax,ymax]])
         middle_n = n//2
-        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 14)
-        ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 14)
+        ax[0,middle_n].set_xlabel(r'$x$-coordinate (km)', fontsize = 20)
+        ax[0,0].set_ylabel(r'$y$-coordinate (km)', fontsize = 20)
         #ax[0,middle_n].set_title('Resonant Spin-Flip and Fast-Flavor Instability Regions', fontsize = 16, pad = 20,)
 
         if type(savefig) == str: 
-            plt.savefig(savefig + '.png', dpi=300)
+            plt.savefig(savefig + '.png', dpi=300, bbox_inches = 'tight')
 

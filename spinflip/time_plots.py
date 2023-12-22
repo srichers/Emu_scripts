@@ -60,61 +60,71 @@ class TimePlots:
                                for SPclass in self.spin_params_timearray])
         
     #plots quantity vs time. thetas and phis should be a list of tuples, one per plot in the subplots.
-    def plot(self, quantity, avg_method = 'GM', thetas_and_phis=[(0,0)], savefig = False):
+    def plot(self, quantity, avg_method = 'GM', thetas_and_phis=[(0,0)], 
+             labels = None, #list of labels for each subplot
+             savefig = False
+             ):
 
         directions = [[np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)] for theta, phi in thetas_and_phis]
         N = len(directions)
-        f, ax = plt.subplots(1,N, sharey = True, squeeze = False, figsize = (N*6,6))
+        f, ax = plt.subplots(N,1, sharex = True, squeeze = False, figsize = (8,N*5))
         for n, direction in enumerate(directions):
         
             if quantity == 'J_spatial': 
                 J = self.J_spatial_flavoravg(avg_method)
                 J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-                ax[0,n].semilogy(self.time_axis,J_directional_projection)
+                ax[n,0].semilogy(self.time_axis,J_directional_projection)
                 ax[0,0].set_ylabel(r"$eV^3$")
 
             elif quantity == 'J_time': 
                 J = self.J_time_flavoravg(avg_method)
                 J_directional_projection = np.array([np.dot(J_at_t,direction) for J_at_t in J])
-                ax[0,n].semilogy(self.time_axis,J_directional_projection)
+                ax[n,0].semilogy(self.time_axis,J_directional_projection)
                 ax[0,0].set_ylabel(r"$eV^3$")
                 
             elif quantity == 'H_LR':
                 theta, phi = thetas_and_phis[n]
                 H_LR=self.H_LR(avg_method, theta, phi)
-                ax[0,n].semilogy(self.time_axis,H_LR)            
+                ax[n,0].semilogy(self.time_axis,H_LR)            
                 ax[0,0].set_ylabel(r"$|H_{LR}| \ \ (eV)$")
 
-            elif quantity == 'H_LR_components':
-                flavor_labels = ['e',r'\mu',r'\tau']
+            elif quantity == 'H_LR_components' or quantity == 'H_LR_components_reduced' or quantity == 'H_LR_components_diagonals':
+                flavor_labels = ['e',r'\mu',r'\tau']                
                 theta, phi = thetas_and_phis[n]
                 H_LR=self.H_LR(None, theta, phi)
-                for k in range(3):
-                    for m in range(3):
-                        ax[0,n].semilogy(self.time_axis,np.abs(H_LR[:,k,m]), label = rf'${flavor_labels[k]} {flavor_labels[m]}$')
-                ax[0,0].legend()
-
-            #NOT ADAPTED THESE YET
-  #      elif quantity == 'H_LR_00':
-  #          H_LR=total(readdata,"H_LR(eV)")
-  #          ax.set_ylabel(r"$|H_{LR}| \ \ (eV)$")
-  #          plt.semilogy(t_axis*1E9,np.average(H_LR[:,0,0,:], axis=1), label = 'electron component')
-  #          plt.semilogy(t_axis*1E9,np.average(H_LR[:,1,1,:], axis=1), label = 'muon component')
-  #          plt.semilogy(t_axis*1E9,np.average(H_LR[:,2,2,:], axis=1), label = 'tau component')
-  #          ax.legend()
-  #          ax.set_ylim(1E-25,1E-15)
+                for k in range(len(flavor_labels)):
+                    for m in range(len(flavor_labels)):
+                        if m<=k: #dont do both e mu and mu e, for example
+                           
+                            if quantity == 'H_LR_components_reduced': #skip off diagonal tau components
+                                if k==2 and m!=2:
+                                    continue
+                            elif quantity == 'H_LR_components_diagonals': #only do diagonal components
+                                if k!=m:
+                                    continue
+                                
+                            ax[n,0].semilogy(self.time_axis,np.abs(H_LR[:,k,m]), label = r'$H_{LR}^{'+rf'{flavor_labels[k]} {flavor_labels[m]}' +r'}$')
             
-  #      elif  quantity == 'kappa':
-  #          kappa=total(data,'S_R_kappa(eV)')
-  #          ax.set_ylabel(r"$eV$")
-  #         plt.plot(t*1E9,np.average(kappa[:,0,0,:], axis=1))
-
   
-        ax[0,0].set_xlabel("time (ns)")
+        #xlabel 
+        ax[len(directions)-1,0].set_xlabel(r"Time ($ns$)")
+
+
+        
         plt.tick_params(axis='both',which="both", direction="in",top=True,right=True)
         plt.minorticks_on()
-
-
+        
+        if type(labels)!= type(None):
+            for n in range(len(directions)):
+                ax[n,0].set_title(labels[n], fontsize = 20, loc = 'left')
+        plt.tight_layout(pad = 0.45)
+        
+            
+        #set y label for all plots, centered 
+        f.text(-0.03, 0.55, r'$|H_{LR}^{ij}| (eV)$', va='center', rotation='vertical')
+        #legend
+        ax[0,0].legend(frameon = False, fontsize = 20, bbox_to_anchor = (1.01,1))
+        
         if savefig: 
-            plt.savefig(savefig +'.pdf', dpi=300)
+            plt.savefig(savefig +'.pdf', dpi=300, bbox_inches = 'tight')
 
