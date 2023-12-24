@@ -42,7 +42,7 @@ ax.plot(t, Neebar, color="blue", linestyle="--", label=r"$n_{\bar{\nu}_e}$")
 ax.plot(t, Nmm, color="green", linestyle="-", label=r"$n_{\nu_\mu}=n_{\bar{\nu}_\mu}$")
 ax.plot(t, Ntt, color="red", linestyle="-", label=r"$n_{\nu_\tau}=n_{\bar{\nu}_\tau}$")
 
-legend = ax.legend(frameon=False, labelspacing=0.25,fontsize=22)
+legend = ax.legend(frameon=False, labelspacing=0.1,fontsize=22, loc="upper right")
 ax.set_xlabel("Time (ns)")
 ax.set_ylabel("$n$ ($10^{32}$ g cm$^{-3}$)")
 ax.set_xlim(0,t[-1])
