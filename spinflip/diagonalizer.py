@@ -12,13 +12,18 @@ class Diagonalizer:
         
         #list of eigenvalues 
         self.eigenvals = (1+0*1j)*np.real(np.linalg.eig(self.H)[0] )
+        self.eigenvecs = np.linalg.eig(self.H)[1]
+        self.lminusr = [abs(np.linalg.norm(self.eigenvecs[0:3,n]) - np.linalg.norm(self.eigenvecs[3:6,n]))
+                                for n in range(0,6)]
         
+        #indices of smallest 2 lminusr values
+        self.spinflip_indices = np.argsort(self.lminusr)[0:2]
+
         #find timescale for plot
-        self.eigenval_differences = np.array([abs(np.real(lambda_1) - np.real(lambda_2)) for lambda_1 in self.eigenvals
-                                      for lambda_2 in self.eigenvals if lambda_1!=lambda_2]).flatten()
-        self.timescale = max(2*np.pi*hbar/self.eigenval_differences)
+        self.eigenval_difference = np.abs(self.eigenvals[self.spinflip_indices[1]] - self.eigenvals[self.spinflip_indices[0]])
+        self.timescale = (2*np.pi*hbar/self.eigenval_difference)
         
-    
+                    
         #(inverted) array of normalized eigenvectors
         #first index specifies which eigenvector, second index is the flavor component
         #a.k.a. change of basis matrix from Energy to flavor/spin
@@ -146,13 +151,16 @@ def multi_H_Plotter(H_array,
                                 for i in np.arange(0,N)])    
     if match_timescale == True:
         t_lim_array = np.full(N, max(t_lim_array))
+        share_x = True
+    else:
+        share_x = False
         
     state_vs_time_array = np.array([np.real(Diagonalizer_class_array[i].state_evolution(resolution, t_lim_array[i], init_state_array[i]))
                                 for i in np.arange(0,N)])
     
     
     #make plot
-    f, ax = plt.subplots(N,1, figsize = (8,8), squeeze = False, sharey=True, sharex  = True)
+    f, ax = plt.subplots(N,1, figsize = (8,8), squeeze = False, sharey=True, sharex  = share_x)
 
     for n in np.arange(0, N):
         for k in quantity_array[n]:
