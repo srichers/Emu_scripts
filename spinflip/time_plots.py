@@ -62,7 +62,8 @@ class TimePlots:
     #plots quantity vs time. thetas and phis should be a list of tuples, one per plot in the subplots.
     def plot(self, quantity, avg_method = 'GM', thetas_and_phis=[(0,0)], 
              labels = None, #list of labels for each subplot
-             savefig = False
+             savefig = False,
+             vmin = None, vmax = None,
              ):
 
         directions = [[np.cos(phi)*np.sin(theta),np.sin(phi)*np.sin(theta),np.cos(theta)] for theta, phi in thetas_and_phis]
@@ -103,11 +104,13 @@ class TimePlots:
                                 if k!=m:
                                     continue
                                 
-                            ax[n,0].semilogy(self.time_axis,np.abs(H_LR[:,k,m]), label = r'$H_{LR}^{'+rf'{flavor_labels[k]} {flavor_labels[m]}' +r'}$')
-            
+                            ax[n,0].semilogy(self.time_axis,np.abs(H_LR[:,k,m]), label = rf'${flavor_labels[k]}\rightleftharpoons {flavor_labels[m]}$' , linewidth = 2)
+                if n == 0:
+                   f.text(-0.03, 0.55, r'$|H_{LR}^{ab}| \ (eV)$', va='center', rotation='vertical')
+
   
         #xlabel 
-        ax[len(directions)-1,0].set_xlabel(r"Time ($ns$)")
+        ax[N-1,0].set_xlabel(r"Time (ns)")
 
 
         
@@ -116,15 +119,30 @@ class TimePlots:
         
         if type(labels)!= type(None):
             for n in range(len(directions)):
-                ax[n,0].set_title(labels[n], fontsize = 20, loc = 'left')
+                ax[n,0].text(0.05,0.9,labels[n], fontsize = 20,  transform=ax[n,0].transAxes )
         plt.tight_layout(pad = 0.45)
         
             
-        #set y label for all plots, centered 
-        f.text(-0.03, 0.55, r'$|H_{LR}^{ij}| (eV)$', va='center', rotation='vertical')
         #legend
-        ax[0,0].legend(frameon = False, fontsize = 20, bbox_to_anchor = (1.01,1))
-        
+        leg = ax[N-1,0].legend(frameon = False, fontsize = 20,
+                             handlelength = 0.5, handletextpad = 0.4,
+                             ncol = 3,
+                             loc = 'upper right', 
+                             bbox_to_anchor = (0.8,0.7),)
+        #make legend handles into points instead of lines
+        for line in leg.get_lines():
+            line.set_linestyle(':')
+            line.set_linewidth(5)
+            line.set_markersize(15)
+            
+        #vmin, vmax 
+        for n in range(len(directions)):
+            
+            if type(vmin) != type(None) and type(vmin[n]) != type(None):
+                ax[n,0].set_ylim(bottom = vmin[n])
+            if type(vmax) != type(None) and type(vmax[n]) != type(None):
+                ax[n,0].set_ylim(top = vmax[n])
+           
         if savefig: 
             plt.savefig(savefig +'.pdf', dpi=300, bbox_inches = 'tight')
 

@@ -86,19 +86,19 @@ class Merger_Grid:
         n = len(zval)
 
         ELNcolor = '#005070'
-        resonancecolor = '#FFB380' #pink was hard to see
+        resonancecolor = '#FFB380' 
         bothcolor_fill = '#E61F39'
         adiabcolor = 'yellow'
         f,ax = plt.subplots(1,n,figsize=(n*6,6), sharex = True, sharey = True, squeeze = False)
         for k in range(n):
             #FFI contour
             ax[0,k].contourf(self.x_km,self.y_km, self.discriminant_sign[:,:,k],
-                                   levels=[-1,0.5,2], alpha=1, colors=['white',ELNcolor])
-        
-            #zval text
-            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],rf'$z$ = {zval_km[k]:.1f} km', backgroundcolor = [0.85,0.85,0.85])
-
+                                   levels=[-1,0.5,2], alpha=1, colors=[[1,0.98,0.95],ELNcolor])
+      
             #resonance val
+            ax[0,k].text(0.85*self.x_km[xmin,0],0.8*self.y_km[0,ymax],rf'$z$ = {zval_km[k]:.1f} km', 
+                        bbox = dict(edgecolor = 'black', facecolor = 'white', alpha = 0.8, boxstyle = 'round', pad = 0.2))
+            
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.resonance_sign[:,:,k], levels=[0.5,1], colors=[resonancecolor] )
 
             #both conditions
@@ -116,14 +116,14 @@ class Merger_Grid:
                                     linewidth=3,edgecolor=adiabcolor, facecolor='none', linestyle = 'dashed'))
 
             ax[0,k].grid(False)
-
         plt.tight_layout()
         
         #legend
         proxy = [plt.Rectangle((1, 1), 2, 2, fc=ELNcolor),
                  plt.Rectangle((1, 1), 2, 2, fc=resonancecolor),
                  plt.Rectangle((1, 1), 2, 2, fc=bothcolor_fill),
-                 plt.Rectangle((1, 1), 2, 2, ec=adiabcolor, fc = [0.85,0.85,0.85], linestyle = 'dashed', linewidth = 3)]
+                 (mpatches.Patch(color='gray'),
+                  plt.Rectangle((0, 0), 1,1, fill = False, ec=adiabcolor, linestyle = 'dashed', linewidth = 3))]
         if type(x) != type(None) and type(y) != type(None):
             proxy.append(points)
         
@@ -134,10 +134,10 @@ class Merger_Grid:
                              "Adiabaticity Computed",
                              ],
                              loc = 'upper right', 
-                             bbox_to_anchor = (1.,-0.15),
+                             bbox_to_anchor = (1.,-0.13),
                              ncol = 4,
                              fontsize = 20,
-                             facecolor = [0.85,0.85,0.85], 
+                            frameon = False,
                              )
                              
         
