@@ -897,6 +897,10 @@ class SpinParams:
             #f.suptitle(r'Angular Plot of Resonance Parameter and Simplified')
             #plt.tight_layout()          
 
+        else:
+            colorplot_vals_zoom = None
+            flavor_resonance_data = None
+            flavor_resonances = None
         
         #savefig
         if type(savefig) == str: 
@@ -1236,7 +1240,8 @@ class SpinParams:
             return np.array(ranges), np.array(max_phis)
         else:
             return total_adiabatic_width
-        
+    
+     
     #find total solid angle at this point that is both resonant and adiabatic, or just resonant
     def solidAngle(self, separate_ranges = False,
                    resonance_type = None,
@@ -1446,6 +1451,64 @@ def multi_HLR_Plotter(
     return
 
 
+    
+def angular_eigenvector_multiplot( 
+                                data_array, # array of length 4 of data tuples outputted by angular_eigenvector_plot
+                                vmin = -8, vmax = -5,
+                                fs = 20, 
+                                savefig=False):
+    
+    f, ax = plt.subplots(2,2, figsize=(14,8),   subplot_kw=dict(projection='mollweide'),)
+        
+    for n, data in enumerate(data_array):
+        
+        theta_optimal, colorplot_vals, colorplot_vals_zoom, flavor_resonances, flavor_resonance_data = data
+        phi_resolution,theta_resolution = colorplot_vals.shape
+        
+        colorplot_im = ax[n//2,n%2].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                                np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                                colorplot_vals, 
+                                cmap=plt.cm.hot, shading='auto', vmin = vmin, vmax = vmax)
+    
+    
+    
+        #axes
+        ax[n//2,n%2].set_xticks([],[], zorder = 10, fontsize = fs)
+        ax[n//2,n%2].set_yticks([],[], zorder = 10, fontsize = fs)
+
+    yT=[np.pi/2, np.pi/3, 0, -np.pi/3,  -np.pi/2]
+    yL=[0, r'$\frac{1}{6}\pi$',r'$\frac{1}{2}\pi$',
+        r'$\frac{5}{6}\pi$',
+        r'$\pi$']
+    #ax[0,0].set_yticks(yT, yL, fontsize= fs)
+    ax[0,0].set_ylabel('Point A',fontsize= 24, labelpad=60, rotation = 0)
+    ax[1,0].set_ylabel('Point B',fontsize= 24, labelpad=60, rotation = 0)
+    
+    ax[0,0].set_title(r'Pre-Instability ($t = 0$ ns)', fontsize= 24, pad = 15)
+    ax[0,1].set_title(r'Post-Instability ($t = 0.47$ ns)', fontsize= 24, pad = 15)
+
+    # Increase the pad between the subplots
+
+    #colorbar
+    colorplot_im = ax[n//2,n%2].pcolormesh(np.linspace(-np.pi, np.pi, phi_resolution), 
+                                np.linspace(0.5*np.pi, -0.5*np.pi, theta_resolution),
+                                colorplot_vals, 
+                                cmap=plt.cm.hot, shading='auto', vmin = vmin, vmax = vmax)
+    f.tight_layout()
+    f.subplots_adjust(wspace=0.0, hspace = 0.19)
+
+    f.colorbar(colorplot_im, label=r'log$(\Omega)$', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.08, aspect=33)
+
+
+    #savefig
+    if type(savefig) == str: 
+        plt.show()
+        f.savefig(savefig + '.png', dpi=300,bbox_inches='tight')
+    else:
+        plt.show()
+                          
+                                      
+    
 #plot magnitude of H_LR in certain direction at each point within limits at z slice
 
 def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
