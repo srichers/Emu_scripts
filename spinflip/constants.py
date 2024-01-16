@@ -8,17 +8,17 @@ hbar =6.582119569E-16 #eV s
 M_p=1.6726219e-24     #grams (Proton mass)
 
 #mixing angles (rad): (values from NuFit)
-a12=33.41*np.pi*2/360
-a13=8.54 *np.pi*2/360
-a23=49.1 *np.pi*2/360
+a12=33.44*np.pi*2/360
+a13=8.57 *np.pi*2/360
+a23=49.0 *np.pi*2/360
 
 #CP phase:
-delta=197*np.pi*2/360
+delta=195*np.pi*2/360
 #majorana angles are all 0 and dont influence the matrix
 
 #calculate masses from experimental values
-sq_21 = 7.41e-5 #normal ordering!
-sq_31 = 2.517e-3 
+sq_21 = 7.42e-5 #normal ordering!
+sq_31 = 2.514e-3 
 sum = 0.26
 
 m1_approx = sum/3 
