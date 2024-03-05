@@ -574,6 +574,8 @@ class SpinParams:
                             components, 
                             resolution,
                             xlims = [0,np.pi],
+                            ylims = None,
+                            legend_loc = 'best',
                             savefig = None): 
      
         xlims = np.array(xlims)
@@ -605,7 +607,7 @@ class SpinParams:
        
         #plot parameters
         ax[0,0].set_ylabel(r"Diagonals of $H$ $(eV \times 10^{-4})$")
-        plt.legend(frameon = False, fontsize = 18)
+        plt.legend(frameon = False, fontsize = 18, loc = legend_loc)
         plt.tight_layout()
         
         #add zoom rectangle
@@ -614,6 +616,8 @@ class SpinParams:
             ymax = np.max(Hs[1][0])*1E4
             ax[0,0].add_patch(mpl.patches.Rectangle((xlims[1,0], ymin), xlims[1,1]-xlims[1,0], ymax-ymin, fill=False, edgecolor='black', lw=2, clip_on=False, linestyle = '--'))
         #savefig
+        if ylims:
+            plt.ylim(*ylims)
         if savefig:
             plt.savefig(savefig + '.pdf', dpi=300)
         else:
@@ -713,7 +717,7 @@ class SpinParams:
                                 method = 'Nelder-Mead', bounds =[(0, np.pi)],
                                 fs = 20, 
                                 rectangle = False,
-                                savefig=False,  linearPlot = True):
+                                savefig=False,  linearPlot = False):
         
         if type(initvector) == type(None):
             initvector =  self.initial_ket
@@ -749,8 +753,10 @@ class SpinParams:
         
         f = plt.figure(figsize=(16,12))
         if zoom == None:
+            f = plt.figure(figsize=(8,5))
             ax = f.add_subplot(projection = 'mollweide') 
         else:
+            f = plt.figure(figsize=(16,12))
             ax = f.add_subplot(121,projection = 'mollweide') 
         ax.grid(False)
 
@@ -760,8 +766,8 @@ class SpinParams:
                                 colorplot_vals, 
                                 cmap=plt.cm.hot, shading='auto', vmin = vmin, vmax = vmax)
         if zoom == None:
-            plt.colorbar(colorplot_im)
-
+            cbar = plt.colorbar(colorplot_im, label = r'log$(\Omega)$', location = 'bottom', pad = 0.1,aspect=30)
+            
         #add net flux point 
         #J_avg = np.array([gm.magnitude(np.average(self.J[n], axis = 2)) for n in range(0,4)])
         #flux_point = ax.scatter([np.arctan2(J_avg[2],J_avg[1])],[np.arctan2(J_avg[3],
@@ -923,9 +929,11 @@ class SpinParams:
     # whose location will be plotted in color 'color'   
     #function also returns the resonant thetas.
     def linearEigenvectorPlot(self, theta_resolution,  
+                              vmax, plot_bounds = None,
                               initvector = None, zoom_on_vector = None, value = 'Omega',
                               zoom = None, shift = 0, phi_optimal= np.pi, legend_loc = (0.695,1.02),
-                              method = 'Nelder-Mead', vmax = None,
+                              method = 'Nelder-Mead', 
+                              separations_from_peak = [0.07,0.03,0.07],
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
                               extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
                               fs = 20, #fontsize
@@ -954,15 +962,19 @@ class SpinParams:
             plt.ylabel(r'$\Omega$ $(\times 10^{-12})$', fontsize = fs)
             
         #find bounds of plot accourding to zoom
-        if zoom == None:
-            thetas = np.linspace(0, np.pi, theta_resolution)
-            plt.xlim(0,np.pi)
+        if plot_bounds != None:
+            thetas = np.linspace(plot_bounds[0], plot_bounds[1], theta_resolution)
+            plt.xlim(plot_bounds[0], plot_bounds[1])
         else:
-            if not zoom_on_vector:
-                 zoom_on_vector = theta_optimal
-            thetas = np.linspace(zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift, theta_resolution)
-            plt.xlim( zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift)
-            
+            if zoom == None:
+                thetas = np.linspace(0, np.pi, theta_resolution)
+                plt.xlim(0,np.pi)
+            else:
+                if not zoom_on_vector:
+                    zoom_on_vector = theta_optimal
+                thetas = np.linspace(zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift, theta_resolution)
+                plt.xlim( zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift)
+                
         
         if value == 'lminusr':
             plot_vals = 1 - np.array([self.leftMinusRight(theta, phi_optimal)
@@ -995,9 +1007,12 @@ class SpinParams:
         if flavor_resonances != None:  
             for n,k,color in flavor_resonances:
                 resonant_thetas.append((self.resonant_theta(phi=phi_optimal, resonance_type = [n,k+3]), n,k,color))
-            for theta,n,k,color in resonant_thetas:
-                plt.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', color = color)
             
+            
+            for i, tup in enumerate(resonant_thetas):
+                theta,n,k,color = tup
+                #plt.vines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', color = color)
+                plt.text(theta+separations_from_peak[i], 3*vmax/4, rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', )
         if max_point:
             max_point_vline =  plt.vlines([theta_optimal],[0],[factor*max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
             bounds_vlines =    plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*factor*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
@@ -1451,14 +1466,48 @@ def multi_HLR_Plotter(
     return
 
 
+
+### histogram plot of HLR for some angle
+#returns list of HLR values for all files in emu_data_loc
+def HLR_list(emu_data_loc,
+                          merger_data_filename,
+                          p_abs,
+                          component = [0,0], #component of HLR to plot
+                          phi = 0, #angle to plot
+                          theta = np.pi/2, #angle to plot
+                          plot = True):
+    emu_filenames = list(os.listdir(emu_data_loc))
+        
+    SP_list = []
+    for file in emu_filenames:
+        if not os.path.isdir(emu_data_loc+file) or'allData.h5' not in list(os.listdir(emu_data_loc+file)):
+            continue
+        cell_location = [int(file[1:4]),int(file[6:9]),int(file[11:14])]
+        SP_list.append(SpinParams(0,
+                                    emu_data_loc+file+'/allData.h5',
+                                    merger_data_filename,
+                                    cell_location,
+                                    p_abs,
+                                    resonance_type = 'simplified',
+                                    gradient_filename = None))
     
+    H_LR_list = []
+    for SP in SP_list:
+        H_LR_list.append(np.abs(SP.H_LR(theta, phi)[component[0],component[1]]))
+    
+    if plot: 
+        f, ax = plt.subplots(1,1, figsize=(8,6))
+        ax.hist(H_LR_list, bins = 100)
+    return H_LR_list
+        
 def angular_eigenvector_multiplot( 
                                 data_array, # array of length 4 of data tuples outputted by angular_eigenvector_plot
                                 vmin = -8, vmax = -5,
                                 fs = 20, 
                                 savefig=False):
+    N = len(data_array)
     
-    f, ax = plt.subplots(2,2, figsize=(14,8),   subplot_kw=dict(projection='mollweide'),)
+    f, ax = plt.subplots((N+1)//2,2, figsize=(8,10),   subplot_kw=dict(projection='mollweide'),)
         
     for n, data in enumerate(data_array):
         
@@ -1481,11 +1530,13 @@ def angular_eigenvector_multiplot(
         r'$\frac{5}{6}\pi$',
         r'$\pi$']
     #ax[0,0].set_yticks(yT, yL, fontsize= fs)
-    ax[0,0].set_ylabel('Point A',fontsize= 24, labelpad=60, rotation = 0)
-    ax[1,0].set_ylabel('Point B',fontsize= 24, labelpad=60, rotation = 0)
+    ax[0,0].set_ylabel('A',fontsize= 24, labelpad=30, rotation = 0)
+    ax[1,0].set_ylabel('B',fontsize= 24, labelpad=30, rotation = 0)
+    ax[2,0].set_ylabel('C',fontsize= 24, labelpad=30, rotation = 0)
+    ax[3,0].set_ylabel('D',fontsize= 24, labelpad=30, rotation = 0)
     
-    ax[0,0].set_title(r'Pre-Instability ($t = 0$ ns)', fontsize= 24, pad = 15)
-    ax[0,1].set_title(r'Post-Instability ($t = 0.47$ ns)', fontsize= 24, pad = 15)
+    ax[0,0].set_title(r'$t = 0$ ns', fontsize= 24, pad = 30)
+    ax[0,1].set_title(r'$t = 0.47$ ns', fontsize= 24, pad = 30)
 
     # Increase the pad between the subplots
 
@@ -1495,9 +1546,9 @@ def angular_eigenvector_multiplot(
                                 colorplot_vals, 
                                 cmap=plt.cm.hot, shading='auto', vmin = vmin, vmax = vmax)
     f.tight_layout()
-    f.subplots_adjust(wspace=0.0, hspace = 0.19)
+    f.subplots_adjust(wspace=0.1, hspace = 0.23)
 
-    f.colorbar(colorplot_im, label=r'log$(\Omega)$', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.08, aspect=33)
+    f.colorbar(colorplot_im, label=r'log$(\Omega)$', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.05, aspect=33)
 
 
     #savefig
@@ -1577,3 +1628,91 @@ def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
         plt.show()
     
     
+def solidAnglePlot(xlims, ylims, z, t1, t2,
+                    emu_data_loc, merger_data_loc, gradient_filenames, p_abs,
+                    vmin, vmax,
+                    separate_ranges = False,
+                    resonance_type = None,
+                    adiabaticity = True,
+                    plot_conditions = False,
+                    data = None,
+                    marker = None,
+                    savefig = False):
+    
+    bothcolor_fill = '#E61F39'
+
+
+    if type(data)!=type(None):
+        solidAngles = data
+    else:
+        #compute solid angles         
+        SP_objects = np.array([[[
+                            SpinParams(t,
+                            emu_data_loc + f"i{ix:03d}_j{iy:03d}_k{z:03d}/allData.h5",
+                            merger_data_loc,
+                            [ix,iy,z],
+                            p_abs,
+                            gradient_filename = gradient_filenames[n])
+                            for iy in range(ylims[0],ylims[1])]
+                            for ix in range(xlims[0],xlims[1])]
+                            for n,t in enumerate([t1,t2])])
+    
+    
+        solidAngles = np.array([[[
+                            SP_objects[nt,ix-xlims[0],iy-ylims[0]].solidAngle(separate_ranges = separate_ranges,
+                                                           resonance_type = resonance_type, 
+                                                           adiabaticity = adiabaticity) 
+                            for iy in range(ylims[0],ylims[1])]
+                            for ix in range(xlims[0],xlims[1])]
+                            for nt in range(2)])
+    
+    #get times and distances in units
+    merger_grid_file = h5py.File(merger_data_loc, 'r')
+    x_km = np.array(merger_grid_file['x(cm)'])[xlims[0]:xlims[1],ylims[0]:ylims[1],0] / 1e5
+    y_km = np.array(merger_grid_file['y(cm)'])[xlims[0]:xlims[1],ylims[0]:ylims[1],0] / 1e5
+    z_km = np.array(merger_grid_file['z(cm)'])[0,0,z] / 1e5
+    merger_grid_file.close()
+      
+    emu_file_example = emu_data_loc + f"i{xlims[0]:03d}_j{ylims[0]:03d}_k{z:03d}/allData.h5"
+    t_s = (h5py.File(emu_file_example, 'r')['t(s)'][t1], h5py.File(emu_file_example, 'r')['t(s)'][t2])
+    h5py.File(emu_file_example, 'r').close()
+        
+    #plot
+    f,ax = plt.subplots(1,2,figsize=(12,8), sharex = True, sharey = True, squeeze = False,)
+    
+    for k in range(2):
+        #colorplot
+        im = ax[0,k].pcolormesh(x_km, y_km, np.log10(solidAngles[k,:,:]),
+                                    vmin = vmin, vmax = vmax, 
+                                    cmap = 'YlGnBu_r')
+        
+        #time text
+        ax[0,k].text((x_km[1,0] - x_km[0,0])*0.1 + x_km[0,0],
+                        (y_km[0,1] - y_km[0,0])*0.95 + y_km[0,0],
+                        rf'$t =$ {t_s[k]*1E9:.2f} ns',
+                        bbox = dict(edgecolor = 'black', facecolor = 'white', alpha = 0.8, boxstyle = 'round', pad = 0.2))
+            
+    plt.tight_layout()
+
+    f.colorbar(im, label=r'log of Solid Angle (sr)', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
+    ax[0,0].set_xlabel(r'$x$-coordinate (km)')
+    ax[0,0].set_ylabel(r'$y$-coordinate (km)')
+    if plot_conditions:
+        #resonance condition 
+        mg = Merger_Grid(z, merger_data_loc, p_abs)
+        conditions = mg.both_conditions[xlims[0]:xlims[1],ylims[0]:ylims[1]]
+
+        ax[0,0].contourf(x_km[:,:],y_km[:,:],conditions[:,:], levels=[0.5,1], colors=[bothcolor_fill], antialiasing = False, alpha = 0.3)
+
+    if marker:
+        marker_x = x_km[marker[0]-xlims[0], marker[1]-ylims[0]]
+        marker_y = y_km[marker[0]-xlims[0], marker[1]-ylims[0]]
+        ax[0,0].scatter(marker_x,marker_y, color = 'black')
+    if type(savefig) == str: 
+        f.savefig(savefig + '.pdf', dpi=300, bbox_inches = 'tight')
+
+    return solidAngles
+    
+    
+
+        
