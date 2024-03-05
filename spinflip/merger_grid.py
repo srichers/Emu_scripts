@@ -78,7 +78,7 @@ class Merger_Grid:
     #x,y are coordinates of chosen points to examine in later sections. should be list of same length as zval with -1 for no point on the nth plot
     #xmin, xmax, ymin, ymax are the limits of the plot
     #rect_xmin, rect_xmax, rect_ymin, rect_ymax are the limits of the adiabaticity computation region (green rectangle) must be list of same length as zval
-    def contour_plot(self, savefig = False, x = None, y = None, 
+    def contour_plot(self, savefig = False, points = None, #points = [[x1,y1,z1],[x2,y2,z2],...] and first one should be example point marked x
                      xmin = 30, xmax = 170, ymin = 30, ymax = 170,
                      rect_xmin = None, rect_xmax = None, rect_ymin = None, rect_ymax = None):
         zval = self.zval
@@ -103,11 +103,7 @@ class Merger_Grid:
 
             #both conditions
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.both_conditions[:,:,k], levels=[0.5,1], colors=[bothcolor_fill] )
-
-            #chosen points
-            if x!= None and y!= None and x[k] != None and y[k] != None:
-                points = ax[0,k].scatter(self.x_km[x[k],y[k]],self.y_km[x[k],y[k]], color = 'lime', marker = 'x')
-        
+            
             #adiabaticity computation region
             if type(rect_xmin[k]) != type(None) and type(rect_xmax[k]) != type(None) and type(rect_ymin[k]) != type(None) and type(rect_ymax[k]) != type(None):
                 ax[0,k].add_patch(plt.Rectangle((self.x_km[rect_xmin[k],rect_ymin[k]],self.y_km[rect_xmin[k],rect_ymin[k]]),
@@ -116,6 +112,13 @@ class Merger_Grid:
                                     linewidth=3,edgecolor=adiabcolor, facecolor='none', linestyle = 'dashed'))
 
             ax[0,k].grid(False)
+            
+        #add selected point markers
+        if type(points) != type(None):
+            letters = ['x', '$A$', '$B$', '$C$', '$D$', ]
+            for k,point in enumerate(points):
+                x, y, zi = point
+                ax[0,zi].scatter(self.x_km[x,y], self.y_km[x,y],s=120, c = 'lime', marker = letters[k])
         plt.tight_layout()
         
         #legend
@@ -124,9 +127,6 @@ class Merger_Grid:
                  plt.Rectangle((1, 1), 2, 2, fc=bothcolor_fill),
                  (mpatches.Patch(color='gray'),
                   plt.Rectangle((0, 0), 1,1, fill = False, ec=adiabcolor, linestyle = 'dashed', linewidth = 3))]
-        if type(x) != type(None) and type(y) != type(None):
-            proxy.append(points)
-        
         
         ax[0,-1].legend(proxy, ["Fast Flavor Instability Exists", 
                              "Spin-flip Resonance Exists",
