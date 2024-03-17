@@ -202,7 +202,7 @@ class Gradients:
         plt.colorbar()
         plt.title('Minimum Gradient at Each Grid Cell')
         plt.xlabel('x index')
-        plt.ylabel('y index')
+        ax.set_ylabel('y index')
         if savefig == True:
             plt.savefig('min_gradient.pdf')
         else:
@@ -795,7 +795,16 @@ class SpinParams:
         plt.xticks([],[], zorder = 10, fontsize = fs)
         #ax.tick_params(axis='x', pad=100)        
         #ax.set_zorder(10)
-        
+        neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'} #label names (x because its for a general heavy lepton flavor.)
+
+        if resonant_band_thetas != None:
+            for i in range(len(flavor_resonances)):
+                    n,k,color = flavor_resonances[i]
+                    theta = resonant_band_thetas[i]
+                    #contour = ax_z.hlines(theta, phi_optimal - zoom + shift[1], phi_optimal + zoom + shift[1], color = color, linestyle = 'dashed')
+                    ax.text(0, -1*theta + np.pi/2 + 0.15, rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', 
+                                fontsize = 22, color = 'white')
+                    
         #add zoomed in graphic
         if type(zoom) == float:
             f.set_size_inches(12.3,4.5)
@@ -933,47 +942,49 @@ class SpinParams:
                               initvector = None, zoom_on_vector = None, value = 'Omega',
                               zoom = None, shift = 0, phi_optimal= np.pi, legend_loc = (0.695,1.02),
                               method = 'Nelder-Mead', 
-                              separations_from_peak = [0.07,0.03,0.07],
+                              separations_from_peak = [0.0,0.0,0.0],
                               bounds =[(np.pi/4, 3*np.pi/4)], max_point = False,
                               extra_lines = None, extra_init_vectors = None, flavor_resonances = [(0,0,'deepskyblue'), (1,1,'limegreen'), (0,1,'magenta')],
                               fs = 20, #fontsize
+                              ax = None,
                               savefig = False):
     
         #factor to multiply the y axis by. Have to manually change the label 
         factor = 1E12
 
-        plt.figure(figsize = (8,6))
-        plt.xlabel(r'$\theta$ (rad)', fontsize = fs)
-        plt.locator_params(axis='x', nbins=7)
-        plt.xticks(fontsize = fs)
-        plt.yticks(fontsize = fs)
+        if not ax:
+            f,ax = plt.subplots(1,1,figsize = (8,6))
+        ax.set_xlabel(r'$\theta$ (rad)', fontsize = fs)
+        #plt.locator_params(axis='x', nbins=7)
+        #ax.set_xticks(fontsize = fs)
+        #ax.set_yticks(fontsize = fs)
 
         #find theta_optimal and set y-axis label
         if value == 'lminusr':
             theta_optimal, max_right = self.minLeftMinusRight(phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$1- |L - R|$ $(\times 10^{-12})$', fontsize = fs)
+            ax.set_ylabel(r'$1- |L - R|$ $(\times 10^{-12})$', fontsize = fs)
         elif value == 'rmax':
             if type(initvector) == type(None):
                 initvector =  self.initial_ket
             theta_optimal, max_right = self.maxRightHanded(initvector, phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$r_{max}$ $(\times 10^{-12})$', fontsize = fs)
+            ax.set_ylabel(r'$r_{max}$ $(\times 10^{-12})$', fontsize = fs)
         elif value == 'Omega':
             theta_optimal, max_right = self.maxOmega(phi=phi_optimal, method = method, bounds = bounds)
-            plt.ylabel(r'$\Omega$ $(\times 10^{-12})$', fontsize = fs)
+            ax.set_ylabel(r'$\Omega$ $(\times 10^{-12})$', fontsize = fs)
             
         #find bounds of plot accourding to zoom
         if plot_bounds != None:
             thetas = np.linspace(plot_bounds[0], plot_bounds[1], theta_resolution)
-            plt.xlim(plot_bounds[0], plot_bounds[1])
+            ax.set_xlim(plot_bounds[0], plot_bounds[1])
         else:
             if zoom == None:
                 thetas = np.linspace(0, np.pi, theta_resolution)
-                plt.xlim(0,np.pi)
+                ax.set_xlim(0,np.pi)
             else:
                 if not zoom_on_vector:
                     zoom_on_vector = theta_optimal
                 thetas = np.linspace(zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift, theta_resolution)
-                plt.xlim( zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift)
+                ax.set_xlim( zoom_on_vector - zoom + shift, zoom_on_vector + zoom + shift)
                 
         
         if value == 'lminusr':
@@ -989,17 +1000,17 @@ class SpinParams:
                                    for theta in thetas])
         
         #plot full resonance value
-        plt.plot(thetas, plot_vals*factor, color = 'r')
+        ax.plot(thetas, plot_vals*factor, color = 'r')
 
         if vmax != None:
-            plt.ylim(0,vmax)
+            ax.set_ylim(0,vmax)
         
         #extra_init_vector to see specific resonance condition solutions over plot of the general resonance condition
         if extra_init_vectors != None:
             extra_thetas = np.array([self.maxRightHanded(extra_init_vector, phi=phi_optimal, method = method, bounds = bounds)[0]
                                     for extra_init_vector in extra_init_vectors])
             print('Extra Thetas = ', extra_thetas)
-            extra_thetas_vlines = plt.vlines(extra_thetas, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
+            extra_thetas_vlines = ax.vlines(extra_thetas, [0], [max(plot_vals)], linestyles = '--', label = 'Specified Initial Vectors', color='lime')
 
         #plot vlines
         neutrino_flavors = {0:'e', 1:'x', 2:r'\tau'}
@@ -1011,19 +1022,21 @@ class SpinParams:
             
             for i, tup in enumerate(resonant_thetas):
                 theta,n,k,color = tup
-                #plt.vines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', color = color)
-                plt.text(theta+separations_from_peak[i], 3*vmax/4, rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', )
+                if type(separations_from_peak) == list:
+                    ax.text(theta+separations_from_peak[i], 3*vmax/4, rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', )
+                else:
+                    ax.vlines([theta],[0],[factor*max(plot_vals)], linestyles = '--', label = rf'${neutrino_flavors[n]}_L \rightleftharpoons {neutrino_flavors[k]}_R$', color = color)
         if max_point:
-            max_point_vline =  plt.vlines([theta_optimal],[0],[factor*max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
-            bounds_vlines =    plt.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*factor*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
+            max_point_vline =  ax.vlines([theta_optimal],[0],[factor*max(plot_vals)], linestyles = ':', label = 'Max value', color='magenta')
+            bounds_vlines =    ax.vlines([bounds[0][0], bounds[0][1]],[0],[1/4*factor*max(plot_vals)], linestyles = '-.', label = 'Bounds', color='orange')
             print("Optimal theta in Range = ", str(theta_optimal))
 
         if extra_lines != None:
-            extra_vlines = plt.vlines(extra_lines, [0], [factor*max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
+            extra_vlines = ax.vlines(extra_lines, [0], [factor*max(plot_vals)], linestyles = '--', label = 'Extra Lines', color='lime')
 
-        plt.minorticks_on()
+        ax.minorticks_on()
         plt.tight_layout()
-        plt.legend(frameon = False, fontsize = fs-2, loc = 'lower right', bbox_to_anchor = (legend_loc[0], legend_loc[1]), handlelength = 1.5)
+        ax.legend(frameon = False, fontsize = fs-2, loc = 'lower right', bbox_to_anchor = (legend_loc[0], legend_loc[1]), handlelength = 1.5)
 
         if type(savefig) == str: 
             plt.savefig(savefig + '.pdf', dpi=300)
@@ -1032,7 +1045,7 @@ class SpinParams:
             return theta_optimal
         if flavor_resonances != None:
             return np.array(resonant_thetas)[:,0]
-    
+        return ax
     
     #finds width of lminusr resonance condition
     #works best if limits are reduced to near the resonance band
@@ -1507,7 +1520,7 @@ def angular_eigenvector_multiplot(
                                 savefig=False):
     N = len(data_array)
     
-    f, ax = plt.subplots((N+1)//2,2, figsize=(8,10),   subplot_kw=dict(projection='mollweide'),)
+    f, ax = plt.subplots((N+1)//2,2, figsize=(8,8),   subplot_kw=dict(projection='mollweide'),)
         
     for n, data in enumerate(data_array):
         
@@ -1533,7 +1546,6 @@ def angular_eigenvector_multiplot(
     ax[0,0].set_ylabel('A',fontsize= 24, labelpad=30, rotation = 0)
     ax[1,0].set_ylabel('B',fontsize= 24, labelpad=30, rotation = 0)
     ax[2,0].set_ylabel('C',fontsize= 24, labelpad=30, rotation = 0)
-    ax[3,0].set_ylabel('D',fontsize= 24, labelpad=30, rotation = 0)
     
     ax[0,0].set_title(r'$t = 0$ ns', fontsize= 24, pad = 30)
     ax[0,1].set_title(r'$t = 0.47$ ns', fontsize= 24, pad = 30)
@@ -1621,7 +1633,7 @@ def HLR_magnitude_plotter(xy_limits, #[[x1,x2],[y1,y2]]
     if mark_point:
         plt.scatter([x_km[mark_point[0]-xy_limits[0,0],0]],[y_km[0,mark_point[1] - xy_limits[1,0]]], color = 'black')
     plt.xlabel('x (km)')
-    plt.ylabel('y (km)')
+    ax.set_ylabel('y (km)')
     if savefig:
         plt.savefig(savefig + '.png', dpi=300)
     else:
@@ -1687,16 +1699,20 @@ def solidAnglePlot(xlims, ylims, z, t1, t2,
                                     cmap = 'YlGnBu_r')
         
         #time text
-        ax[0,k].text((x_km[1,0] - x_km[0,0])*0.1 + x_km[0,0],
-                        (y_km[0,1] - y_km[0,0])*0.95 + y_km[0,0],
+        ax[0,k].text((x_km[1,0] - x_km[0,0]) + x_km[0,0],
+                        (y_km[0,-4] - y_km[0,0])*0.9 + y_km[0,0],
                         rf'$t =$ {t_s[k]*1E9:.2f} ns',
                         bbox = dict(edgecolor = 'black', facecolor = 'white', alpha = 0.8, boxstyle = 'round', pad = 0.2))
             
     plt.tight_layout()
 
     f.colorbar(im, label=r'log of Solid Angle (sr)', location = 'bottom',ax=ax.ravel().tolist(), pad = 0.1,aspect=30)
-    ax[0,0].set_xlabel(r'$x$-coordinate (km)')
-    ax[0,0].set_ylabel(r'$y$-coordinate (km)')
+    ax[0,0].set_xlabel(r'$x$ (km)', labelpad = 1)
+    ax[0,1].set_xlabel(r'$x$ (km)', labelpad = 1)
+
+    ax[0,0].set_ylabel(r'$y$ (km)')
+    ax[0,0].set_ylim(y_km[0,0]-(y_km[0,1]-y_km[0,0])/2,
+                     y_km[0,-3]-(y_km[0,1]-y_km[0,0])/2)
     if plot_conditions:
         #resonance condition 
         mg = Merger_Grid(z, merger_data_loc, p_abs)
@@ -1707,9 +1723,10 @@ def solidAnglePlot(xlims, ylims, z, t1, t2,
     if marker:
         marker_x = x_km[marker[0]-xlims[0], marker[1]-ylims[0]]
         marker_y = y_km[marker[0]-xlims[0], marker[1]-ylims[0]]
-        ax[0,0].scatter(marker_x,marker_y, color = 'black')
+        ax[0,0].scatter(marker_x,marker_y, color = 'black', s = 100, marker = 'x')
+        plt.tight_layout(pad = 40)
     if type(savefig) == str: 
-        f.savefig(savefig + '.pdf', dpi=300, bbox_inches = 'tight')
+        f.savefig(savefig + '.png', dpi=500, bbox_inches = 'tight')
 
     return solidAngles
     
