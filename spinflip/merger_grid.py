@@ -105,8 +105,9 @@ class Merger_Grid:
             ax[0,k].contourf(self.x_km[:,:],self.y_km[:,:],self.both_conditions[:,:,k], levels=[0.5,1], colors=[bothcolor_fill] )
             
             #adiabaticity computation region
-            if type(rect_xmin[k]) != type(None) and type(rect_xmax[k]) != type(None) and type(rect_ymin[k]) != type(None) and type(rect_ymax[k]) != type(None):
-                ax[0,k].add_patch(plt.Rectangle((self.x_km[rect_xmin[k],rect_ymin[k]],self.y_km[rect_xmin[k],rect_ymin[k]]),
+            if type(rect_xmin) != type(None) and type(rect_xmax) != type(None) and type(rect_ymin) != type(None) and type(rect_ymax) != type(None):
+                if type(rect_xmin[k]) != type(None) and type(rect_xmax[k]) != type(None) and type(rect_ymin[k]) != type(None) and type(rect_ymax[k]) != type(None):
+                    ax[0,k].add_patch(plt.Rectangle((self.x_km[rect_xmin[k],rect_ymin[k]],self.y_km[rect_xmin[k],rect_ymin[k]]),
                                     self.x_km[rect_xmax[k],rect_ymax[k]]-self.x_km[rect_xmin[k],rect_ymin[k]],
                                     self.y_km[rect_xmax[k],rect_ymax[k]]-self.y_km[rect_xmin[k],rect_ymin[k]],
                                     linewidth=3,edgecolor=adiabcolor, facecolor='none', linestyle = 'dashed'))
