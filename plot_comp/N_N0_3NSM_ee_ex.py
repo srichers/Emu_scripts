@@ -91,20 +91,20 @@ mpl.rcParams['axes.linewidth'] = 2
 fig = plt.figure(figsize=(12,6))
 
 
-emu_2f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_2f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 
 #emu_2f_sims = ['NSM_1/']
 emu_2f_sims = ['NSM_1/', 'NSM_2/32dir/', 'NSM_3/32dir/']
 emu_2f_res = ['merger_2F/', 'merger_2F_lowres/']
 
 
-emu_3f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_3f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 
 emu_3f_sims = ['NSM_1/']
 emu_3f_res = ['merger_3F/', 'merger_3F_lowres/']
 
 
-bang_pre = "/global/project/projectdirs/m3761/FLASH/FFI_3D/"
+bang_pre = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/"
 
 bang_sims = ['NSM_1/', 'NSM_2/t3/', 'NSM_3/t6/']
 bang_res = ['sim/', 'res_a/', 'res_b/']
@@ -118,6 +118,8 @@ h5_filename_emu = "plt_reduced_data.h5"
 
 aval = [1.0, 0.5, 0.25]
 
+delta_max_dec = 0.2
+
 for i in range(3):
 
     if i == 0:
@@ -127,11 +129,13 @@ for i in range(3):
         ax = plt.subplot(2,3,i+1, sharex=ax0, sharey=ax0)
         ax_ex = plt.subplot(2,3,i+4, sharex=ax_ex0, sharey=ax_ex0)
 
+    print(test_fig_labels[i])
 
     #############
     # plot data #
     #############
     for j in range(3):
+
         #if i == 0 and j < 2:
         #    if j == 1:
         #        if j == 0:
@@ -142,22 +146,29 @@ for i in range(3):
             h5_filename = h5_filename_emu
             if i == 0 and j == 1:
                 h5_filename = h5_filename_orig
-            if i == 0 and j == 0:
-                print("no permissions")
+            #if i == 0 and j == 0:
+            #    print("no permissions")
+            #else:
+            filename_emu_2f = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
+            if i == 0 and j == 1:
+                t,N = plotdata(filename_emu_2f,0,0)
+                t_ex,N_ex = plotdata(filename_emu_2f,0,1)
             else:
-                filename_emu_2f = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_filename
-                if i == 0:
-                    t,N = plotdata(filename_emu_2f,0,0)
-                    t_ex,N_ex = plotdata(filename_emu_2f,0,1)
-                else:
-                    t,N = plotdata_new_format(filename_emu_2f,0,0)
-                    t_ex,N_ex = plotdata_new_format(filename_emu_2f,0,1)
-                tmax = t[np.argmax(N_ex)]
-                ax.plot(t-tmax, N/N[0], 'k-', alpha=aval[j], label=None)
-                if j == 0:
-                    ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=r'${\rm {\tt EMU}\,\,(2f)}$')
-                else:
-                    ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=None)
+                t,N = plotdata_new_format(filename_emu_2f,0,0)
+                t_ex,N_ex = plotdata_new_format(filename_emu_2f,0,1)
+            tmax = t[np.argmax(N_ex)]
+            tdec = tmax + delta_max_dec #decoherence time after sat.
+            tdec_ind = np.argmin(abs(t-tdec)) #index where tdec falls in t
+            ax.plot(t-tmax, N/N[0], 'k-', alpha=aval[j], label=None)
+            if j == 0:
+                ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=r'${\rm {\tt EMU}\,\,(2f)}$')
+            else:
+                ax_ex.semilogy(t-tmax, N_ex/N[0], 'k-', alpha=aval[j], label=None)
+            if j == 0:
+                print('Emu (2f)')
+                print('N_ex max = ', N_ex[np.argmax(N_ex)]/N[0])
+                print('N_ex dec = ', N_ex[tdec_ind]/N[0])
+                print('N_ee asymp = ', N[-1]/N[0])
 
         if i == 0 and j < 2:
             if j == 0:
@@ -189,22 +200,35 @@ for i in range(3):
                 N_fe = n_2F_eq[i]/(N[0]*n_2F[i])
         t_ex,N_ex = plotdata(filename_bang,0,1)
         tmax = t[np.argmax(N_ex)]
+        tdec = tmax + delta_max_dec #decoherence time after sat.
+        tdec_ind = np.argmin(abs(t-tdec)) #index where tdec falls in t
         #special cases:
         if i == 0 and j == 1:
-            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j],  label=None)
+            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j], label=None)
         elif i == 0 and j == 2:
-            ax.plot(t-tmax, N/N[0], 'r--', alpha=aval[j],  label=None)
+            ax.plot(t-tmax, N/N[0], 'r--', alpha=aval[j], label=None)
         else:
-            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j],  label=None)
-        ax.text(x=1.5, y=0.9, s=test_fig_labels[i], fontsize=12)
+            ax.plot(t-tmax, N/N[0], 'r-', alpha=aval[j], label=None)
+        #ax.text(x=1.5, y=0.9, s=test_fig_labels[i], fontsize=12)
         if j == 0:
             ax_ex.semilogy(t-tmax, N_ex/N[0], 'r-', alpha=aval[j], label=r'${\rm {\tt FLASH}\,\,(2f)}$')
         elif i == 0 and j == 2:
             ax_ex.semilogy(t-tmax, N_ex/N[0], 'r--', alpha=aval[j], label=None)
         else:
             ax_ex.semilogy(t-tmax, N_ex/N[0], 'r-', alpha=aval[j], label=None)
+        if j == 0:
+            print('Flash')
+            print('N_ex max = ', N_ex[np.argmax(N_ex)]/N[0])
+            print('N_ex dec = ', N_ex[tdec_ind]/N[0])
+            if i == 0:
+                special_ind = np.argmin(abs(t-tmax-2.0))
+                print('special_ind = ', special_ind)
+                print('t(special_ind)-tmax-2.0 = ', t[special_ind]-tmax-2.0)
+                print('N_ee asymp = ', N[special_ind]/N[0])
+            else:
+                print('N_ee asymp = ', N[-1]/N[0])
 
-    ax_ex.set_xlabel(r"$t-t_{\rm max}\,(10^{-9}\,{\rm s})$")
+    ax_ex.set_xlabel(r"$t-t_{\rm sat}\,(10^{-9}\,{\rm s})$")
     plt.setp(ax.get_xticklabels(), visible=False)
 
     if i == 0:
@@ -231,6 +255,7 @@ for i in range(3):
     ax.xaxis.set_minor_locator(AutoMinorLocator())
     ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.minorticks_on()
+    ax.set_title(r'${{\rm NSM}}\,\,{}$'.format(i+1))
 
     ax_ex.tick_params(axis='both', which='both', direction='in', right=True,top=True)
     ax_ex.set_xlim([-0.5,2.0])

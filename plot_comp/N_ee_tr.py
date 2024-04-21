@@ -67,21 +67,38 @@ ax.minorticks_on()
 #############
 # plot data #
 #############
-filename_emu_2f = "/global/project/projectdirs/m3761/Evan/Fiducial_3D_2F/reduced_data.h5"
-filename_emu_3f = "/global/project/projectdirs/m3761/Evan/Fiducial_3D_3F_reduced_data.h5"
+
+#fid:
+filename_emu_2f = "/global/project/projectdirs/m3761/FLASH/Emu/Fiducial_3D_2F/reduced_data.h5"
+filename_emu_3f = "/global/project/projectdirs/m3761/FLASH/Emu/Fiducial_3D_3F/reduced_data.h5"
 filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/fid/sim1/reduced_data_nov4_test_hdf5_chk.h5"
+
+#90d:
+#filename_emu_2f = "/global/cfs/projectdirs/m3761/FLASH/Emu/90Degree_3D_2F/reduced_data.h5"
+#filename_emu_3f = "/global/cfs/projectdirs/m3761/FLASH/Emu/90Degree_3D_3F/reduced_data.h5"
+#filename_bang = "/global/project/projectdirs/m3761/FLASH/FFI_3D/90d/sim1/reduced_data_nov4_test_hdf5_chk.h5"
+
 t,N = plotdata(filename_emu_2f,0,0)
-ax.plot(t, N, 'k-', label=r'${\rm emu\,\,(2f)}$')
+t_ex,N_ex = plotdata(filename_emu_2f,0,1)
+tmax = t[np.argmax(N_ex)]
+ax.plot(t-tmax, N, 'k-', label=r'${\rm emu\,\,(2f)}$')
+
 t,N = plotdata(filename_emu_3f,0,0)
+t_ex,N_ex = plotdata(filename_emu_3f,0,1)
+tmax = t[np.argmax(N_ex)]
 #special code for excising a single point
 bad_ind = 152
-print(N[:])
+#print(N[:])
 t = np.concatenate((t[:bad_ind-1], t[bad_ind+1:]))
 N = np.concatenate((N[:bad_ind-1], N[bad_ind+1:]))
-ax.plot(t, N, 'k--', label=r'${\rm emu\,\,(3f)}$')
+ax.plot(t-tmax, N, 'k--', label=r'${\rm emu\,\,(3f)}$')
+
 t,N = plotdata(filename_bang,0,0)
-ax.plot(t, N, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
-ax.set_xlabel(r"$t\,(10^{-9}{\rm s})$")
+t_ex,N_ex = plotdata(filename_bang,0,1)
+tmax = t[np.argmax(N_ex)]
+ax.plot(t-tmax, N, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
+ax.set_xlabel(r"$t-t_{\rm max}\,(10^{-9}{\rm s})$")
 ax.set_ylabel(r"$\langle N_{ee}/{\rm Tr}[N]\rangle$")
 ax.legend(loc='upper right')
-plt.savefig("N_ee_tr_comp.pdf", bbox_inches="tight")
+plt.savefig("N_ee_tr_comp_fid.pdf", bbox_inches="tight")
+#plt.savefig("N_ee_tr_comp_90d.pdf", bbox_inches="tight")

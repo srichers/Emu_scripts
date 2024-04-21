@@ -8,11 +8,14 @@ import matplotlib as mpl
 from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,AutoMinorLocator,LogLocator)
 
 #NSM_1:
-#n_nue0 = 1.421954234999705e+33     # 1/ccm
-#n_nux0 = 1.9645407875568215e+33/4. # 1/ccm, each flavor
+n_nue0 = 1.421954234999705e+33     # 1/ccm
+n_nux0 = 1.9645407875568215e+33/4. # 1/ccm, each flavor
 #NSM_2:
-n_nue0 = 2.3293607911671233e+33    # 1/ccm
-n_nux0 = 1.5026785300973756e+33 # 1/ccm, each flavor
+#n_nue0 = 2.3293607911671233e+33    # 1/ccm
+#n_nux0 = 1.5026785300973756e+33 # 1/ccm, each flavor
+#NSM_3:
+#n_nue0 = 2.8800567085107055e+33    # 1/ccm
+#n_nux0 = 4.831622183948198e+32 # 1/ccm, each flavor
 n_tot = n_nue0 + 2.*n_nux0
 n_2F = n_nue0 + n_nux0
 n_tot_eq = n_tot/3.0
@@ -71,7 +74,7 @@ plt.subplots_adjust(hspace=0)
 ##############
 # formatting #
 ##############
-axes[0].axhline(mfact*n_2F_eq, color="green")
+axes[0].axhline(mfact*n_2F_eq, color="silver")
 #axes[0].axhline(mfact*n_tot_eq, color="green", linestyle='--')
 axes[1].set_xlabel(r"$t-t_{\rm max}\,(10^{-9}\,\mathrm{s})$")
 for i in range(2):
@@ -88,49 +91,37 @@ axes[0].set_ylim(0.9*mfact*n_nux0, 1.1*mfact*n_nue0)
 #############
 # plot data #
 #############
-#t1
-#box_length = 4.132703957221158
+
+#NSM_1
+#box_length = 7.865243034321406
 #n_grid = 128
-#t2
-#box_length = 4.132703957221158
-#n_grid = 256
-#t3
-box_length = 8.265407914442315
-n_grid = 256
-try_dir = 't3'
 
-filename_bang = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/sim/reduced_data.h5"
-filename_bang_res1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/res_a/reduced_data.h5"
-filename_bang_res2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/" + try_dir + "/res_b/reduced_data.h5"
+filename_bang_1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/" + "sim/" + "reduced_data.h5"
+filename_bang_2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/" + "sim_a9/" + "reduced_data.h5"
+filename_bang_3 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/" + "sim_a12/" + "reduced_data.h5"
+plot_dir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/sim_comp/"
 
-
-t,Nee = plotdata(filename_bang_res2,0,0)
-tex,Nex = plotdata(filename_bang_res2,0,1)
+t,Nee = plotdata(filename_bang_1,0,0)
+tex,Nex = plotdata(filename_bang_1,0,1)
 tmax = t[np.argmax(Nex)]
-#need odd scaling because of bug when using reduce_data.py on NSM_1/res_test2/ dataset:
-#axes[0].plot(t-tmax, mfact * Nee * n_2F**2/n_tot, 'r-', alpha=0.25)
-#axes[1].semilogy(t-tmax, mfact * Nex * n_2F**2/n_tot, 'r-', alpha=0.25)
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', alpha=0.25)
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-', alpha=0.25)
+axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', label = r'$\delta E_{ab}\sim10^{-6}$')
+axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-')
 
-t,Nee = plotdata(filename_bang_res1,0,0)
-tex,Nex = plotdata(filename_bang_res1,0,1)
+t,Nee = plotdata(filename_bang_2,0,0)
+tex,Nex = plotdata(filename_bang_2,0,1)
 tmax = t[np.argmax(Nex)]
-#No need for n_2F/n_tot scaling for this NSM_1/res_test1 set, but still need to multiply by n_tot trace:
-#axes[0].plot(t-tmax, mfact * Nee * n_tot, 'r-', alpha=0.5)
-#axes[1].semilogy(t-tmax, mfact * Nex * n_tot, 'r-', alpha=0.5)
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', alpha=0.5)
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-', alpha=0.5)
+axes[0].plot(t-tmax, mfact * Nee * n_2F, 'g--', label = r'$\delta E_{ab}\sim10^{-9}$')
+axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'g--')
 
-t,Nee = plotdata(filename_bang,0,0)
-tex,Nex = plotdata(filename_bang,0,1)
+t,Nee = plotdata(filename_bang_3,0,0)
+tex,Nex = plotdata(filename_bang_3,0,1)
 tmax = t[np.argmax(Nex)]
-axes[0].plot(t-tmax, mfact * Nee * n_2F, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
-axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'r-', label=r'${\rm FLASH\,\,(2f)}$')
+axes[0].plot(t-tmax, mfact * Nee * n_2F, 'b:', label = r'$\delta E_{ab}\sim10^{-12}$')
+axes[1].semilogy(t-tmax, mfact * Nex * n_2F, 'b:')
 
+#fig.text(0.5, 0.82, r'$L_s={:.3f}\,{{\rm cm}}$'.format(box_length))
+#fig.text(0.5, 0.77, r'$N_{{gp,s}}={}^3$'.format(n_grid))
 
-fig.text(0.5, 0.82, r'$L_s={:.3f}\,{{\rm cm}}$'.format(box_length))
-fig.text(0.5, 0.77, r'$N_{{gp,s}}={}^3$'.format(n_grid))
-
-#axes[0].legend(loc=(0.43,0.6), frameon=False)
-plt.savefig("Nee_Nex_2panels.pdf", bbox_inches="tight")
+axes[0].legend(loc=(0.43,0.6), fontsize=14, frameon=False)
+plotfile = plot_dir + "Nee_Nex_2panels_rgb_amp.pdf"
+plt.savefig(plotfile, bbox_inches="tight")

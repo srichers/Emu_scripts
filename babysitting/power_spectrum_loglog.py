@@ -35,7 +35,9 @@ def makeplot(v,f,data):
 
     # get appropriate data
     t=data["t"]
-    k=data["k"]
+    k=np.array(data["k"])
+    #convert from 1/\lambda to k=2\pi/\lambda:
+    k = 2.0*np.pi*k
     fft = data[v+f+"_FFT"]
     fft = np.array(fft)
     #total_power = np.sum(fft)
@@ -65,7 +67,8 @@ def makeplot(v,f,data):
 
 
 #data = h5py.File("reduced_data_fft_power_nov4_test_hdf5_chk.h5","r")
-data = h5py.File("reduced_data_fft_power_NSM_sim.h5","r")
+#data = h5py.File("reduced_data_fft_power_NSM_sim.h5","r")
+data = h5py.File("reduced_data_fft_power.h5","r")
 
 for v in variables:
     for f in flavors:
