@@ -58,13 +58,13 @@ fig = plt.figure(figsize=(12,6))
 test_list = [['Fiducial', 'fid'], ['90Degree', '90d'], ['TwoThirds', '2_3']]
 test_fig_labels = [r'${\rm Fiducial}$', r'${\rm 90Degree}$', r'${\rm TwoThirds}$']
 
-emu_2f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_2f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 emu_2f_suf = "_3D_2F/reduced_data.h5"
 
-emu_3f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_3f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 emu_3f_suf = "_3D_3F/reduced_data.h5"
 
-bang_pre = "/global/project/projectdirs/m3761/FLASH/FFI_3D/"
+bang_pre = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/"
 bang_suf = "/sim1/reduced_data_nov4_test_hdf5_chk.h5"
 
 ind = np.zeros([3,3], dtype=np.int8)
@@ -72,6 +72,8 @@ ind = np.zeros([3,3], dtype=np.int8)
 ind[0,2] = 1
 
 test_titles = [r'${\rm Fiducial}$', r'${\rm 90Degree}$', r'${\rm TwoThirds}$']
+
+delta_max_dec = 0.2
 
 for i,test in enumerate(test_list):
 
@@ -81,6 +83,8 @@ for i,test in enumerate(test_list):
     else:
         ax = plt.subplot(2,3,i+1, sharex=ax0, sharey=ax0)
         ax_ex = plt.subplot(2,3,i+4, sharex=ax_ex0, sharey=ax_ex0)
+
+    print(test_titles[i])
 
 
     #############
@@ -94,8 +98,15 @@ for i,test in enumerate(test_list):
     N = N/N0
     N_ex = N_ex/N0
     tmax = t[np.argmax(N_ex)]
+    tdec = tmax + delta_max_dec #decoherence time after sat.
+    tdec_ind = np.argmin(abs(t-tdec)) #index where tdec falls in t
     ax.plot(t-tmax, N, 'k-', label=None)
     ax_ex.semilogy(t-tmax, N_ex, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
+    print('Emu (2f)')
+    print('N_ex max = ', N_ex[np.argmax(N_ex)])
+    print('N_ex dec = ', N_ex[tdec_ind])
+    print('N_ee asymp = ', N[-1])
+
 
     filename_emu_3f = emu_3f_pre + test[0] + emu_3f_suf
     t,N = plotdata(filename_emu_3f,0,0,ind[1,i])
@@ -115,15 +126,23 @@ for i,test in enumerate(test_list):
     t,N = plotdata(filename_bang,0,0,ind[2,i])
     t_ex,N_ex = plotdata(filename_bang,0,1,ind[2,i])
     tmax = t[np.argmax(N_ex)]
+    tdec = tmax + delta_max_dec #decoherence time after sat.
+    tdec_ind = np.argmin(abs(t-tdec)) #index where tdec falls in t
     ax.plot(t-tmax, N, 'r-', label=None)
     #ax.text(x=2.5, y=0.9, s=test_fig_labels[i], fontsize=12)
     ax_ex.set_xlabel(r"$t-t_{\rm sat}\,(10^{-9}\,{\rm s})$")
-    ax_ex.semilogy(t-tmax, N_ex, 'r--', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
+    ax_ex.semilogy(t-tmax, N_ex, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
+    print('Flash')
+    print('N_ex max = ', N_ex[np.argmax(N_ex)])
+    print('N_ex dec = ', N_ex[tdec_ind])
+    print('N_ee asymp = ', N[-1])
 
     plt.setp(ax.get_xticklabels(), visible=False)
     if i == 0:
-        ax.set_ylabel(r"$\langle N_{ee}/{\rm Tr}[N]\rangle$")
-        ax_ex.set_ylabel(r"$\langle |N_{ex}|/{\rm Tr}[N]\rangle$")
+        #ax.set_ylabel(r"$\langle N_{ee}/{\rm Tr}[N]\rangle$")
+        #ax_ex.set_ylabel(r"$\langle |N_{ex}|/{\rm Tr}[N]\rangle$")
+        ax.set_ylabel(r"$\langle N_{ee}(t)/N_{ee}(0)\rangle$")
+        ax_ex.set_ylabel(r"$\langle |N_{ex}(t)|/N_{ee}(0)\rangle$")
         #ytick_vals = [1.e-7, 1.e-5, 1.e-3, 1.e-1]
         #ytick_labs = [r'$10^{{{}}}$'.format(num) for num in [-7, -5, -3, -1]]
         #ax_ex.set_yticks(ytick_vals)
@@ -135,8 +154,8 @@ for i,test in enumerate(test_list):
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax_ex.get_yticklabels(), visible=False)
 
-    if i == 2:
-        ax_ex.legend(loc='lower right', fontsize=12, frameon=False)
+    #if i == 2:
+    #    ax_ex.legend(loc='lower right', fontsize=12, frameon=False)
 
 
     ##############

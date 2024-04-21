@@ -102,7 +102,7 @@ axes[0].set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
 axes[0].set_ylim(1.e-20,1.0)
 
 
-emu_2f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_2f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 
 #emu_2f_sims = ['NSM_1/']
 emu_2f_sims = ['NSM_1/', 'NSM_2/32dir/', 'NSM_3/32dir/']
@@ -110,14 +110,14 @@ emu_2f_sims = ['NSM_1/', 'NSM_2/32dir/', 'NSM_3/32dir/']
 emu_2f_res = ['merger_2F/']
 
 
-emu_3f_pre = "/global/project/projectdirs/m3761/FLASH/Emu/"
+emu_3f_pre = "/global/cfs/projectdirs/m3761/FLASH/Emu/"
 
 emu_3f_sims = ['NSM_1/']
 #emu_3f_res = ['merger_3F/', 'merger_3F_lowres/']
 emu_3f_res = ['merger_3F/']
 
 
-bang_pre = "/global/project/projectdirs/m3761/FLASH/FFI_3D/"
+bang_pre = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/"
 
 bang_sims = ['NSM_1/', 'NSM_2/t3/', 'NSM_3/t6/']
 #bang_res = ['sim/', 'res_a/', 'res_b/']
@@ -141,6 +141,7 @@ for i in range(3):
 
     ax = axes[i]
 
+    print(test_fig_labels[i])
 
     #############
     # plot data #
@@ -164,6 +165,10 @@ for i in range(3):
             filename_emu_2f_pow = emu_2f_pre + emu_2f_sims[i] + emu_2f_res[j] + h5_pow_filename
             k1,N1 = plotdata(filename_emu_2f_pow,filename_emu_2f_avg,tplot_e[i],ind_pow,ind_avg)
             ax.semilogy(k1, N1, 'k-', label=r'${\rm {\tt EMU}\,\,(2f)}$')
+            k_ind = np.argmax(N1)
+            print('Emu (2f)')
+            print('k_ind = ', k_ind)
+            print('k(k_ind) = ', k1[k_ind])
 
         if i == 0 and j < 2:
             if j == 0:
@@ -194,9 +199,14 @@ for i in range(3):
             filename_bang_pow = bang_pre + bang_sims[i] + bang_res[j] + h5_pow_filename
         k3,N3 = plotdata(filename_bang_pow,filename_bang_avg,tplot_f[i],ind_pow,ind_avg)
         ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
+        k_ind = np.argmax(N3)
+        print('Flash')
+        print('k_ind = ', k_ind)
+        print('k(k_ind) = ', k3[k_ind])
 
     if i == 0:
-        ax.set_ylabel(r"$\widetilde{N}_{ex}/{\rm Tr}(N)$")
+        #ax.set_ylabel(r"$\widetilde{N}_{ex}/{\rm Tr}(N)$")
+        ax.set_ylabel(r"$|\widetilde{N}_{ex}|/{\rm Tr}(N)$")
         #ytick_vals = [1.e-7, 1.e-5, 1.e-3, 1.e-1]
         #ytick_labs = [r'$10^{{{}}}$'.format(num) for num in [-7, -5, -3, -1]]
         ax.legend(loc='upper right', frameon=False)
@@ -228,5 +238,5 @@ plt.savefig("3NSM_N_ex_FFT.pdf", bbox_inches="tight")
 #print('emu_2f', ind1, k1[ind1], N1[ind1])
 #ind2 = np.argmax(N2)
 #print('emu_3f', ind2, k2[ind2], N2[ind2])
-ind3 = np.argmax(N3)
-print('flash', ind3, k3[ind3], N3[ind3])
+#ind3 = np.argmax(N3)
+#print('flash', ind3, k3[ind3], N3[ind3])

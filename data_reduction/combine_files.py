@@ -38,6 +38,7 @@ print()
 #output_filename='reduced_data_fft_power_nov4_test_hdf5_chk.h5'
 output_filename='reduced_data.h5'
 #output_filename='reduced_data_fft_power.h5'
+#output_filename='reduced_data_signed.h5'
 #output_filename='temp_reduced_data_NSM_sim.h5'
 print("Outputting datasets to "+output_filename)
 f = h5py.File(output_filename,"w")

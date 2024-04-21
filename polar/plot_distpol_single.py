@@ -15,14 +15,35 @@ fxx = np.empty([3])
 fxxbar = np.empty([3])
 
 # initial conditions:
-Nee = 1.0
-Neebar = 1.0/3.0
-Nxx = 0.0
-Nxxbar = 0.0
-fee[:] = np.array([0.0, 0.0, 0.0])
-feebar[:] = np.array([0.0, 0.0, 1.0/2.0])
-fxx[:] = np.array([0.0, 0.0, 0.0])
-fxxbar[:] = np.array([0.0, 0.0, 0.0])
+#eps = 1.e-2
+#Nee = 1.0
+#Neebar = 1.0
+#Nxx = 0.0
+#Nxxbar = 0.0
+#fee[:] = np.array([0.0, 0.0, 0.5])
+#feebar[:] = np.array([0.0, 0.0, 0.5 - eps])
+#fxx[:] = np.array([0.0, 0.0, 0.0])
+#fxxbar[:] = np.array([0.0, 0.0, 0.0])
+
+# initial conditions:
+#Nee = 2.2673532451785223e+33
+#Neebar = 1.5687706570026774e+33
+#Nxx = 1.4557749184137318e+32
+#Nxxbar = 1.4557749184137318e+32
+#fee[:] = np.array([0.14249918, -0.03765468, 0.11498287])
+#feebar[:] = np.array([0.20595488, -0.05442253, 0.15684148])
+#fxx[:] = np.array([0.1192459, -0.03301854, 0.08093676])
+#fxxbar[:] = np.array([0.1192459, -0.03301854, 0.08093676])
+
+# initial conditions (DR point)
+Nee = 3.4982e-16
+Neebar = 2.72814e-16
+Nxx = 1.94872e-16/4.0
+Nxxbar = 1.94872e-16/4.0
+fee[:] = np.array([-1.08293e-17, 2.85869e-17, 3.44997e-16])/Nee
+feebar[:] = np.array([-1.08293e-17, 2.85869e-17, 2.67039e-16])/Neebar
+fxx[:] = np.array([-1.84851e-17, 3.04548e-17, 1.89124e-16])/Nxx
+fxxbar = fxx
 
 
 mpl.rcParams['font.size'] = 22

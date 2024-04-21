@@ -307,9 +307,9 @@ for i in range(test_np):
         #if i == 0:
         #        ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90, fontsize=13)
         #        #ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
-        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$n_{ee}$")
-        ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{n}_{ee}$")
-        ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$n_{ee} - \overline{n}_{ee}$")
+        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$\psi_{ee}$")
+        ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{\psi}_{ee}$")
+        ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$\psi_{ee} - \overline{\psi}_{ee}$")
         #ax2.axvline(th_eln/np.pi, color="purple")
         ax2.set_xlim(0,2)
         ax2.set_xlabel(r"$\theta/\pi$")
@@ -326,7 +326,8 @@ for i in range(test_np):
         if i == 0:
                 ax2.legend(loc='lower right', fontsize=20)
                 #ax2.set_ylabel(r'$dn/d\Omega/(N_{ee}+\overline{N}_{ee})$')
-                ax2.set_ylabel(r'$\frac{1}{N_{ee}+\overline{N}_{ee}}\,\frac{dn}{d\Omega}$', fontsize=30)
+                #ax2.set_ylabel(r'$\frac{1}{N_{ee}+\overline{N}_{ee}}\,\frac{dn}{d\Omega}$', fontsize=30)
+                ax2.set_ylabel(r'$\frac{1}{E_{ee}+\overline{E}_{ee}}\,\psi$', fontsize=30)
                 ax2_shared = ax2
 
 

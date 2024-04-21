@@ -9,14 +9,14 @@ import matplotlib as mpl
 # INPUTS #
 ##########
 # unrotated initial conditions
-Nee = 1.421954234999705e+33
-Neebar = 1.9146237131657563e+33
-Nxx = 1.9645407875568215e+33
-Nxxbar = 1.9645407875568215e+33
-fee = np.array([0.0290911, 0.08385218, 0.14643947])
-feebar = np.array([0.08343537, 0.02458396, 0.34272995])
-fxx = np.array([0.20897386, -0.06627688, 0.49461718])
-fxxbar = np.array([0.20897386, -0.06627688, 0.49461718])
+#Nee = 1.421954234999705e+33
+#Neebar = 1.9146237131657563e+33
+#Nxx = 1.9645407875568215e+33
+#Nxxbar = 1.9645407875568215e+33
+#fee = np.array([0.0290911, 0.08385218, 0.14643947])
+#feebar = np.array([0.08343537, 0.02458396, 0.34272995])
+#fxx = np.array([0.20897386, -0.06627688, 0.49461718])
+#fxxbar = np.array([0.20897386, -0.06627688, 0.49461718])
 
 # initial conditions
 #Nee = 1.421954234999705e+33
@@ -49,6 +49,20 @@ fxxbar = np.array([0.20897386, -0.06627688, 0.49461718])
 #fxx = np.array([0.0139, 0.0100, -0.0375])
 #fxxbar = np.array([0.0175, 0.0117, -0.0790])
 
+# initial conditions (DR point)
+fee = np.empty([3])
+feebar = np.empty([3])
+fxx = np.empty([3])
+fxxbar = np.empty([3])
+Nee = 3.4982e-16
+Neebar = 2.72814e-16
+Nxx = 1.94872e-16/4.0
+Nxxbar = 1.94872e-16/4.0
+fee[:] = np.array([-1.08293e-17, 2.85869e-17, 3.44997e-16])/Nee
+feebar[:] = np.array([-1.08293e-17, 2.85869e-17, 2.67039e-16])/Neebar
+fxx[:] = np.array([-1.84851e-17, 3.04548e-17, 1.89124e-16])/Nxx
+fxxbar = fxx
+
 mpl.rcParams['font.size'] = 22
 mpl.rcParams['font.family'] = 'serif'
 mpl.rc('text', usetex=True)
@@ -80,7 +94,9 @@ def get_rotation_matrix(fn_e, fn_a):
     
     # get axis of rotation (the axis normal to the e and a fluxes)
     u = np.cross(fn_eln, np.array([0,0,1]))
-    u /= mag(u)
+    #u /= mag(u)
+    if mag(u) != 0.0:
+        u /= mag(u)
     
     # get rotation quaternion
     q = np.array([costheta_2,

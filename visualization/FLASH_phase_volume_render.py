@@ -39,7 +39,7 @@ def _Diag_Mag(field, data):
     return np.sqrt((data["ei01"]/data["Norm"])**2 + (data["er01"]/data["Norm"])**2)
 
 #off-diagonal phases in degrees for each off-diagonal component is the arctan(Im/Re)
-@derived_field(name="N01_Phase", units="dimensionless", display_name=r'\phi_{e\mu}\,\,(degrees)', sampling_type="cell",force_override=True)
+@derived_field(name="N01_Phase", units="dimensionless", display_name=r'\phi_{ex}\,\,(degrees)', sampling_type="cell",force_override=True)
 def _N01_Phase(field, data):
     return np.arctan2(data["ei01"],data["er01"])*(180/np.pi)
 

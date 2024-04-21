@@ -29,6 +29,7 @@ NF = 2
 nproc = 2
 do_average = True
 do_fft     = True
+#do_fft     = False
 
 #do_MPI = True
 do_MPI = False
@@ -144,19 +145,13 @@ def get_matrix(base,suffix):
 
     #with unit conversions:
     if base=="N":
-        convfact = 1.0/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
+        convfact = 4.0*np.pi/e01_energy/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
     else:
         convfact = 1.0
     f00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]*convfact
     f11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]*convfact
     f01  = ad['flash',baseFlash+suffixFlash[2]+energyGroup]*convfact
     f01I = ad['flash',baseFlash+suffixFlash[3]+energyGroup]*convfact
-
-    #number densities:
-    f00  = 4.0*np.pi*f00/e01_energy
-    f11  = 4.0*np.pi*f11/e01_energy
-    f01  = 4.0*np.pi*f01/e01_energy
-    f01I = 4.0*np.pi*f01I/e01_energy
 
     zero = np.zeros(np.shape(f00))
 
