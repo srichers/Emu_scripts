@@ -17,7 +17,7 @@ import glob
 import multiprocessing as mp
 import h5py
 import amrex_plot_tools as amrex
-import emu_yt_module_MPC_temp as emu
+import emu_yt_module_MPC as emu
 from multiprocessing import Pool
 import scipy.special
 
