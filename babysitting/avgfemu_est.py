@@ -168,8 +168,8 @@ N_upper = 1.e-1
 ind1 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_lower)))
 ind2 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_upper)))
 #indices used for fid/sim
-ind1 = 33
-ind2 = 42
+#ind1 = 33
+#ind2 = 42
 #indices used for 2_3/res_a
 #ind1 = 30
 #ind2 = 36

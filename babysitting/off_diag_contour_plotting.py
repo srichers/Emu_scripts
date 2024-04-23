@@ -230,20 +230,17 @@ pnt_str = str(pnt_slice)
 
 if com_str == "modulus":
     if dim_int == 0:
-        scalar_2D = np.log10(np.transpose(scalar_data[pnt_slice,:,:]))
+        scalar_2D = np.log10(scalar_data[pnt_slice,:,:])
     elif dim_int == 1:
-        scalar_2D = np.log10(np.transpose(scalar_data[:,pnt_slice,:]))
+        scalar_2D = np.log10(scalar_data[:,pnt_slice,:])
     else:
-        scalar_2D = np.log10(np.transpose(scalar_data[:,:,pnt_slice]))
+        scalar_2D = np.log10(scalar_data[:,:,pnt_slice])
 else:
     if dim_int == 0:
-        #scalar_2D = np.transpose(scalar_data[pnt_slice,:,:])
         scalar_2D = scalar_data[pnt_slice,:,:]
     elif dim_int == 1:
-        #scalar_2D = np.transpose(scalar_data[:,pnt_slice,:])
         scalar_2D = scalar_data[:,pnt_slice,:]
     else:
-        #scalar_2D = np.transpose(scalar_data[:,:,pnt_slice])
         scalar_2D = scalar_data[:,:,pnt_slice]
 
 
