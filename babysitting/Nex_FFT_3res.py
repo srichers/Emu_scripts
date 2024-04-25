@@ -95,11 +95,11 @@ ax.set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
 simres = ['sim/', 'res_a/', 'res_b/']
 
 #fid:
-tplot = -0.1e-9
-basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/fid/MPC/d_pert/"
-labels = [r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=4.0\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=8.0\,{\rm cm}$']
+#tplot = -0.1e-9
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/fid/MPC/d_pert/"
+#labels = [r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=4.0\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=8.0\,{\rm cm}$']
 
 #90d:
 #tplot = -0.1e-9
@@ -126,12 +126,12 @@ labels = [r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$', \
 #    r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$']
 
 #NSM_1/t3:
-tplot = -0.1e-9
-basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/"
-simres = ['sim/', 'res_a/', 'res_b/']
-labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=3.93\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$']
+#tplot = -0.1e-9
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/"
+#simres = ['sim/', 'res_a/', 'res_b/']
+#labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=3.93\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$']
 
 #NSM_3:
 #tplot = -0.1e-9
@@ -140,6 +140,14 @@ labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
 #labels = [r'$N_{gp}=128^3;\,L=5.80\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=2.90\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=5.80\,{\rm cm}$']
+
+#NSM_2.5/t1:
+tplot = -0.1e-9
+basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t1/"
+labels = [r'$N_{gp}=128^3;\,L=24.5\,{\rm cm}$', \
+    r'$N_{gp}=64^3;\,L=12.3\,{\rm cm}$', \
+    r'$N_{gp}=64^3;\,L=24.5\,{\rm cm}$']
+est_kmax = 2.05 #cm^{-1}
 
 filename_bang   = basedir + simres[2] + "reduced_data_fft_power.h5"
 filename_bang_avg   = basedir + simres[2] + "reduced_data.h5"
@@ -157,7 +165,8 @@ k0,N0 = plotdata(filename_bang,filename_bang_avg,tplot)
 ax.semilogy(k0, N0, 'r-', label=labels[0])
 
 #Vertical line from LSA for fastet growing mode
-#ax.axvline(5.64, color='g', label=None)
+if 'est_kmax' in locals():
+    ax.axvline(est_kmax, color='g', label=None)
 
 fig.text(0.5, 0.34, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
 

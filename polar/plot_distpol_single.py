@@ -35,16 +35,16 @@ fxxbar = np.empty([3])
 #fxx[:] = np.array([0.1192459, -0.03301854, 0.08093676])
 #fxxbar[:] = np.array([0.1192459, -0.03301854, 0.08093676])
 
-# initial conditions (DR point)
-Nee = 3.4982e-16
-Neebar = 2.72814e-16
-Nxx = 1.94872e-16/4.0
-Nxxbar = 1.94872e-16/4.0
-fee[:] = np.array([-1.08293e-17, 2.85869e-17, 3.44997e-16])/Nee
-feebar[:] = np.array([-1.08293e-17, 2.85869e-17, 2.67039e-16])/Neebar
-fxx[:] = np.array([-1.84851e-17, 3.04548e-17, 1.89124e-16])/Nxx
-fxxbar = fxx
 
+# initial conditions:
+Nee = 0.5
+Neebar = 1.0
+Nxx = 0.0
+Nxxbar = 0.0
+fee[:] = np.array([0.0, 0.0, 0.2])
+feebar[:] = np.array([0.0, 0.0, -0.2])
+fxx[:] = np.array([0.0, 0.0, 0.0])
+fxxbar[:] = np.array([0.0, 0.0, 0.0])
 
 mpl.rcParams['font.size'] = 22
 mpl.rcParams['font.family'] = 'serif'
@@ -155,7 +155,7 @@ def makepolar(N,Nbar,f,fbar):
     print("residual = ", residual, residualbar)
     
     
-    # get the crossing descriminant
+    # get the crossing discriminant
     #fhat = f / mag(f)
     #fhatbar = fbar / mag(fbar)
     if fluxfac != 0.0:
@@ -171,7 +171,7 @@ def makepolar(N,Nbar,f,fbar):
     beta = Zbar**2 + Z**2 - 2.*Z*Zbar*costheta
     gamma = -2.*(Zbar * costheta - Z)
     epsilon = eta**2 - Zbar**2 * (1.-costheta**2)
-    descriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
+    discriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
 
     # determine the original eln direction
     eln = N*f - Nbar*fbar
@@ -200,12 +200,12 @@ def makepolar(N,Nbar,f,fbar):
     theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
 
     print()
-    print("descriminant = ",descriminant)
+    print("discriminant = ",discriminant)
 
-    if descriminant>0:
+    if discriminant>0:
         print("YES crossing")
-        theta1_cross = np.arccos(-gamma*eta / (2.*beta) + np.sqrt(descriminant))
-        theta2_cross = np.arccos(-gamma*eta / (2.*beta) - np.sqrt(descriminant))
+        theta1_cross = np.arccos(-gamma*eta / (2.*beta) + np.sqrt(discriminant))
+        theta2_cross = np.arccos(-gamma*eta / (2.*beta) - np.sqrt(discriminant))
         #plt.arrow(theta+theta1_cross, 0,0,N/10., color='purple')
         #plt.scatter(theta+theta2_cross, distribution(N,Z,theta2_cross), color='purple')
         #plt.scatter(theta-theta1_cross, distribution(N,Z,theta1_cross), color='purple')

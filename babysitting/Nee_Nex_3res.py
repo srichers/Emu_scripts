@@ -93,17 +93,30 @@ simres = ['sim/', 'res_a/', 'res_b/']
 #label_3 = r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$'
 
 #NSM_1/t3:
-basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/"
-labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=3.93\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$']
-x_limits = (-0.5, 1.5)
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/"
+#labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=3.93\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$']
+#x_limits = (-0.5, 1.5)
 
 #NSM_3:
 #basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/"
 #labels = [r'$N_{gp}=128^3;\,L=5.80\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=2.90\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=5.80\,{\rm cm}$']
+
+#NSM_1/t3:
+basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t1/"
+labels = [r'$N_{gp}=128^3;\,L=24.5\,{\rm cm}$', \
+    r'$N_{gp}=64^3;\,L=12.3\,{\rm cm}$', \
+    r'$N_{gp}=64^3;\,L=24.5\,{\rm cm}$']
+x_limits = (-1.0, 1.5)
+#from LSA:
+est_imo = 1.39e10 #s^{-1}
+est_imo_ns = est_imo/1.e+9 #ns^{-1}
+Nex_base = 10.0**(-3.5)
+scale_fact = 1.e+1
+ind_offset = 4
 
 for i in range(3):
     filename = basedir + simres[i] + h5name
@@ -116,6 +129,12 @@ for i in range(3):
     if i == 0:
         n_2F_eq = n_2F/2.0
         axes[0].axhline(n_2F_eq, color="green")
+        if "est_imo_ns" in locals():
+            ind1 = np.argmin(np.abs(np.log(Nex[1:]/Nex_base)))
+            ind2 = ind1 + ind_offset
+            t_line = [t[ind1], t[ind2]]
+            N_line = [scale_fact*Nex[ind1], scale_fact*Nex[ind1]*np.exp(est_imo_ns*(t[ind2] - t[ind1]))]
+            axes[1].semilogy(t_line-tmax, N_line, color='orange')
     axes[1].semilogy(t-tmax, Nex * n_2F, 'r-', alpha=alpha_res[i],  label=labels[i])
 
 
@@ -128,8 +147,6 @@ for i in range(2):
     axes[i].xaxis.set_minor_locator(AutoMinorLocator())
     axes[i].yaxis.set_minor_locator(AutoMinorLocator())
     axes[i].minorticks_on()
-#axes[0].set_xlim(-1.0, 4.0)
-axes[0].set_xlim(-0.5, 2.0)
 axes[0].set_xlim(x_limits)
 axes[0].set_ylabel(r'$\langle N_{ee}\rangle/{\rm Tr}[N]$')
 axes[1].set_ylabel(r'$\langle|N_{ex}|\rangle/{\rm Tr}[N]$')
