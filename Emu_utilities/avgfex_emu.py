@@ -70,16 +70,32 @@ ax.grid(which='both')
 filename = "plt_reduced_data.h5"
 t,N = plotdata(filename,0,0)
 N0 = N[0]
-ax.plot(t, N/N[0])
-ax.set_ylabel(r"$\langle N_{ee}\rangle /N(0)$")
+#ax.plot(t, N/N[0])
+#ax.set_ylabel(r"$\langle N_{ee}\rangle /N(0)$")
+#plt.savefig("avgfee.pdf", bbox_inches="tight")
 
-############
-# save pdf #
-############
-plt.savefig("avgfee.pdf", bbox_inches="tight")
-
-# same for f_e\mu
 t,N = plotdata(filename,0,1)
-ax.semilogy(t, N/N0)
+N = N/N0
+#calculate Im(\Omega)_max
+indmax = np.argmax(N)
+#NSM_2.5/1res/correct_Nxx/NSM2.5_matchevan_correctNxx_long_diagonalpert/
+N_lower = 5.e-7
+N_upper = 1.e-2
+scale_fact = 10.0
+ind1 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_lower)))
+ind2 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_upper)))
+ot_est = (np.log(N[ind1]) - np.log(N[ind2]))/1.e-9/(t[ind1] - t[ind2])
+t_line = [t[ind2], t[ind1]]
+N_line = [scale_fact*N[ind2], scale_fact*N[ind1]]
+ax.semilogy(t, N)
+ax.semilogy(t_line, N_line, color='orange')
+ax.set_title(r"$\tilde{{\omega}}={:.2E}$".format(ot_est))
+
 ax.set_ylabel(r"$\langle N_{ex}\rangle /N(0)$")
 plt.savefig("avgfemu.pdf", bbox_inches="tight")
+
+print('Nex/Nee[0]: ', N[0])
+print('Nex/Nee max: ', N[indmax])
+print('Indices used: ', ind1, ind2)
+print('Nex/Nee values: ', N[ind1], N[ind2])
+print('Estimated growth rate = ', 1.e-10*ot_est, 'e10 1/s')

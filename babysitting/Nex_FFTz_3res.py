@@ -52,9 +52,9 @@ def plotdata(filename_FFT, filename_avg, t_in, itmax=-1):
     # get time closest to t
     dt = np.abs(t-t_in)
     it = np.argmin(dt)
-    trace = Nee[it,0]+Nex[it,0]
+    trace = Nee[it,np.argmin(np.abs(k))]+Nxx[it,np.argmin(np.abs(k))]
     print(it,t[it])
-    return k, (Nex/trace)[it, :-1]
+    return k, (Nex/trace)[it, :]
 
 ################
 # plot options #
@@ -84,8 +84,8 @@ ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
-ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
-ax.set_ylabel(r"$\mathcal{D}(k)$")
+ax.set_xlabel(r"$k_z\,({\rm cm}^{-1})$")
+ax.set_ylabel(r"$\mathcal{D}(k_z)$")
 #axes[0].set_xlim(0,8)
 #ax.set_ylim(1.e-20,1.0)
 
@@ -94,7 +94,7 @@ ax.set_ylabel(r"$\mathcal{D}(k)$")
 #############
 
 simres = ['sim/', 'res_a/', 'res_b/']
-savedirname = "comp_res/Nex_FFT_3res.pdf"
+savedirname = "comp_res/Nex_FFTz_3res.pdf"
 sim_name = "FFI_3D"
 itmax_inds = np.array([-1, -1, -1])
 
@@ -170,14 +170,16 @@ itmax_inds = np.array([-1, -1, -1])
 #    r'$N_{gp}=64^3;\,L=24.5\,{\rm cm}$']
 #est_kmax = 2.05 #cm^{-1}
 
-##NSM_2.5/t2/xy_[large,small]/:
-#tplot = -0.1e-9
-##basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_large/"
+#NSM_2.5/t2/xy_[large,small]/:
+sim_name = "NSM_2.5"
+tplot = -0.1e-9
+basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_large/"
 #basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_small/"
-#labels = [r'$N_{gp}=16^2\times256$', \
-#    r'$N_{gp}=16^2\times128$', \
-#    r'$N_{gp}=16^2\times128$']
-#est_kmax = 2.05 #cm^{-1}
+labels = [r'$N_{gp}=16^2\times256$', \
+    r'$N_{gp}=16^2\times128$', \
+    r'$N_{gp}=16^2\times128$']
+est_kmax = 2.05 #cm^{-1}
+#x_limits = (-10.0, 10.0)
 
 ##NSM_2.5/od_pert/t2/xy_large/:
 #tplot = -0.1e-9
@@ -187,36 +189,42 @@ itmax_inds = np.array([-1, -1, -1])
 #    r'$N_{gp}=16^2\times128$']
 #est_kmax = 2.05 #cm^{-1}
 
-#NSM_2/MPC/clos3/d_pert/t[1,2,4]/xy_large/:
-sim_name = "NSM_2"
-tplot = -0.1e-9
-basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/MPC/clos3/d_pert/t4/xy_large/"
-#t1:
-#labels = [r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$', \
-#    r'$N_{gp}=16^2\times128;\,L=4.13\,{\rm cm}$', \
-#    r'$N_{gp}=16^2\times128;\,L=8.27\,{\rm cm}$']
-#t4:
-labels = [r'$N_{gp}=16^2\times1024;\,L=16.53\,{\rm cm}$', \
-    r'$N_{gp}=16^2\times512;\,L=8.27\,{\rm cm}$', \
-    r'$N_{gp}=16^2\times512;\,L=16.53\,{\rm cm}$']
-itmax_inds[0] = 235
-itmax_inds[1] = 245
-itmax_inds[2] = 126
-est_kmax = 3.7 #cm^{-1}
-x_limits = (-5.0, 30.0)
+##NSM_2/MPC/clos3/d_pert/t[1-3]/xy_large/:
+#sim_name = "NSM_2"
+#tplot = -0.2e-9
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/MPC/clos3/d_pert/t3/xy_large/"
+##t1:
+##labels = [r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$', \
+##    r'$N_{gp}=16^2\times128;\,L=4.13\,{\rm cm}$', \
+##    r'$N_{gp}=16^2\times128;\,L=8.27\,{\rm cm}$']
+##t2:
+##labels = [r'$N_{gp}=16^2\times512;\,L=8.27\,{\rm cm}$', \
+##    r'$N_{gp}=16^2\times256;\,L=4.13\,{\rm cm}$', \
+##    r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$']
+##itmax_inds[0] = 245
+##t3:
+#labels = [r'$N_{gp}=16^2\times512;\,L=16.53\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=16.53\,{\rm cm}$']
+#itmax_inds[0] = 126
+#est_kmax = 3.7 #cm^{-1}
+#x_limits = (-10.0, 10.0)
 
-filename_bang   = basedir + simres[2] + "reduced_data_fft_power.h5"
-filename_bang_avg   = basedir + simres[2] + "reduced_data.h5"
+fft_name = "reduced_data_fftz_power.h5"
+avg_name = "reduced_data.h5"
+
+filename_bang   = basedir + simres[2] + fft_name
+filename_bang_avg   = basedir + simres[2] + avg_name
 k2,N2 = plotdata(filename_bang,filename_bang_avg,tplot, itmax=itmax_inds[2])
 ax.semilogy(k2, N2, 'r-', alpha=0.25,  label=labels[2])
 
-filename_bang   = basedir + simres[1] + "reduced_data_fft_power.h5"
-filename_bang_avg   = basedir + simres[1] + "reduced_data.h5"
+filename_bang   = basedir + simres[1] + fft_name
+filename_bang_avg   = basedir + simres[1] + avg_name
 k1,N1 = plotdata(filename_bang,filename_bang_avg,tplot, itmax=itmax_inds[1])
 ax.semilogy(k1, N1, 'r-', alpha=0.5, label=labels[1])
 
-filename_bang   = basedir + simres[0] + "reduced_data_fft_power.h5"
-filename_bang_avg   = basedir + simres[0] + "reduced_data.h5"
+filename_bang   = basedir + simres[0] + fft_name
+filename_bang_avg   = basedir + simres[0] + avg_name
 #k0,N0 = plotdata(filename_bang,filename_bang_avg,tplot)
 k0,N0 = plotdata(filename_bang,filename_bang_avg,tplot, itmax=itmax_inds[0])
 ax.semilogy(k0, N0, 'r-', label=labels[0])
@@ -225,7 +233,7 @@ ax.semilogy(k0, N0, 'r-', label=labels[0])
 if 'est_kmax' in locals():
     ax.axvline(est_kmax, color='g', label=None)
 
-fig.text(0.5, 0.34, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
+fig.text(0.15, 0.65, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
 if "x_limits" in locals():
     ax.set_xlim(x_limits)
 

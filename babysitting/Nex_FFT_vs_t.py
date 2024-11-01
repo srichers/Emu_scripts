@@ -25,13 +25,15 @@ def offdiagMag(f):
 ######################
 # read averaged data #
 ######################
-def plotdata(filename_FFT, filename_avg, t_in):
+def plotdata(filename_FFT):
     if not os.path.exists(filename_FFT):
         return [0,],[0,]
     
     fftData = h5py.File(filename_FFT,"r")
     t=np.array(fftData["t"])
     k=np.array(fftData["k"])
+    #convert to ns
+    t = 1.e+09*t
     #convert from 1/\lambda to k=2\pi/\lambda:
     k = 2.0*np.pi*k
     Nee=np.array(fftData["N00_FFT"])
@@ -39,22 +41,9 @@ def plotdata(filename_FFT, filename_avg, t_in):
     Nex=np.array(fftData["N01_FFT"])
     fftData.close()
 
-    avgData = h5py.File(filename_avg,"r")
-    t=np.array(avgData["t"])
-    Nexavg=np.array(avgData["N_avg_mag"][:,0,1])
-    avgData.close()
-
-    # make time relative to tmax
-    itmax = np.argmax(Nexavg)
-    t = t-t[itmax]
-    
-    # get time closest to t
-    dt = np.abs(t-t_in)
-    it = np.argmin(dt)
-    #it = int(itmax/2)
-    trace = Nee[it,0]+Nxx[it,0]
-    print(it,t[it],trace)
-    return k, (Nex/trace)[it, :-1]
+    trace = Nee[0,np.argmin(np.abs(k))]+Nxx[0,np.argmin(np.abs(k))]
+    print(trace)
+    return t, k, (Nex/trace)
 
 ################
 # plot options #
@@ -84,8 +73,8 @@ ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
-ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
-ax.set_ylabel(r"$\mathcal{D}(k)$")
+ax.set_xlabel(r"$t\,(10^{-9}\,{\rm s}$")
+ax.set_ylabel(r"$|\widetilde{N}_{ex}|^2/(N_{ee}^2 + N_{xx}^2)$")
 #one time only:
 #ax.set_ylabel(r"$|\widetilde{N}_{ee}|/\mathrm{Tr}(N)$")
 #axes[0].set_xlim(0,8)
@@ -94,36 +83,29 @@ ax.set_ylabel(r"$\mathcal{D}(k)$")
 #############
 # plot data #
 #############
-tplot = -1.0e-10
-#tplot = -1.9591999999999988e-10
-#tplot = -1.8479999999999982e-10
-#tplot = -1.0467999999999989e-10
-#tplot = -1.0467999999999989e-10
-#tplot = -5.1559999999999975e-11
-#tplot = -8.559999999999813e-12
-#tplot = 0.0
-#tplot = 8.54e-12
-#tplot = 4.265e-11
-#tplot = 1.e-10
+tplot = -0.5e-10
 
 filename_bang   = "reduced_data_fft_power.h5"
-filename_bang_avg   = "reduced_data.h5"
 
-k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
-ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
-ind3 = np.argmax(N3)
-print('flash', ind3, k3[ind3], N3[ind3])
-#Vertical line from LSA for fastet growing mode
-#ax.axvline(5.64, color='g', label=None)
+#2/3 t3/xy_large/sim:
+ind1 = 0
+ind2 = 6
+
+t, k3, N3 = plotdata(filename_bang)
+ax.semilogy(t, N3[:,ind1], 'r-', label=r'$k={}$'.format(k3[ind1]))
+ax.semilogy(t, N3[:,ind2], 'b--', label=r'$k={:.2}$'.format(k3[ind2]))
+#ax.set_xlim(-10.0,10.0)
+#ax.set_ylim(1.e-7,5.e-3)
+
+print("ind1 = ", ind1, " k[ind1] = ", k3[ind1])
+print("ind2 = ", ind2, " k[ind2] = ", k3[ind2])
 
 #fig.text(0.5, 0.8, r'$\delta m^2=7.53\times10^{-5}\,{\rm eV}^2$')
 #fig.text(0.5, 0.72, r'$\theta=0.587$')
-fig.text(0.5, 0.74, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
+#fig.text(0.15, 0.74, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
 #fig.text(0.5, 0.74, r'$t\sim0\,{{\rm ns}}$')
-fig.text(0.5, 0.64, r'$|k|_{{\rm max}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
-#ax.legend(loc='upper right', frameon=False)
+#fig.text(0.15, 0.64, r'$k_{{z,{{\rm max}}}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
+ax.legend(loc='lower right', frameon=False)
 
-plt.savefig("Nex_FFT_1res.pdf", bbox_inches="tight")
-#one time only:
-#plt.savefig("Nex_FFT_1res_t1.pdf", bbox_inches="tight")
+plt.savefig("Nex_FFT_vs_t.pdf", bbox_inches="tight")
 

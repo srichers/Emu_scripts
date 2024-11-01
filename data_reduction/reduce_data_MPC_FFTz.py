@@ -17,7 +17,7 @@ import glob
 import multiprocessing as mp
 import h5py
 import amrex_plot_tools as amrex
-import emu_yt_module_MPC as emu
+import emu_yt_module_MPC_FFTz as emu
 from multiprocessing import Pool
 import scipy.special
 
@@ -119,36 +119,29 @@ def fft_power(fft, cleft, cright, ileft, iright, kmid):
 #########################
 # average preliminaries #
 #########################
-def get_matrix(base,suffix):
+def get_matrix_N(suffix):
     assert NF==2
     # need to translate Emu dataset names to FLASH ones
     # WARNING - we are calculating energy densities instead of number densities
-    if base=="N":
-        baseFlash = "e"
-    if base=="Fx":
-        baseFlash = "f"
-    if base=="Fy":
-        baseFlash = "g"
-    if base=="Fz":
-        baseFlash = "h"
-        
+    baseFlash = "e"
+
     if suffix=="":
         suffixFlash = ["e","m","r","p"]
     if suffix=="bar":
         suffixFlash = ["a","n","s","q"]
 
     #with unit conversions:
-    if base=="N":
-        convfact = 4.0*np.pi/e01_energy/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
-    else:
-        convfact = 1.0
+    convfact = 4.0*np.pi/e01_energy/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
+
     f00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]*convfact
     f11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]*convfact
-    f01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]*convfact 
-    f01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]*convfact 
+    f01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]*convfact
+    #no conversion factor for phase:
+    f01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]
 
-    f01  = f01m*np.cos(f01p)
-    f01I = f01m*np.sin(f01p)
+
+    f01  =  f01m*np.cos(f01p)
+    f01I = -f01m*np.sin(f01p)
 
     zero = np.zeros(np.shape(f00))
 
@@ -158,9 +151,10 @@ def get_matrix(base,suffix):
     if(NF==3):
         fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
         fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
+
     return fR, fI
 
-def get_matrix_F(base, suffix):
+def get_matrix_F(base, suffix, NR, NI):
     assert NF==2
     # need to translate Emu dataset names to FLASH ones
     # WARNING - we are calculating energy densities instead of number densities
@@ -176,22 +170,24 @@ def get_matrix_F(base, suffix):
     if suffix=="bar":
         suffixFlash = ["a","n","s","q"]
 
+    #flux factors:
+
     f00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]
     f11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]
     f01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]
     f01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]
 
-    baseFlash = "e"
-    convfact = 4.0*np.pi/e01_energy/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
-    n00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]*convfact
-    n11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]*convfact
-    n01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]*convfact
-    n01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]*convfact
+    #fluences:
 
-    f00  = f00*n00
-    f11  = f11*n11
-    f01  = f01m*n01m*np.cos(f01p+n01p)
-    f01I = f01m*n01m*np.sin(f01p+n01p)
+    f00 = f00*NR[0][0]
+    f11 = f11*NR[1][1]
+
+    Nm = np.sqrt(NR[0][1]**2 + NI[0][1]**2)
+    Np = np.arctan2(-NI[0][1], NR[0][1])
+
+    f01  =  f01m*Nm*np.cos(f01p+Np)
+    f01I = -f01m*Nm*np.sin(f01p+Np)
+
 
     zero = np.zeros(np.shape(f00))
 
@@ -201,6 +197,7 @@ def get_matrix_F(base, suffix):
     if(NF==3):
         fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
         fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
+
     return fR, fI
 
 def sumtrace_N(N):
@@ -227,8 +224,8 @@ def averaged_F(F, FI, sumtrace):
     
     # do the averaging
     # direction, f1, f2, R/I
-    Fout = np.zeros((1,NF,NF))
-    for i in range(1):
+    Fout = np.zeros((3,NF,NF))
+    for i in range(3):
         for j in range(NF):
             for k in range(NF):
                 Fout[i][j][k] = float(np.sum(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2))/sumtrace)
@@ -276,34 +273,30 @@ for d in directories[mpi_rank::mpi_size]:
     outputfilename = d+"_reduced_data.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
-        thisN, thisNI = get_matrix("N",""   )
+        thisN, thisNI = get_matrix_N("")
         sumtrace = sumtrace_N(thisN)
         #sumtrace = sumtrace_N(thisN)*NF_2_to_3_nu
         trace = sumtrace
         N = averaged_N(thisN,thisNI,sumtrace)
 
-        thisFx, thisFxI = get_matrix_F("Fx","")
-        #for f1 in range(2):
-        #    for f2 in range(2):
-        #        thisFx[f1][f2]  = thisFx[f1][f2]  * thisN[f1][f2]
-        #        thisFxI[f1][f2] = thisFxI[f1][f2] * thisNI[f1][f2]
-        Ftmp  = np.array([thisFx])
-        FtmpI = np.array([thisFxI])
+        thisFx, thisFxI = get_matrix_F("Fx","", thisN, thisNI)
+        thisFy, thisFyI = get_matrix_F("Fy","", thisN, thisNI)
+        thisFz, thisFzI = get_matrix_F("Fz","", thisN, thisNI)
+        Ftmp  = np.array([thisFx , thisFy , thisFz ])
+        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
         F = averaged_F(Ftmp, FtmpI,sumtrace)
 
-        thisN, thisNI = get_matrix("N","bar")
+        thisN, thisNI = get_matrix_N("bar")
         sumtrace = sumtrace_N(thisN)
         #sumtrace = sumtrace_N(thisN)*NF_2_to_3_bnu
         tracebar = sumtrace
         Nbar = averaged_N(thisN,thisNI,sumtrace)
 
-        thisFx, thisFxI = get_matrix_F("Fx","bar") 
-        #for f1 in range(2):
-        #    for f2 in range(2):
-        #        thisFx[f1][f2]  = thisFx[f1][f2]  * thisN[f1][f2]
-        #        thisFxI[f1][f2] = thisFxI[f1][f2] * thisNI[f1][f2]
-        Ftmp  = np.array([thisFx])
-        FtmpI = np.array([thisFxI])
+        thisFx, thisFxI = get_matrix_F("Fx","bar", thisN, thisNI)
+        thisFy, thisFyI = get_matrix_F("Fy","bar", thisN, thisNI)
+        thisFz, thisFzI = get_matrix_F("Fz","bar", thisN, thisNI)
+        Ftmp  = np.array([thisFx , thisFy , thisFz ])
+        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
         Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
 
         print("# rank",mpi_rank,"writing",outputfilename)
@@ -319,7 +312,7 @@ for d in directories[mpi_rank::mpi_size]:
     ############
     # FFT work #
     ############
-    outputfilename = d+"_reduced_data_fft_power.h5"
+    outputfilename = d+"_reduced_data_fftz_power.h5"
     already_done = len(glob.glob(outputfilename))>0
     if do_fft and not already_done:
 
@@ -328,14 +321,25 @@ for d in directories[mpi_rank::mpi_size]:
         fout = h5py.File(outputfilename,"w")
         fout["t"] = [np.array(t),]
 
+        #fft = eds.fourier("ee"+energyGroup,nproc=nproc)
+        #fout["k"] = get_kmid(fft)
+        #cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
+        #N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        #fft = eds.fourier("ea"+energyGroup,nproc=nproc)
+        #N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        #fft = eds.fourier("er"+energyGroup,field_Ph="ep"+energyGroup,nproc=nproc)
+        #N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        #fout["N00_FFT"] = [np.array(N00_FFT),]
+        #fout["N11_FFT"] = [np.array(N11_FFT),]
+        #fout["N01_FFT"] = [np.array(N01_FFT),]
+
         fft = eds.fourier("ee"+energyGroup,nproc=nproc)
-        fout["k"] = get_kmid(fft)
-        cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
-        N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        fout["k"] = fft.kz
+        N00_FFT = np.sum(fft.magnitude**2, axis=(0,1))
         fft = eds.fourier("ea"+energyGroup,nproc=nproc)
-        N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("er"+energyGroup,"ep"+energyGroup,nproc=nproc)
-        N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+        N11_FFT = np.sum(fft.magnitude**2, axis=(0,1))
+        fft = eds.fourier("er"+energyGroup,field_Ph="ep"+energyGroup,nproc=nproc)
+        N01_FFT = np.sum(fft.magnitude**2, axis=(0,1))
         fout["N00_FFT"] = [np.array(N00_FFT),]
         fout["N11_FFT"] = [np.array(N11_FFT),]
         fout["N01_FFT"] = [np.array(N01_FFT),]

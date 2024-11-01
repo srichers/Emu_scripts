@@ -84,8 +84,8 @@ ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
 ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
-ax.set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
-#axes[0].set_xlim(0,8)
+ax.set_ylabel(r"$\mathcal{D}(k)$")
+ax.set_xlim(-5,50)
 #ax.set_ylim(1.e-20,1.0)
 
 #############
@@ -107,13 +107,39 @@ ax.set_ylabel(r"$\widetilde{N}_{ex}/\mathrm{Tr}(N)$")
 #labels = [r'$\nu{\rm M}$', r"${\rm MPC}$"]
 #tdiff = -0.02e-9
 
-filenames_avg = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t2/sim2/reduced_data.h5", \
-        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/sim/reduced_data.h5"]
-filenames_fft = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t2/sim2/reduced_data_fft_power.h5", \
-        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/sim/reduced_data_fft_power.h5"]
-tdiff = -0.02e-9
-labels = [r'$H_M=0$', r"$H_M\ne0$"]
-namestr = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/comp_t/Nex_FFT_2comp.pdf"
+#NSM_1 w/ & w/o H_M:
+#filenames_avg = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t2/sim/reduced_data.h5", \
+#        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/sim/reduced_data.h5"]
+#filenames_fft = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t2/sim/reduced_data_fft_power.h5", \
+#        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/sim/reduced_data_fft_power.h5"]
+#tdiff = -0.02e-9
+#labels = [r'$H_M=0$', r"$H_M\ne0$"]
+#namestr = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/comp_t/Nex_FFT_2comp.pdf"
+
+#NSM_3 different nblocks:
+#filenames_avg = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t2/res_a/reduced_data.h5", \
+#        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t3/res_a_xmax_large/reduced_data.h5"]
+#filenames_fft = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t2/res_a/reduced_data_fft_power.h5", \
+#        "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t3/res_a_xmax_large/reduced_data_fft_power.h5"]
+#tdiff = -0.05e-9
+#labels = [r'$N_{x,y}=16$', r"$N_{x,y}=1$"]
+#namestr = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/comp_t23/Nex_FFT_2comp_xmax_large.pdf"
+
+#Beam in FFI_1D/changing_N_nuebar:
+filenames_avg = ["sim" + str((i+1)*0.2)[0:3] + "/reduced_data.h5" for i in range(5)]
+filenames_fft = ["sim" + str((i+1)*0.2)[0:3] + "/reduced_data_fft_power.h5" for i in range(5)]
+labels = [r"$\overline{{N}}_{{ee}}/N_{{ee}} = {:.1f}$".format((i+1)*0.2) for i in range(5)]
+tdiff = -0.025e-9
+namestr = "./comp_res/Nex_FFT_mult_comp.pdf"
+
+##FFT vs. FFTz for NSM_2.5/d_pert/t2/sim_xy_large:
+#filenames_avg = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_large/sim/reduced_data.h5", \
+#        "/pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_2.5/d_pert/t2/sim_xy_large/reduced_data.h5"]
+#filenames_fft = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_large/sim/reduced_data_fft_power.h5", \
+#        "/pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_2.5/d_pert/t2/sim_xy_large/reduced_data_fftz_power.h5"]
+#namestr = "./Nex_FFT_mult_comp.pdf"
+#labels = [r"${\rm 3D}$", r"$z{\rm -dir}$"]
+#tdiff = -0.05e-9
 
 lstyle = ['-', '--', '-.', ':']
 lcolor = ['r', 'b', 'g', 'k', 'm']
@@ -125,10 +151,8 @@ for i,filename_a in enumerate(filenames_avg):
     k,N = plotdata(filename_f,filename_a,tplot)
     style_ind = i % len(lstyle)
     color_ind = i % len(lcolor)
-    ax.semilogy(k, N, linestyle=lstyle[style_ind], color=lcolor[color_ind],  label=labels[i])
-
-#Vertical line from LSA for fastet growing mode
-#ax.axvline(5.64, color='g', label=None)
+    Nmax = np.max(N)
+    ax.semilogy(k, N/Nmax, linestyle=lstyle[style_ind], color=lcolor[color_ind],  label=labels[i])
 
 #ax.legend(loc='upper right', frameon=False)
 ax.legend(loc='upper right', fontsize=12, frameon=False)

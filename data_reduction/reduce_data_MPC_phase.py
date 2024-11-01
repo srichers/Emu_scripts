@@ -119,7 +119,7 @@ def fft_power(fft, cleft, cright, ileft, iright, kmid):
 #########################
 # average preliminaries #
 #########################
-def get_matrix_N(suffix):
+def get_matrix_N_phase(suffix):
     assert NF==2
     # need to translate Emu dataset names to FLASH ones
     # WARNING - we are calculating energy densities instead of number densities
@@ -130,31 +130,12 @@ def get_matrix_N(suffix):
     if suffix=="bar":
         suffixFlash = ["a","n","s","q"]
 
-    #with unit conversions:
-    convfact = 4.0*np.pi/e01_energy/(MeV_to_codeenergy/cm_to_codelength**3)#MeV/cm^3/(E code units)
-
-    f00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]*convfact
-    f11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]*convfact
-    f01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]*convfact
-    #no conversion factor for phase:
     f01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]
 
 
-    f01  =  f01m*np.cos(f01p)
-    f01I = -f01m*np.sin(f01p)
+    return f01p
 
-    zero = np.zeros(np.shape(f00))
-
-    if(NF==2):
-        fR = [[f00 , f01 ], [ f01 ,f11 ]]
-        fI = [[zero, f01I], [-f01I,zero]]
-    if(NF==3):
-        fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
-        fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
-
-    return fR, fI
-
-def get_matrix_F(base, suffix, NR, NI):
+def get_matrix_F_phase(base, suffix):
     assert NF==2
     # need to translate Emu dataset names to FLASH ones
     # WARNING - we are calculating energy densities instead of number densities
@@ -170,76 +151,16 @@ def get_matrix_F(base, suffix, NR, NI):
     if suffix=="bar":
         suffixFlash = ["a","n","s","q"]
 
-    #flux factors:
 
-    f00  = ad['flash',baseFlash+suffixFlash[0]+energyGroup]
-    f11  = ad['flash',baseFlash+suffixFlash[1]+energyGroup]
-    f01m = ad['flash',baseFlash+suffixFlash[2]+energyGroup]
     f01p = ad['flash',baseFlash+suffixFlash[3]+energyGroup]
 
-    #fluences:
+    return f01p
 
-    f00 = f00*NR[0][0]
-    f11 = f11*NR[1][1]
+def averaged_phase(Min):
 
-    Nm = np.sqrt(NR[0][1]**2 + NI[0][1]**2)
-    Np = np.arctan2(-NI[0][1], NR[0][1])
+    Nout = np.sum(Min.flatten())/float(np.product(np.shape(Min)))
 
-    f01  =  f01m*Nm*np.cos(f01p+Np)
-    f01I = -f01m*Nm*np.sin(f01p+Np)
-
-
-    zero = np.zeros(np.shape(f00))
-
-    if(NF==2):
-        fR = [[f00 , f01 ], [ f01 ,f11 ]]
-        fI = [[zero, f01I], [-f01I,zero]]
-    if(NF==3):
-        fR = [[f00 , f01 , f02 ], [ f01 ,f11 ,f12 ], [ f02 , f12 ,f22 ]]
-        fI = [[zero, f01I, f02I], [-f01I,zero,f12I], [-f02I,-f12I,zero]]
-
-    return fR, fI
-
-def sumtrace_N(N):
-    sumtrace = 0
-    for fi in range(NF):
-        sumtrace += np.sum(N[fi][fi])
-    return sumtrace
-
-def averaged_N(N, NI, sumtrace):
-    R=0
-    I=1
-    
-    # do the averaging
-    # f1, f2, R/I
-    Nout = np.zeros((NF,NF))
-    for i in range(NF):
-        for j in range(NF):
-            Nout[i][j] = float(np.sum(np.sqrt(N[i][j]**2 + NI[i][j]**2)) / sumtrace)
     return np.array(Nout)
-
-def averaged_F(F, FI, sumtrace):
-    R=0
-    I=1
-    
-    # do the averaging
-    # direction, f1, f2, R/I
-    Fout = np.zeros((3,NF,NF))
-    for i in range(3):
-        for j in range(NF):
-            for k in range(NF):
-                Fout[i][j][k] = float(np.sum(np.sqrt( F[i][j][k]**2 + FI[i][j][k]**2))/sumtrace)
-
-    return Fout
-
-def offdiagMag(f):
-    R = 0
-    I = 1
-    result = 0
-    for f0 in range(NF):
-        for f1 in range(f0+1,NF):
-            result += f[:,f0,f1,R]**2 + f[:,f0,f1,I]**2
-    return np.sqrt(result)
 
 
 
@@ -255,6 +176,8 @@ else:
     mpi_rank = 0
     mpi_size = 1
 directories = sorted(glob.glob(output_base+"*"))
+#directories = ["nov4_test_hdf5_chk_0375"]
+#directories = directories[394:395]
 if( (not do_average) and (not do_fft)):
     directories = []
 for d in directories[mpi_rank::mpi_size]:
@@ -268,68 +191,83 @@ for d in directories[mpi_rank::mpi_size]:
     # average work #
     ################
     # write averaged data
-    outputfilename = d+"_reduced_data.h5"
+    outputfilename = "reduced_data_phase_"+d
     already_done = len(glob.glob(outputfilename))>0
     if do_average and not already_done:
-        thisN, thisNI = get_matrix_N("")
-        sumtrace = sumtrace_N(thisN)
-        #sumtrace = sumtrace_N(thisN)*NF_2_to_3_nu
-        trace = sumtrace
-        N = averaged_N(thisN,thisNI,sumtrace)
+        phaseN = get_matrix_N_phase("")
+        Navg = averaged_phase(phaseN)
 
-        thisFx, thisFxI = get_matrix_F("Fx","", thisN, thisNI)
-        thisFy, thisFyI = get_matrix_F("Fy","", thisN, thisNI)
-        thisFz, thisFzI = get_matrix_F("Fz","", thisN, thisNI)
-        Ftmp  = np.array([thisFx , thisFy , thisFz ])
-        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        F = averaged_F(Ftmp, FtmpI,sumtrace)
+        orig = get_matrix_F_phase("Fx","") + phaseN
+        phaseFx = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fxavg = averaged_phase(phaseFx)
 
-        thisN, thisNI = get_matrix_N("bar")
-        sumtrace = sumtrace_N(thisN)
-        #sumtrace = sumtrace_N(thisN)*NF_2_to_3_bnu
-        tracebar = sumtrace
-        Nbar = averaged_N(thisN,thisNI,sumtrace)
+        orig = get_matrix_F_phase("Fy","") + phaseN
+        phaseFy = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fyavg = averaged_phase(phaseFy)
 
-        thisFx, thisFxI = get_matrix_F("Fx","bar", thisN, thisNI)
-        thisFy, thisFyI = get_matrix_F("Fy","bar", thisN, thisNI)
-        thisFz, thisFzI = get_matrix_F("Fz","bar", thisN, thisNI)
-        Ftmp  = np.array([thisFx , thisFy , thisFz ])
-        FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-        Fbar = averaged_F(Ftmp, FtmpI,sumtrace)
+        orig = get_matrix_F_phase("Fz","") + phaseN
+        phaseFz = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fzavg = averaged_phase(phaseFz)
+
+        Ftmp  = np.array([Fxavg , Fyavg , Fzavg ])
+
+
+        phaseNbar = get_matrix_N_phase("bar")
+        Nbaravg = averaged_phase(phaseNbar)
+
+        orig = get_matrix_F_phase("Fx","bar") + phaseNbar
+        phaseFxbar = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fxbaravg = averaged_phase(phaseFxbar)
+
+        prig = get_matrix_F_phase("Fy","bar") + phaseNbar
+        phaseFybar = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fybaravg = averaged_phase(phaseFybar)
+
+        prig = get_matrix_F_phase("Fz","bar") + phaseNbar
+        phaseFzbar = (orig % (2.0*np.pi)) % (np.pi) \
+                - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
+        Fzbaravg = averaged_phase(phaseFzbar)
+
+        Ftmpbar  = np.array([Fxbaravg , Fybaravg , Fzbaravg ])
 
         print("# rank",mpi_rank,"writing",outputfilename)
         sys.stdout.flush()
         avgData = h5py.File(outputfilename,"w")
-        avgData["N_avg_mag"] = [N,]
-        avgData["Nbar_avg_mag"] = [Nbar,]
-        avgData["F_avg_mag"] = [F,]
-        avgData["Fbar_avg_mag"] = [Fbar,]
+        avgData["N_avg_phase"] = [Navg,]
+        avgData["Nbar_avg_phase"] = [Nbaravg,]
+        avgData["F_avg_phase"] = [Ftmp,]
+        avgData["Fbar_avg_phase"] = [Ftmpbar,]
         avgData["t"] = [t,]
         avgData.close()
 
-    ############
-    # FFT work #
-    ############
-    outputfilename = d+"_reduced_data_fft_power.h5"
-    already_done = len(glob.glob(outputfilename))>0
-    if do_fft and not already_done:
+    #############
+    ## FFT work #
+    #############
+    #outputfilename = "reduced_data_fft_power_"+d
+    #already_done = len(glob.glob(outputfilename))>0
+    #if do_fft and not already_done:
 
-        print("# rank",mpi_rank,"writing",outputfilename)
-        sys.stdout.flush()
-        fout = h5py.File(outputfilename,"w")
-        fout["t"] = [np.array(t),]
+    #    print("# rank",mpi_rank,"writing",outputfilename)
+    #    sys.stdout.flush()
+    #    fout = h5py.File(outputfilename,"w")
+    #    fout["t"] = [np.array(t),]
 
-        fft = eds.fourier("ee"+energyGroup,nproc=nproc)
-        fout["k"] = get_kmid(fft)
-        cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
-        N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("ea"+energyGroup,nproc=nproc)
-        N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fft = eds.fourier("er"+energyGroup,field_Ph="ep"+energyGroup,nproc=nproc)
-        N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
-        fout["N00_FFT"] = [np.array(N00_FFT),]
-        fout["N11_FFT"] = [np.array(N11_FFT),]
-        fout["N01_FFT"] = [np.array(N01_FFT),]
-        
-        fout.close()
+    #    fft = eds.fourier("ee"+energyGroup,nproc=nproc)
+    #    fout["k"] = get_kmid(fft)
+    #    cleft, cright, ileft, iright, kmid = fft_coefficients(fft)
+    #    N00_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+    #    fft = eds.fourier("ea"+energyGroup,nproc=nproc)
+    #    N11_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+    #    fft = eds.fourier("er"+energyGroup,field_Ph="ep"+energyGroup,nproc=nproc)
+    #    N01_FFT = fft_power(fft, cleft, cright, ileft, iright, kmid)
+    #    fout["N00_FFT"] = [np.array(N00_FFT),]
+    #    fout["N11_FFT"] = [np.array(N11_FFT),]
+    #    fout["N01_FFT"] = [np.array(N01_FFT),]
+    #    
+    #    fout.close()
 

@@ -63,7 +63,7 @@ def get_matrix_N(suffix):
     f00  = np.array(f[baseFlash+suffixFlash[0]+energyGroup])[blk, ind[0], ind[1], ind[2]]*convfact
     f11  = np.array(f[baseFlash+suffixFlash[1]+energyGroup])[blk, ind[0], ind[1], ind[2]]*convfact
     f01m = np.array(f[baseFlash+suffixFlash[2]+energyGroup])[blk, ind[0], ind[1], ind[2]]*convfact
-    f01p = np.array(f[baseFlash+suffixFlash[3]+energyGroup])[blk, ind[0], ind[1], ind[2]]*convfact
+    f01p = np.array(f[baseFlash+suffixFlash[3]+energyGroup])[blk, ind[0], ind[1], ind[2]]
 
 
     f01  =  f01m*np.cos(f01p)
@@ -109,7 +109,7 @@ def get_matrix_F(base, suffix, NR, NI):
     f11 = f11*NR[1,1]
 
     Nm = np.sqrt(NR[0,1]**2 + NI[0,1]**2)
-    Np = np.atan2(-NI[0,1], NR[0,1])
+    Np = np.arctan2(-NI[0,1], NR[0,1])
 
     f01  =  f01m*Nm*np.cos(f01p+Np)
     f01I = -f01m*Nm*np.sin(f01p+Np)
@@ -169,18 +169,28 @@ def averaged_N_mag(NR, NI, sumtrace):
             Nout[i][j] = float(np.sum(np.sqrt(NR[i][j]**2 + NI[i][j]**2)) / sumtrace)
     return np.array(Nout)
 
-def averaged_F(FR, FI, sumtrace):
+def averaged_F(FR, FI):
 
     FRout = np.zeros((3,NF,NF))
     FIout = np.zeros((3,NF,NF))
     for i in range(3):
         for j in range(NF):
             for k in range(NF):
-                FRout[i][j][k] = float(FR[i][j][k]/sumtrace)
-                FIout[i][j][k] = float(FI[i][j][k]/sumtrace)
+                FRout[i][j][k] = float(FR[i][j][k])
+                FIout[i][j][k] = float(FI[i][j][k])
 
     return FRout, FIout
 
+
+def averaged_F_mag(FR, FI):
+
+    Fout = np.zeros((3,NF,NF))
+    for i in range(3):
+        for j in range(NF):
+            for k in range(NF):
+                Fout[i][j][k] = float(np.sum(np.sqrt(FR[i][j][k]**2 + FI[i][j][k]**2)))
+
+    return Fout
 
 
 ##########
@@ -303,8 +313,10 @@ Nbar = np.empty((len(directories),2,2))
 Nbarreal = np.empty((len(directories),2,2))
 Nbarimag = np.empty((len(directories),2,2))
 
+Flux = np.empty((len(directories),3,2,2))
 Freal = np.empty((len(directories),3,2,2))
 Fimag = np.empty((len(directories),3,2,2))
+Fbar = np.empty((len(directories),3,2,2))
 Fbarreal = np.empty((len(directories),3,2,2))
 Fbarimag = np.empty((len(directories),3,2,2))
 
@@ -339,9 +351,11 @@ for ifile, filename in enumerate(directories):
                 thisFz, thisFzI = get_matrix_F("Fz","", NR, NI)
     Ftmp  = np.array([thisFx , thisFy , thisFz ])
     FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-    FR, FI = averaged_F(Ftmp, FtmpI,sumtrace)
+    FR, FI = averaged_F(Ftmp, FtmpI)
+    Fmag = averaged_F_mag(FR, FI)
     Freal[ifile,:,:,:] = FR
     Fimag[ifile,:,:,:] = FI
+    Flux[ifile,:,:,:] = Fmag
 
     thisN, thisNI = get_matrix_N("bar")
     sumtrace = sumtrace_N(thisN)
@@ -363,9 +377,11 @@ for ifile, filename in enumerate(directories):
                 thisFz, thisFzI = get_matrix_F("Fz","bar", NRbar, NIbar)
     Ftmp  = np.array([thisFx , thisFy , thisFz ])
     FtmpI = np.array([thisFxI, thisFyI, thisFzI])
-    FRbar, FIbar = averaged_F(Ftmp, FtmpI,sumtrace)
+    FRbar, FIbar = averaged_F(Ftmp, FtmpI)
+    Fbarmag = averaged_F_mag(FRbar, FIbar)
     Fbarreal[ifile,:,:,:] = FRbar
     Fbarimag[ifile,:,:,:] = FIbar
+    Fbar[ifile,:,:,:] = Fbarmag
 
     sys.stdout.flush()
 
@@ -383,8 +399,12 @@ out_file["Nbar_avg_mag"] = Nbar
 out_file["F_real"] = Freal
 out_file["F_imag"] = Fimag
 
+out_file["F_avg_mag"] = Flux
+
 out_file["Fbar_real"] = Fbarreal
 out_file["Fbar_imag"] = Fbarimag
+
+out_file["Fbar_avg_mag"] = Fbar
 
 out_file["t"] = tarray
 

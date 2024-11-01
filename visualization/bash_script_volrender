@@ -1,6 +1,7 @@
 #!/bin/bash
 
-for filename in /pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_3/d_pert/sim1/*; do
-    python ~/Emu_scripts/visualization/FLASH_phase_volume_render_MPC_temp.py $filename \
-	-lo 0 0 0 -hi 5.803047682077095 5.803047682077095 5.803047682077095 -f all -o /pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_3/d_pert/sim1/volume_rendering 
+#for filename in /pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_3/d_pert/t3/sim_xy_large/*; do
+for filename in /pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_3/d_pert/t3/xy_large/sim/red_t/NSM_sim_hdf5_chk_0*; do
+    python ~/Emu_scripts/visualization/FLASH_phase_volume_render_MPC.py $filename \
+	-lo 0 0 0 -hi 5.803047682077095 5.803047682077095 5.803047682077095 -f all -o /pscratch/sd/e/egrohs/FFI_3D/MPC/NSM/NSM_3/d_pert/t3/xy_large/sim/red_t/volume_rendering 
 done

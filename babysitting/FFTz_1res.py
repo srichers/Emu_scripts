@@ -51,10 +51,10 @@ def plotdata(filename_FFT, filename_avg, t_in):
     # get time closest to t
     dt = np.abs(t-t_in)
     it = np.argmin(dt)
-    #it = int(itmax/2)
-    trace = Nee[it,0]+Nxx[it,0]
+    #it = 1
+    trace = Nee[it,np.argmin(np.abs(k))]+Nxx[it,np.argmin(np.abs(k))]
     print(it,t[it],trace)
-    return k, (Nex/trace)[it, :-1]
+    return k, (Nex/trace)[it, :]
 
 ################
 # plot options #
@@ -84,29 +84,17 @@ ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
-ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
-ax.set_ylabel(r"$\mathcal{D}(k)$")
-#one time only:
-#ax.set_ylabel(r"$|\widetilde{N}_{ee}|/\mathrm{Tr}(N)$")
+ax.set_xlabel(r"$k_z\,({\rm cm}^{-1})$")
+ax.set_ylabel(r"$\mathcal{D}(k_z)$")
 #axes[0].set_xlim(0,8)
 #ax.set_ylim(1.e-20,1.0)
 
 #############
 # plot data #
 #############
-tplot = -1.0e-10
-#tplot = -1.9591999999999988e-10
-#tplot = -1.8479999999999982e-10
-#tplot = -1.0467999999999989e-10
-#tplot = -1.0467999999999989e-10
-#tplot = -5.1559999999999975e-11
-#tplot = -8.559999999999813e-12
-#tplot = 0.0
-#tplot = 8.54e-12
-#tplot = 4.265e-11
-#tplot = 1.e-10
+tplot = -0.5e-10
 
-filename_bang   = "reduced_data_fft_power.h5"
+filename_bang   = "reduced_data_fftz_power.h5"
 filename_bang_avg   = "reduced_data.h5"
 
 k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
@@ -115,15 +103,15 @@ ind3 = np.argmax(N3)
 print('flash', ind3, k3[ind3], N3[ind3])
 #Vertical line from LSA for fastet growing mode
 #ax.axvline(5.64, color='g', label=None)
+#ax.set_xlim(-10.0,10.0)
+#ax.set_ylim(1.e-7,5.e-3)
 
 #fig.text(0.5, 0.8, r'$\delta m^2=7.53\times10^{-5}\,{\rm eV}^2$')
 #fig.text(0.5, 0.72, r'$\theta=0.587$')
-fig.text(0.5, 0.74, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
+fig.text(0.15, 0.74, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
 #fig.text(0.5, 0.74, r'$t\sim0\,{{\rm ns}}$')
-fig.text(0.5, 0.64, r'$|k|_{{\rm max}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
+fig.text(0.15, 0.64, r'$k_{{z,{{\rm max}}}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
 #ax.legend(loc='upper right', frameon=False)
 
-plt.savefig("Nex_FFT_1res.pdf", bbox_inches="tight")
-#one time only:
-#plt.savefig("Nex_FFT_1res_t1.pdf", bbox_inches="tight")
+plt.savefig("Nex_FFTz_1res.pdf", bbox_inches="tight")
 

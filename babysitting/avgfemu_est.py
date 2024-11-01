@@ -39,6 +39,22 @@ def plotdata(filename,a,b):
     avgData.close()
     return t, N
 
+def plotdata_emu(filename):
+    avgData = h5py.File(filename,"r")
+    t=np.array(avgData["t(s)"])*1e9
+    Nee=np.array(avgData["N_avg_mag(1|ccm)"])[:,0,0]
+    Nxx=np.array(avgData["N_avg_mag(1|ccm)"])[:,1,1]
+    Nex=np.array(avgData["N_avg_mag(1|ccm)"])[:,0,1]/(Nee[0] + Nxx[0])
+    #t=np.array(avgData["t(s)"])*1e9
+    #N=np.array(avgData["N_avg_mag(1|ccm)"])[:,a,b]
+    #stop_ind = 30
+    #For NSM_2:
+    #stop_ind = 100
+    #t = t[:stop_ind]
+    #N = N[:stop_ind]
+    avgData.close()
+    return t, Nex
+
 ################
 # plot options #
 ################
@@ -64,7 +80,9 @@ filename = "reduced_data.h5"
 #filename = "reduced_data_nov4_test_hdf5_chk.h5"
 #filename = "reduced_data_NSM_sim.h5"
 #filename = "reduced_data_NSM_sim_hdf5_chk.h5"
+
 #filename = "plt_reduced_data.h5"
+#filename = "reduced0D_selection.h5"
 
 ##############
 # formatting #
@@ -78,7 +96,12 @@ ax.minorticks_on()
 ax.grid(which='both')
 
 # same for f_e\mu
+#t,Nee = plotdata(filename,0,0)
+#t,Nxx = plotdata(filename,1,1)
 t,N = plotdata(filename,0,1)
+
+#t,N = plotdata_emu(filename)
+
 ax.semilogy(t, N)
 #original indices used:
 #ind1 = 5
@@ -156,15 +179,15 @@ ax.semilogy(t, N)
 ##N_lower = 10.0*N[0]
 ##ind1 = np.argmin(np.abs(np.log(N[0:indmax+1]/N_lower)))
 #N_lower = 1.e-10
-#ind1 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_lower)))
+#ind1 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_lower))) + 1
 ##ind2 should be close to ~10 smaller than max value:
 #N_upper = 0.1*N[indmax]
 ##ind2 = np.argmin(np.abs(np.log(N[0:indmax+1]/N_upper)))
 #ind2 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_upper)))
 
 indmax = np.argmax(N)
-N_lower = 1.e-5
-N_upper = 1.e-1
+N_lower = 5.e-5
+N_upper = 1.e-2
 ind1 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_lower)))
 ind2 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_upper)))
 #indices used for fid/sim
@@ -173,10 +196,34 @@ ind2 = np.argmin(np.abs(np.log(N[1:indmax+1]/N_upper)))
 #indices used for 2_3/res_a
 #ind1 = 30
 #ind2 = 36
+#indices used for 2_3/d_pert/t2/xy_large/sim matching peak heights
+ind1 = 28
+ind2 = 51
+#indices used for 2_3/d_pert/t2/xy_large/sim k\ne0
+#ind1 = 67
+#ind2 = 70
+#indices used for 2_3/d_pert/t2/xy_large/sim k\ne0
+#ind1 = 76
+#ind2 = 86
+#indices used for 2_3/d_pert/t5/xy_large/res_b k\ne0
+#ind1 = 50
+#ind2 = 56
+#indices used for 2_3/d_pert/t5/xy_large/res_b k=0
+#ind1 = 40
+#ind2 = 46
+#indices used for 2_3/t6/sim
+#ind1 = 127
+#ind2 = 137
 #indices used for NSM_1/t3/res_b
 #ind1 = 13
 #ind2 = 19
-scale_fact = 10.0
+#indices used for NSM_2.5/t2/xy_large/sim
+#ind1 = 76
+#ind2 = 87
+#indices used for NSM_2.5/t3/xy_large/res_a
+#ind1 = 55
+#ind2 = 59
+scale_fact = 1.0
 
 #indices needed for SDA test (periodicity causes false maxima):
 #ind1 = 3
@@ -185,6 +232,8 @@ scale_fact = 10.0
 ot_est = (np.log(N[ind1]) - np.log(N[ind2]))/1.e-9/(t[ind1] - t[ind2])
 t_line = [t[ind2], t[ind1]]
 N_line = [scale_fact*N[ind2], scale_fact*N[ind1]]
+ax.set_xlim(0.7,1.6)
+ax.set_ylim(1.e-6,1.e-4)
 ax.semilogy(t_line, N_line, color='orange')
 ax.set_title(r"$\tilde{{\omega}}={:.2E}$".format(ot_est))
 plt.savefig("avgfemu_est.pdf", bbox_inches="tight")

@@ -13,11 +13,8 @@ from yt.units import cm
 from emu_yt_module import EmuDataset
 import argparse
 import textwrap
-import matplotlib as mpl
 
-#mpl.rcParams['text.usetex'] = True
-#phi_tex = r"$\phi_{ex}$"
-phi_tex = r"\phi_{\emph{ex}}\,\,({}^\circ)"
+from mpl_toolkits.axes_grid1 import AxesGrid
 
 #3 flavor neutrino derived fields: Number Density
 #normalize by the trace
@@ -44,8 +41,7 @@ def _Diag_Mag(field, data):
     return data["er01"]/data["Norm"]
 
 #off-diagonal phases in degrees for each off-diagonal component is the arctan(Im/Re)
-#@derived_field(name="N01_Phase", units="dimensionless", display_name=r'\phi_{ex}\,\,(degrees)', sampling_type="cell",force_override=True)
-@derived_field(name="N01_Phase", units="dimensionless", display_name=phi_tex, sampling_type="cell",force_override=True)
+@derived_field(name="N01_Phase", units="dimensionless", display_name=r'\phi_{ex}\,\,(degrees)', sampling_type="cell",force_override=True)
 def _N01_Phase(field, data):
     return data["ep01"]*(180/np.pi)
 
@@ -134,20 +130,15 @@ def do_phase_volume_render(args, emu_3D, field):
     sc.camera.north_vector = [0, 0, 1]
     sc.camera.zoom(0.9)
 
-    #plot the transfer function
-    source.tfh.plot(get_output_file(args, f"{field}_transfer_function.png"))
-
     #format the timestamp
     #text_string = "t = {:.4f} ns".format(float(emu_3D.ds.current_time.to('ns')))
-    text_string_title = r"${{\rm NSM3}}$"
-    text_string_time = r"$t = {:.4f}\,{{\rm ns}}$".format(float(emu_3D.ds.current_time.to('ns')))
 
-    #save with transfer function also displayed on rendering image
-    sc.save_annotated(get_output_file(args, f"{field}_rendering.png"), sigma_clip=6,
-                      #text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]],
-                      text_annotate=[[(.45, 0.925), text_string_title, dict(fontsize="40", horizontalalignment="center")],
-                      [(.1, 0.08), text_string_time, dict(fontsize="32")]],
-                      label_fmt='%d', label_fontsize=20)
+    ##save with transfer function also displayed on rendering image
+    #sc.save_annotated(get_output_file(args, f"{field}_rendering.png"), sigma_clip=6,
+    #                  text_annotate=[[(.1, 0.95), text_string, dict(fontsize="20")]],
+    #                  label_fmt='%d')
+
+    return sc
 
 if __name__ == "__main__":
     # parse command line arguments
@@ -175,8 +166,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # configure matplotlib
-    #rc = {"font.family" : "serif",'font.size':15}
-    rc = {"font.family" : "serif",'font.size':15, 'text.usetex':True}
+    rc = {"font.family" : "serif",'font.size':15}
     plt.rcParams.update(rc)
 
     # make a 3D dataset, if dimensionality is < 3
@@ -185,7 +175,6 @@ if __name__ == "__main__":
     emu_ND = EmuDataset(args.plotfile)
     emu_3D = get_3D_selection(args, emu_ND)
 
-
     # do the volume rendering for all the phase fields in this plotfile
     if args.fields == ['all']:
         fields = [f for _, f in emu_3D.ds.derived_field_list if "Phase" in f]
@@ -193,4 +182,45 @@ if __name__ == "__main__":
         fields = args.fields
 
     for field in fields:
-        do_phase_volume_render(args, emu_3D, field)
+        sc = do_phase_volume_render(args, emu_3D, field)
+
+
+    #new code for side-by-side plots:
+    fig = plt.figure()
+
+    # See http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html
+    # These choices of keyword arguments produce a four panel plot that includes
+    # four narrow colorbars, one for each plot.  Axes labels are only drawn on the
+    # bottom left hand plot to avoid repeating information and make the plot less
+    # cluttered.
+    grid = AxesGrid(
+        fig,
+        111,
+        nrows_ncols=(1, 2),
+        axes_pad=1.0,
+        label_mode="1",
+        share_all=False,
+        cbar_location="right",
+        cbar_mode="each",
+        cbar_size="3%",
+        cbar_pad="0%",
+    )
+
+    #sc.zoom(2)
+
+    # For each plotted field, force the SlicePlot to redraw itself onto the AxesGrid
+    # axes.
+    plot = sc
+    plot.figure = fig
+    plot.axes = grid[1].axes
+    plot.cax = grid.cbar_axes[1]
+
+    # Finally, redraw the plot on the AxesGrid axes.
+    sc.render()
+
+    ax = fig.add_subplot(121)
+    ax.plot([0, 1], [0,1])
+
+
+
+    plt.savefig("multiplot_1x2.png")

@@ -216,7 +216,7 @@ class EmuDataset(object):
         FT = 4.0*np.pi*FT/e01_energy
 
         # use fftn to do an N-dimensional FFT on an N-dimensional numpy array
-        FT = fft.fftn(FT,workers=nproc)
+        FT = fft.fftn(FT, axes=[2], workers=nproc)
 
         # we're shifting the sampling frequencies next, so we have to shift the FFT values
         FT = fft.fftshift(FT)
@@ -227,19 +227,21 @@ class EmuDataset(object):
         # get the phase of the fft
         FT_phi = np.angle(FT)
 
-        if self.Nx > 1:
-            # find the sampling frequencies in X & shift them
-            kx = fft.fftfreq(self.Nx, self.dx)
-            kx = fft.fftshift(kx)
-        else:
-            kx = None
+        #if self.Nx > 1:
+        #    # find the sampling frequencies in X & shift them
+        #    kx = fft.fftfreq(self.Nx, self.dx)
+        #    kx = fft.fftshift(kx)
+        #else:
+        #    kx = None
+        kx = None
 
-        if self.Ny > 1:
-            # find the sampling frequencies in Y & shift them
-            ky = fft.fftfreq(self.Ny, self.dy)
-            ky = fft.fftshift(ky)
-        else:
-            ky = None
+        #if self.Ny > 1:
+        #    # find the sampling frequencies in Y & shift them
+        #    ky = fft.fftfreq(self.Ny, self.dy)
+        #    ky = fft.fftshift(ky)
+        #else:
+        #    ky = None
+        ky = None
 
         if self.Nz > 1:
             # find the sampling frequencies in Z & shift them

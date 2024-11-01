@@ -50,17 +50,31 @@ import matplotlib as mpl
 #fxxbar = np.array([0.0175, 0.0117, -0.0790])
 
 # initial conditions (DR point)
+#fee = np.empty([3])
+#feebar = np.empty([3])
+#fxx = np.empty([3])
+#fxxbar = np.empty([3])
+#Nee = 3.4982e-16
+#Neebar = 2.72814e-16
+#Nxx = 1.94872e-16/4.0
+#Nxxbar = 1.94872e-16/4.0
+#fee[:] = np.array([-1.08293e-17, 2.85869e-17, 3.44997e-16])/Nee
+#feebar[:] = np.array([-1.08293e-17, 2.85869e-17, 2.67039e-16])/Neebar
+#fxx[:] = np.array([-1.84851e-17, 3.04548e-17, 1.89124e-16])/Nxx
+#fxxbar = fxx
+
+# initial conditions (NSM2.5 point)
 fee = np.empty([3])
 feebar = np.empty([3])
 fxx = np.empty([3])
 fxxbar = np.empty([3])
-Nee = 3.4982e-16
-Neebar = 2.72814e-16
-Nxx = 1.94872e-16/4.0
-Nxxbar = 1.94872e-16/4.0
-fee[:] = np.array([-1.08293e-17, 2.85869e-17, 3.44997e-16])/Nee
-feebar[:] = np.array([-1.08293e-17, 2.85869e-17, 2.67039e-16])/Neebar
-fxx[:] = np.array([-1.84851e-17, 3.04548e-17, 1.89124e-16])/Nxx
+Nee = 30.89
+Neebar = 33.27
+Nxx = 84.12/4.0
+Nxxbar = Nxx
+fee[:] = np.array([0.0213, -0.0142, -0.1301])
+feebar[:] = np.array([0.0197, -0.0132, -0.1683])
+fxx[:] = np.array([0.0599, -0.0357, -0.2004])
 fxxbar = fxx
 
 mpl.rcParams['font.size'] = 22

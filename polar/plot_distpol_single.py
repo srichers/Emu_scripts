@@ -9,10 +9,17 @@ import matplotlib as mpl
 # INPUTS #
 ##########
 
-fee = np.empty([3])
-feebar = np.empty([3])
-fxx = np.empty([3])
-fxxbar = np.empty([3])
+test_np = 1
+
+# define arrays
+arr_Nee = np.empty([test_np])
+arr_Neebar = np.empty([test_np])
+arr_Nxx = np.empty([test_np])
+arr_Nxxbar = np.empty([test_np])
+arr_fee = np.empty([test_np,3])
+arr_feebar = np.empty([test_np,3])
+arr_fxx = np.empty([test_np,3])
+arr_fxxbar = np.empty([test_np,3])
 
 # initial conditions:
 #eps = 1.e-2
@@ -37,14 +44,24 @@ fxxbar = np.empty([3])
 
 
 # initial conditions:
-Nee = 0.5
-Neebar = 1.0
-Nxx = 0.0
-Nxxbar = 0.0
-fee[:] = np.array([0.0, 0.0, 0.2])
-feebar[:] = np.array([0.0, 0.0, -0.2])
-fxx[:] = np.array([0.0, 0.0, 0.0])
-fxxbar[:] = np.array([0.0, 0.0, 0.0])
+#Nee = 0.5
+#Neebar = 1.0
+#Nxx = 0.0
+#Nxxbar = 0.0
+#fee[:] = np.array([0.0, 0.0, 0.2])
+#feebar[:] = np.array([0.0, 0.0, -0.2])
+#fxx[:] = np.array([0.0, 0.0, 0.0])
+#fxxbar[:] = np.array([0.0, 0.0, 0.0])
+
+# initial conditions (NSM2.5 point)
+arr_Nee[0] = 30.89
+arr_Neebar[0] = 33.27
+arr_Nxx[0] = 84.12/4.0
+arr_Nxxbar[0] = arr_Nxx[0]
+arr_fee[0,:] = np.array([0.0213, -0.0142, -0.1301])
+arr_feebar[0,:] = np.array([0.0197, -0.0132, -0.1683])
+arr_fxx[0,:] = np.array([0.0599, -0.0357, -0.2004])
+arr_fxxbar = arr_fxx
 
 mpl.rcParams['font.size'] = 22
 mpl.rcParams['font.family'] = 'serif'
@@ -122,9 +139,13 @@ def function(Z,fluxfac):
 def dfunctiondZ(Z,fluxfac):
     return 1./Z**2 - 1./np.sinh(Z)**2
 def get_Z(fluxfac):
-    initial_guess = 1
-    Z = scipy.optimize.fsolve(function, initial_guess, fprime=dfunctiondZ, args=fluxfac)[0]
-    residual = np.max(np.abs(function(Z,fluxfac)) )
+    if fluxfac == 0.0:
+        Z = 0.0
+        residual = 0.0
+    else:
+        initial_guess = 1.0
+        Z = scipy.optimize.fsolve(function, initial_guess, fprime=dfunctiondZ, args=fluxfac)[0]
+        residual = np.max(np.abs(function(Z,fluxfac)) )
     # when near isotropic, use taylor expansion
     # f \approx Z/3 - Z^3/45 + O(Z^5)
     return Z, residual
@@ -134,73 +155,94 @@ def get_Z(fluxfac):
 # make a plot of the distributions
 def distribution(N, Z,theta):
     mu = np.cos(theta)
-    return N/(4.*np.pi) * Z/np.sinh(Z) * np.exp(Z*mu)
+    if Z != 0.0:
+        return N/(4.*np.pi) * Z/np.sinh(Z) * np.exp(Z*mu)
+    else:
+        return N/(4.*np.pi) * np.exp(Z*mu)
 
-def makepolar(N,Nbar,f,fbar):
+def makepolar(N,Nbar,f,fbar, label):
     print("########## ")
-    print("Computing for: ")
+    print("Computing for "+label)
     print("########## ")
-    print("N = ", N, Nbar)
+    print()
+    print("N = ", N)
     print("F    = ", f)
-    print("Fbar = ", fbar)
     
     fluxfac = mag(f)
-    fluxfacbar = mag(fbar)
-    print("fluxfac = ",fluxfac, fluxfacbar)
-    
+    print("fluxfac = ",fluxfac)
     Z, residual = get_Z(fluxfac)
-    Zbar, residualbar = get_Z(fluxfacbar)
+    print("Z = ", Z)
+    print("residual = ", residual)
     print()
-    print("Z = ", Z, Zbar)
-    print("residual = ", residual, residualbar)
+    
+    print("Nbar = ", Nbar)
+    print("Fbar = ", fbar)
+    fluxfacbar = mag(fbar)
+    print("fluxfacbar = ",fluxfacbar)
+    Zbar, residualbar = get_Z(fluxfacbar)
+    print("Zbar = ", Zbar)
+    print("residual = ", residualbar)
+    print()
     
     
     # get the crossing discriminant
     #fhat = f / mag(f)
     #fhatbar = fbar / mag(fbar)
     if fluxfac != 0.0:
-        fhat = f / mag(f)
+        fhat = f / fluxfac
     else:
         fhat = f
     if fluxfacbar != 0.0:
-        fhatbar = fbar / mag(fbar)
+        fhatbar = fbar / fluxfacbar
     else:
         fhatbar = fbar
     costheta = np.sum(fhat*fhatbar)
-    eta = np.log( (N*Z/np.sinh(-Z)) / (Nbar*Zbar/np.sinh(-Zbar)) )
+    print("cos angle between fhat and fhatbar = ", costheta)
+    if (Z == 0.0) and (Zbar == 0.0):
+        eta = np.log( (N) / (Nbar) )
+    elif (Z == 0.0):
+        eta = np.log( (N) / (Nbar*Zbar/np.sinh(Zbar)) )
+    elif (Zbar == 0.0):
+        eta = np.log( (N*Z/np.sinh(Z)) / (Nbar) )
+    else:
+        eta = np.log( (N*Z/np.sinh(Z)) / (Nbar*Zbar/np.sinh(Zbar)) )
     beta = Zbar**2 + Z**2 - 2.*Z*Zbar*costheta
-    gamma = -2.*(Zbar * costheta - Z)
+    gamma = 2.*(Zbar * costheta - Z)
     epsilon = eta**2 - Zbar**2 * (1.-costheta**2)
-    discriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
+    print("eta, beta, gamma, epsilon =", eta, beta, gamma, epsilon)
+    if beta != 0.0:
+        discriminant = -epsilon/beta + (gamma*eta/(2.*beta))**2
+        print("discriminant = ",discriminant)
+    else:
+        discriminant = -1.0 #trivial
+        print("trivial distributions, setting discriminant to -1")
 
     # determine the original eln direction
-    eln = N*f - Nbar*fbar
-    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
-    print("theta_eln = ",theta_eln)
+    eln_vec = N*f - Nbar*fbar
+    theta_eln = np.arccos(eln_vec[2] / np.linalg.norm(eln_vec))
+    print("unrotated theta_eln with z-axis = ",theta_eln)
 
     # get rotation matrix for plotting
     R = get_rotation_matrix(f*N, fbar*Nbar)
     print()
-    print("Rotation matrix:")
+    print("Rotation matrix so eln_vec points along z^{\prime}-axis:")
     print(R)
-    f = -rotate(R, f)
-    fbar = -rotate(R, fbar)
+    f = rotate(R, f)
+    fbar = rotate(R, fbar)
     eln = N*f - Nbar*fbar
     print("F_rotated    = ",f)
     print("Fbar_rotated = ",fbar)
     print("ELN_rotated = ",eln)
     if fluxfac != 0.0:
-        fhat = f / mag(f)
+        fhat = f / fluxfac
     else:
         fhat = f
     if fluxfacbar != 0.0:
-        fhatbar = fbar / mag(fbar)
+        fhatbar = fbar / fluxfacbar
     else:
         fhatbar = fbar
-    theta_eln = np.pi/2 - np.arccos(-eln[2] / np.linalg.norm(eln))
+    theta_eln = np.arccos(eln[2] / np.linalg.norm(eln))
 
-    print()
-    print("discriminant = ",discriminant)
 
     if discriminant>0:
         print("YES crossing")
@@ -213,71 +255,92 @@ def makepolar(N,Nbar,f,fbar):
     else:
         print("NO crossing")
 
-    theta = np.arccos(fhat[2]) + theta_eln
-    thetabar = np.arccos(fhatbar[2]) + theta_eln
+    theta = np.arccos(fhat[2])
+    thetabar = np.arccos(fhatbar[2])
     
     thetaplot = np.arange(0,2.*np.pi,np.pi/100)
-    dist    = distribution(N   , Z   , thetaplot-theta   )
+    dist    = distribution(N   , Z   , thetaplot-theta)
     distbar = distribution(Nbar, Zbar, thetaplot-thetabar)
 
     return thetaplot, theta, thetabar, theta_eln, dist, distbar, fluxfac, fluxfacbar, eln
 
 
 
+fig = plt.figure(figsize=(6*test_np,10))
+fig.subplots_adjust(wspace=0)
+
+test_titles = [r'${\rm NSM}4$']
+
+for i in range(test_np):
+
+        ax1 = plt.subplot2grid((10,6*test_np), (0,6*i), rowspan=5, colspan=6, projection='polar')
+        if i == 0:
+                ax2 = plt.subplot2grid((10,6*test_np), (5,6*i), rowspan=5, colspan=6)
+        else:
+                ax2 = plt.subplot2grid((10,6*test_np), (5,6*i), rowspan=5, colspan=6, sharey=ax2_shared)
+
+        Nee = arr_Nee[i]
+        Neebar = arr_Neebar[i]
+        fee = arr_fee[i,:]
+        feebar = arr_feebar[i,:]
+        
+        th_r, th_max_nu, th_max_bnu, th_eln, fa_nu, fa_bnu, ff_nu, ff_bnu, eln = makepolar(Nee, Neebar, fee, feebar, "eebar " + str(i))
+        
+        ax1.plot(th_r, fa_nu, color='blue', label=r"$\nu_e$")
+        ax1.scatter(th_max_nu, np.max(fa_nu), color='blue')
+        ax1.plot(th_r, fa_bnu, color='red', label=r"$\bar{\nu}_e$")
+        ax1.scatter(th_max_bnu, np.max(fa_bnu), color='red')
+        
+        ax1.arrow(th_max_nu,0,0,Nee*ff_nu, color='blue', linewidth=1.5)
+        #ax1.arrow(th_max_bnu+np.pi,0,0, Neebar*ff_bnu, color='red', linewidth=1.5)
+        ax1.arrow(th_max_bnu,0,0, Neebar*ff_bnu, color='red', linewidth=1.5)
+        ax1.arrow(th_eln, 0,0,np.abs(eln[2]), linestyle='--', color="purple", linewidth=1.5)
+        
+        ax1.get_xaxis().set_ticklabels([])
+        ax1.get_yaxis().set_ticklabels([])
+        ax1.set_axisbelow(True)
+        
+        lim = np.max([Neebar*ff_bnu,Nee*ff_nu, np.max(fa_nu),np.max(fa_bnu)]) * 1.05
+        ax1.set_ylim(0,lim)
+
+        ax1.text(-0.02,6.5, r'$\mathrm{z}$')
+
+        ax1.set_title(test_titles[i])
+            
+        if i == 0:
+                ax1.legend(loc='lower right')
+        
+        
+        ax2.axhline(0,color="k",linestyle=":")
+        #if i == 0:
+        #        ax2.text(th_eln/np.pi, -0.08, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+        #        #ax2.text(th_eln/np.pi, -0.01, "net ELN direction", color='purple', rotation=-90, fontsize=13)
+        ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$\psi_{ee}$")
+        #ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{\psi}_{ee}$")
+        ax2.plot(th_r/np.pi, (fa_bnu)/(Nee+Neebar), color='red', label=r"$\overline{\psi}_{ee}$")
+        ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), linestyle='--', color='purple', label=r"$\psi_{ee} - \overline{\psi}_{ee}$")
+        #ax2.axvline(th_eln/np.pi, color="purple")
+        ax2.set_xlim(0,2)
+        ax2.set_xlabel(r"$\vartheta/\pi$")
+        ax2.minorticks_on()
+        ax2.yaxis.set_tick_params(which='both', direction='in', right=True,top=True)
+        ax2.xaxis.set_tick_params(which='both', direction='in', bottom=True, top=True)
+
+        if i >= 1:
+                plt.setp(ax2.get_yticklabels(), visible=False)
+
+        if i <= 1:
+                ax2.get_xaxis().set_ticklabels([r'$0.0$', r'$0.5$', r'$1.0$', r'$1.5$'])
+
+        if i == 0:
+                ax2.legend(loc='lower right', fontsize=16)
+                #ax2.set_ylabel(r'$dn/d\Omega/(N_{ee}+\overline{N}_{ee})$')
+                #ax2.set_ylabel(r'$\frac{1}{N_{ee}+\overline{N}_{ee}}\,\frac{dn}{d\Omega}$', fontsize=30)
+                ax2.set_ylabel(r'$\frac{1}{E_{ee}+\overline{E}_{ee}}\,\psi$', fontsize=30)
+                ax2.set_ylim(-0.05,0.07)
+                ax2_shared = ax2
 
 
-fig = plt.figure(figsize=(6,5))
-ax1 = plt.subplot2grid((5,6), (0,0), rowspan=5, colspan=6, projection='polar')
-
-#test_titles = r'${\rm Single}$'
-
-th_r, th_max_nu, th_max_bnu, th_eln, fa_nu, fa_bnu, ff_nu, ff_bnu, eln = makepolar(Nee, Neebar, fee, feebar)
-
-ax1.plot(th_r, fa_nu, color='blue', label=r"$\nu_e$")
-ax1.scatter(th_max_nu, np.max(fa_nu), color='blue')
-ax1.plot(th_r, fa_bnu, color='red', label=r"$\bar{\nu}_e$")
-ax1.scatter(th_max_bnu, np.max(fa_bnu), color='red')
-
-ax1.arrow(th_max_nu,0,0,Nee*ff_nu, color='blue', linewidth=1.5)
-ax1.arrow(th_max_bnu+np.pi,0,0, Neebar*ff_bnu, color='red', linewidth=1.5)
-ax1.arrow(th_eln+np.pi, 0,0,np.abs(eln[2]), color="purple", linewidth=1.5)
-
-ax1.get_xaxis().set_ticklabels([])
-ax1.get_yaxis().set_ticklabels([])
-ax1.set_axisbelow(True)
-
-lim = np.max([Neebar*ff_bnu,Nee*ff_nu, np.max(fa_nu),np.max(fa_bnu)]) * 1.05
-ax1.set_ylim(0,lim)
-
-#ax1.set_title(test_titles)
-    
-ax1.legend(loc='lower right')
-
-plt.savefig("plot_distpol_single_polar.pdf", bbox_inches="tight")
-plt.clf()
-
-
-
-fig = plt.figure(figsize=(6,5))
-ax2 = plt.subplot2grid((5,6), (0,0), rowspan=5, colspan=6)
-
-ax2.axhline(0,color="k",linestyle="--")
-ax2.text(th_eln/np.pi, -0.040, "net ELN direction", color='purple', rotation=-90, fontsize=13)
-ax2.plot(th_r/np.pi, (fa_nu)/(Nee+Neebar), color='blue', label=r"$n_{ee}$")
-ax2.plot(th_r/np.pi, (-fa_bnu)/(Nee+Neebar), color='red', label=r"$-\overline{n}_{ee}$")
-ax2.plot(th_r/np.pi, (fa_nu-fa_bnu)/(Nee+Neebar), color='purple', label=r"$n_{ee} - \overline{n}_{ee}$")
-ax2.axvline(th_eln/np.pi, color="purple")
-ax2.set_xlim(0,2)
-ax2.set_xlabel(r"$\theta/\pi$")
-ax2.minorticks_on()
-ax2.yaxis.set_tick_params(which='both', direction='in', right=True,top=True)
-ax2.xaxis.set_tick_params(which='both', direction='in', bottom=True, top=True)
-
-ax2.get_xaxis().set_ticklabels([r'$0.0$', r'$0.5$', r'$1.0$', r'$1.5$'])
-
-ax2.legend(loc='lower right', fontsize=20)
-ax2.set_ylabel(r'$\frac{1}{N_{ee}+\overline{N}_{ee}}\,\frac{dn}{d\Omega}$', fontsize=30)
-
-plt.savefig("plot_distpol_single_cart.pdf", bbox_inches="tight")
+plt.savefig("plot_distpol_single.pdf", bbox_inches="tight")
 
 plt.clf()

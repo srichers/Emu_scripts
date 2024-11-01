@@ -37,6 +37,16 @@ def plotdata(filename,nutype,a,b):
     avgData.close()
     return t, N
 
+def plotdata_phase(filename,nutype):
+    avgData = h5py.File(filename,"r")
+    t=np.array(avgData["t"])*1e9
+    if nu_type == 1:
+        N=np.array(avgData["Nbar_avg_phase"])[:]
+    else:
+        N=np.array(avgData["N_avg_phase"])[:]
+    avgData.close()
+    return t, N
+
 ################
 # plot options #
 ################
@@ -63,23 +73,23 @@ plt.subplots_adjust(hspace=0)
 ##############
 # formatting #
 ##############
-axes[1].set_xlabel(r'$t\,(10^{-9}\,{\rm s})$')
+axes[1].set_xlabel(r'$t-t_{\rm sat}\,(10^{-9}\,{\rm s})$')
 for i in range(2):
     axes[i].tick_params(axis='both', which='both', direction='in', right=True,top=True)
     axes[i].xaxis.set_minor_locator(AutoMinorLocator())
     axes[i].yaxis.set_minor_locator(AutoMinorLocator())
     axes[i].minorticks_on()
-#axes[0].set_xlim(-1.0, 4.0)
+axes[0].set_xlim(-1.5, 0.1)
 #axes[0].set_xlim(-75.0, 10.0)
 #axes[0].set_xlim(-0.5, 1.0)
 #axes[0].set_xlim(-0.7, 0.5)
 #axes[0].set_xlim(-14.0, -10.0)
 if nu_type == 1:
-    axes[0].set_ylabel(r'$\langle \overline{N}_{ee}\rangle/{\rm Tr}[\overline{N}]$')
-    axes[1].set_ylabel(r'$\langle|\overline{N}_{ex}|\rangle/{\rm Tr}[\overline{N}]$')
+    axes[0].set_ylabel(r'$\langle|\overline{N}_{ex}|\rangle/{\rm Tr}[\overline{N}]$')
+    axes[1].set_ylabel(r'$\langle \arg[\overline{N}_{ex}]\rangle$')
 else:
-    axes[0].set_ylabel(r'$\langle N_{ee}\rangle/{\rm Tr}[N]$')
-    axes[1].set_ylabel(r'$\langle|N_{ex}|\rangle/{\rm Tr}[N]$')
+    axes[0].set_ylabel(r'$\langle|N_{ex}|\rangle/{\rm Tr}[N]$')
+    axes[1].set_ylabel(r'$\langle \arg[N_{ex}]\rangle$')
 
 #axes[1].set_ylim(1.e-6,1.0)
 
@@ -95,8 +105,12 @@ t,Nee = plotdata(filename_bang,nu_type,0,0)
 tex,Nex = plotdata(filename_bang,nu_type,0,1)
 tmax = t[np.argmax(Nex)]
 print('tmax = ', tmax)
-axes[0].plot(t-tmax, Nee, 'r-', label='2f')
-axes[1].semilogy(t-tmax, Nex, 'r-', label='2f')
+axes[0].semilogy(t-tmax, Nex, 'r-', label='2f')
+
+filename_phase = "reduced_data_phase.h5"
+
+tphi, Nphi = plotdata_phase(filename_phase,nu_type)
+axes[1].plot(tphi-tmax, Nphi, 'r-', label='2f')
 
 #fig.text(0.5, 0.82, r'$L={:.3f}\,{{\rm cm}}$'.format(box_length))
 #fig.text(0.5, 0.77, r'$N_{{gp}}={}^3$'.format(n_grid))
@@ -111,5 +125,5 @@ else:
     nu_type_str = 'nu'
 
 #axes[0].legend(loc=(0.43,0.6), frameon=False)
-namestr = "Nee_Nex_1res_normTr_" + nu_type_str + ".pdf"
+namestr = "Nex_normTr_phase_1res_" + nu_type_str + ".pdf"
 plt.savefig(namestr, bbox_inches="tight")

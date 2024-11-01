@@ -62,27 +62,49 @@ plt.subplots_adjust(hspace=0)
 h5name = "reduced_data.h5"
 alpha_res = [1.0, 0.5, 0.25]
 simres = ['sim/', 'res_a/', 'res_b/']
+Nex_pow = -3.5
+ind_offset = 4
+scale_fact = 1.e+1
+savedirname = "comp_res/Nee_Nex_3res.pdf"
+sim_name = ""
+tmax_inds = np.array([-1, -1, -1])
 
-#fid:
-#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/fid/MPC/d_pert/"
+##fid:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/fid/MPC/d_pert/t4/xy_large/"
 #labels = [r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=4.0\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=8.0\,{\rm cm}$']
-#x_limits = (-0.2, 0.2)
+##x_limits = (-0.2, 0.2)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 7.04e10 #s^{-1}
+#Nex_pow = -4.5
+#ind_offset = 4
 
-#90d
-#filename_1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/90d/MPC/d_pert/sim1/reduced_data.h5"
-#filename_2 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/90d/MPC/d_pert/res_a1/reduced_data.h5"
-#filename_3 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/90d/MPC/d_pert/res_b1/reduced_data.h5"
-#label_1 = r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$'
-#label_2 = r'$N_{gp}=64^3;\,L=4.0\,{\rm cm}$'
-#label_3 = r'$N_{gp}=64^3;\,L=8.0\,{\rm cm}$'
+##90d
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/90d/MPC/d_pert/t2/xy_large/"
+#labels = [r'$N_{gp}=128^3;\,L=8.0\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=4.0\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=8.0\,{\rm cm}$']
+#x_limits = (-0.5, 2.0)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 5.01e10 #s^{-1}
+#Nex_pow = -4.5
+#ind_offset = 4
 
 #2_3:
-#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/2_3/MPC/d_pert/"
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/2_3/MPC/d_pert/t2/xy_large/"
 #labels = [r'$N_{gp}=128^3;\,L=32.0\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=16.0\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=32.0\,{\rm cm}$']
+#x_limits = (-1.0, 2.0)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 1.57e10 #s^{-1}
+#Nex_pow = -3.0
+#ind_offset = 6
+#scale_fact = 5.0
 
 #NSM_1/t2:
 #filename_1 = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/sim2/reduced_data.h5"
@@ -94,10 +116,14 @@ simres = ['sim/', 'res_a/', 'res_b/']
 
 #NSM_1/t3:
 #basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/"
+#simres = ['sim/', 'res_a/', 'res_b/']
 #labels = [r'$N_{gp}=128^3;\,L=7.87\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=3.93\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=7.87\,{\rm cm}$']
 #x_limits = (-0.5, 1.5)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 7.25e10 #s^{-1}
 
 #NSM_3:
 #basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/"
@@ -105,18 +131,100 @@ simres = ['sim/', 'res_a/', 'res_b/']
 #    r'$N_{gp}=64^3;\,L=2.90\,{\rm cm}$', \
 #    r'$N_{gp}=64^3;\,L=5.80\,{\rm cm}$']
 
-#NSM_1/t3:
-basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t1/"
-labels = [r'$N_{gp}=128^3;\,L=24.5\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=12.3\,{\rm cm}$', \
-    r'$N_{gp}=64^3;\,L=24.5\,{\rm cm}$']
+#NSM_3/t3:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t3/"
+#simres = ['sim_xy_large/', 'res_a_xy_large/', 'res_b_xy_large/']
+#labels = [r'$N_{gp}=16^2\times512;\,L=5.80\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=2.90\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=5.80\,{\rm cm}$']
+#x_limits = (-0.5, 1.0)
+#savedirname = "comp_res/xy_large/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 2.5e10 #s^{-1}
+
+##NSM_2.5/t1:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t1/"
+#labels = [r'$N_{gp}=128^3;\,L=24.5\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=12.3\,{\rm cm}$', \
+#    r'$N_{gp}=64^3;\,L=24.5\,{\rm cm}$']
+#x_limits = (-1.0, 1.5)
+##from LSA:
+#est_imo = 1.39e10 #s^{-1}
+
+#NSM_2.5/d_pert/t2/xy_large/:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_large/"
+#labels = [r'$N_{gp}=16^2\times256;\,L=24.5\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=12.3\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=24.5\,{\rm cm}$']
+#x_limits = (-1.0, 1.5)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 1.39e10 #s^{-1}
+#Nex_pow = -2.2
+#scale_fact = 2.0
+#ind1 = 78
+#ind_offset = 6
+
+##NSM_2.5/d_pert/t2/xy_small/:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/d_pert/t2/xy_small/"
+#labels = [r'$N_{gp}=16^2\times256;\,L_z=24.5\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L_z=12.3\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L_z=24.5\,{\rm cm}$']
+#x_limits = (-1.0, 1.5)
+#savedirname = "comp_res/Nee_Nex_3res.pdf"
+##from LSA:
+#est_imo = 1.39e10 #s^{-1}
+#Nex_pow = -4.0
+#scale_fact = 10.0
+#ind_offset = 16
+
+##NSM_2.5/od_pert/t2/xy_large/:
+#basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2.5/od_pert/t2/xy_large/"
+#labels = [r'$N_{gp}=16^2\times256;\,L=24.5\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=12.3\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=24.5\,{\rm cm}$']
+#x_limits = (-1.0, 1.5)
+##from LSA:
+#est_imo = 1.39e10 #s^{-1}
+#Nex_pow = -3.0
+#scale_fact = 3.0
+#ind_offset = 12
+
+##NSM_2/MPC/clos3/d_pert/t[1,2,3]/xy_large/:
+sim_name = "NSM_2"
+basedir = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_2/MPC/clos3/d_pert/t4/xy_large/"
+#t1:
+#labels = [r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=4.13\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times128;\,L=8.27\,{\rm cm}$']
+#t2:
+#labels = [r'$N_{gp}=16^2\times512;\,L=8.27\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=4.13\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$']
+#tmax_inds[0] = 245
+#t3:
+#labels = [r'$N_{gp}=16^2\times512;\,L=16.53\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=8.27\,{\rm cm}$', \
+#    r'$N_{gp}=16^2\times256;\,L=16.53\,{\rm cm}$']
+#tmax_inds[0] = 126
+#t4:
+labels = [r'$N_{gp}=16^2\times1024;\,L=16.53\,{\rm cm}$', \
+    r'$N_{gp}=16^2\times512;\,L=8.27\,{\rm cm}$', \
+    r'$N_{gp}=16^2\times512;\,L=16.53\,{\rm cm}$']
+tmax_inds[0] = 235
+tmax_inds[1] = 245
+tmax_inds[2] = 126
 x_limits = (-1.0, 1.5)
 #from LSA:
-est_imo = 1.39e10 #s^{-1}
+est_imo = 1.26e10 #s^{-1}
+Nex_pow = -3.0
+scale_fact = 2.0
+ind1 = 205
+ind_offset = 15
+
+
 est_imo_ns = est_imo/1.e+9 #ns^{-1}
-Nex_base = 10.0**(-3.5)
-scale_fact = 1.e+1
-ind_offset = 4
+Nex_base = 10.0**(Nex_pow)
 
 for i in range(3):
     filename = basedir + simres[i] + h5name
@@ -124,13 +232,18 @@ for i in range(3):
     tex,Nex = plotdata(filename,0,1)
     txx,Nxx = plotdata(filename,1,1)
     n_2F = Nee[0] + Nxx[0]
-    tmax = t[np.argmax(Nex)]
+    #special case:
+    if tmax_inds[i] != -1:
+        tmax = t[tmax_inds[i]]
+    else:
+        tmax = t[np.argmax(Nex)]
     axes[0].plot(t-tmax, Nee * n_2F, 'r-', alpha=alpha_res[i], label=labels[i])
     if i == 0:
         n_2F_eq = n_2F/2.0
         axes[0].axhline(n_2F_eq, color="green")
         if "est_imo_ns" in locals():
-            ind1 = np.argmin(np.abs(np.log(Nex[1:]/Nex_base)))
+            if "ind1" not in locals():
+                ind1 = np.argmin(np.abs(np.log(Nex[1:]/Nex_base)))
             ind2 = ind1 + ind_offset
             t_line = [t[ind1], t[ind2]]
             N_line = [scale_fact*Nex[ind1], scale_fact*Nex[ind1]*np.exp(est_imo_ns*(t[ind2] - t[ind1]))]
@@ -147,12 +260,13 @@ for i in range(2):
     axes[i].xaxis.set_minor_locator(AutoMinorLocator())
     axes[i].yaxis.set_minor_locator(AutoMinorLocator())
     axes[i].minorticks_on()
-axes[0].set_xlim(x_limits)
+if "x_limits" in locals():
+    axes[0].set_xlim(x_limits)
 axes[0].set_ylabel(r'$\langle N_{ee}\rangle/{\rm Tr}[N]$')
 axes[1].set_ylabel(r'$\langle|N_{ex}|\rangle/{\rm Tr}[N]$')
 
 #axes[0].legend(loc=(0.43,0.1), frameon=False)
 #axes[0].legend(loc='best', frameon=False)
 axes[1].legend(loc='best', frameon=False)
-savename = basedir + "comp_res/Nee_Nex_3res.pdf"
+savename = basedir + savedirname
 plt.savefig(savename, bbox_inches="tight")

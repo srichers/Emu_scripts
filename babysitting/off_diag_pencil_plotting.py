@@ -71,7 +71,7 @@ def get_cell_coordinates(h5file):
     return cell_coords
 
 
-def get_mod_entire_grid(h5file, nu_str, mom_str, cell_coords):
+def get_Nex_entire_grid(h5file, nu_str, cell_coords):
 
     if nu_str == "nu":
         ee_label = "ee01"
@@ -82,12 +82,6 @@ def get_mod_entire_grid(h5file, nu_str, mom_str, cell_coords):
         xx_label = "en01"
         ex_label = "es01"
 
-    if mom_str != "e":
-        if nu_str == "nu":
-            flux_label = mom_str + "r01"
-        else:
-            flux_label = mom_str + "s01"
-
     dset_blks = h5file["/integer scalars"]
     for thing in dset_blks:
         if thing[0].strip()==b"globalnumblocks":
@@ -96,8 +90,6 @@ def get_mod_entire_grid(h5file, nu_str, mom_str, cell_coords):
     dset_ee = h5file[ee_label]
     dset_xx = h5file[xx_label]
     dset_ex = h5file[ex_label]
-    if mom_str != "e":
-        dset_flux = h5file[flux_label]
     Nex_tr = np.empty([len(cell_coords[0]), len(cell_coords[1]), len(cell_coords[2])])
     blk_coords = np.array(h5file['bounding box'])[:,:,:]
     #rectangular grid:
@@ -108,27 +100,17 @@ def get_mod_entire_grid(h5file, nu_str, mom_str, cell_coords):
         N_trace = dset_ee[blk] + dset_xx[blk]
         Nex = dset_ex[blk]
         inds = get_inds_bbox(blk_coords[blk], dwidth)
-        if mom_str != "e":
-            flux = dset_flux[blk]
-            Nex_tr[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = flux*Nex/N_trace
-        else:
-            Nex_tr[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = Nex/N_trace
+        Nex_tr[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = Nex/N_trace
 
     return Nex_tr
 
 
-def get_phase_entire_grid(h5file, nu_str, mom_str, cell_coords):
+def get_phase_entire_grid(h5file, nu_str, cell_coords):
 
     if nu_str == "nu":
         phi_label = "ep01"
     else:
         phi_label = "eq01"
-
-    if mom_str != "e":
-        if nu_str == "nu":
-            flux_label = mom_str + "p01"
-        else:
-            flux_label = mom_str + "q01"
 
     dset_blks = h5file["/integer scalars"]
     for thing in dset_blks:
@@ -136,8 +118,6 @@ def get_phase_entire_grid(h5file, nu_str, mom_str, cell_coords):
             blks = int(thing[1])
 
     dset_phi = h5file[phi_label]
-    if mom_str != "e":
-        dset_flux = h5file[flux_label]
     phi_array = np.empty([len(cell_coords[0]), len(cell_coords[1]), len(cell_coords[2])])
     blk_coords = np.array(h5file['bounding box'])[:,:,:]
     #rectangular grid:
@@ -147,14 +127,7 @@ def get_phase_entire_grid(h5file, nu_str, mom_str, cell_coords):
     for blk in range(blks):
         phi = dset_phi[blk]
         inds = get_inds_bbox(blk_coords[blk], dwidth)
-        if mom_str != "e":
-            flux = dset_flux[blk]
-            orig = flux + phi
-            phi_array[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = (orig % (2.0*np.pi)) % (np.pi) \
-                    - ((orig % (2.0*np.pi))/np.pi).astype(np.int64)*np.pi
-
-        else:
-            phi_array[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = phi
+        phi_array[inds[0,0]:inds[0,1], inds[1,0]:inds[1,1], inds[2,0]:inds[2,1]] = phi
 
     return phi_array
 
@@ -184,10 +157,8 @@ parser = argparse.ArgumentParser(description='Reads hdf5 files and plots output 
 parser.add_argument('-i', '--infile', dest='inf', type=str, help='input .hdf5 file', metavar='', default='sim_hdf5_chk_0000')
 parser.add_argument('-o', '--outfile', dest='out', type=str, help="output file name", metavar='', default="[use naming convention]")
 parser.add_argument('-n', '--nutype', dest='nu', type=str, help="neutrino (nu) or anti-neutrino (bnu)", metavar='', default="nu")
-parser.add_argument('-c', '--comtype', dest='com', type=str, help="part of the complex number to plot (modulus, phase[default])", metavar='', default="modulus")
-parser.add_argument('-d', '--dimslice', dest='dim', type=str, help='dimension slice (x,y,z)', metavar='', default='z')
-parser.add_argument('-p', '--point', dest='pnt', type=str, help='string integer for particular dimension slice', metavar='', default='random')
-parser.add_argument('-m', '--moment', dest='mom', type=str, help='string for particular moment to use', metavar='', default='e')
+parser.add_argument('-p', '--pencildir', dest='pen', type=str, help='pencil direction (x,y,z)', metavar='', default='z')
+parser.add_argument('-f', '--fixedpoints', dest='fix', type=str, help='string of 2 integers for the fixed indices of a particular pencil direction', metavar='', default='random')
 
 args = parser.parse_args()
 
@@ -195,109 +166,84 @@ filename = args.inf
 time_str = filename[-4:]
 namestr = args.out
 
-dim_str = args.dim
+dim_str = args.pen
 if dim_str == "x":
     dim_int = 2
     cdim1 = 1
+    cdim1_str = "y"
     cdim2 = 0
-    hlabel = r"$y\,{\rm (cm)}$"
-    vlabel = r"$z\,{\rm (cm)}$"
-    save_dims_str = "_yz_x"
+    cdim2_str = "z"
+    hlabel = r"$x\,{\rm (cm)}$"
+    save_dims_str = "_x_y{}_z{}"
 elif dim_str == "y":
     dim_int = 1
     cdim1 = 2
+    cdim1_str = "x"
     cdim2 = 0
-    hlabel = r"$x\,{\rm (cm)}$"
-    vlabel = r"$z\,{\rm (cm)}$"
-    save_dims_str = "_xz_y"
+    cdim2_str = "z"
+    hlabel = r"$y\,{\rm (cm)}$"
+    save_dims_str = "_y_x{}_z{}"
 else:
     dim_int = 0
     cdim1 = 2
+    cdim1_str = "x"
     cdim2 = 1
-    hlabel = r"$x\,{\rm (cm)}$"
-    vlabel = r"$y\,{\rm (cm)}$"
-    save_dims_str = "_xy_z"
+    cdim2_str = "y"
+    hlabel = r"$z\,{\rm (cm)}$"
+    save_dims_str = "_z_x{}_y{}"
 
 nu_str = args.nu
 if nu_str != "nu":
     nu_str == "bnu"
 
 
-com_str = args.com
-
-mom_str = args.mom
-cbar_mom_str = "F"
-if mom_str == "f" or ("x" in mom_str):
-    mom_str = "f"
-    mom_name = "Fx_"
-    cbar_dim_str = "x"
-elif mom_str == "g" or ("y" in mom_str):
-    mom_str = "g"
-    mom_name = "Fy_"
-    cbar_dim_str = "y"
-elif mom_str == "h" or ("z" in mom_str):
-    mom_str = "h"
-    mom_name = "Fz_"
-    cbar_dim_str = "z"
-else:
-    mom_str = "e"
-    mom_name = "E_"
-    cbar_mom_str = "E"
-    cbar_dim_str = "{}"
-
 f = h5py.File(filename,"r")
 tau = get_time(f["/real scalars"])
 
 cell_coords = get_cell_coordinates(f)
 
-if com_str == "modulus" or com_str == "Modulus" or com_str == "mod":
-    com_str = "modulus"
-    scalar_data = get_mod_entire_grid(f, nu_str, mom_str, cell_coords)
-    com_name = "Nex_"
-else:
-    scalar_data = get_phase_entire_grid(f, nu_str, mom_str, cell_coords)
-    com_name = "phi_"
+mod_data = get_Nex_entire_grid(f, nu_str, cell_coords)
+phi_data = get_phase_entire_grid(f, nu_str, cell_coords)
 
 f.close()
 
 
-pnt_str = args.pnt
-if RepresentsInt(pnt_str):
-    pnt_slice = int(pnt_str)
-    last_cell_p1 = len(cell_coords[dim_int])
-    if pnt_slice < 0:
-        pnt_slice = last_cell_p1 + pnt_slice
-    if pnt_slice < 0:
-        pnt_slice = 0
-    if pnt_slice > (last_cell_p1 - 1):
-        pnt_slice = last_cell_p1 - 1
+fixed_points_str = args.fix
+fixed_points_str_array = fixed_points_str.split()
+
+fp = np.empty([2], dtype=int)
+if len(fixed_points_str_array) == 2:
+    if RepresentsInt(fixed_points_str_array[0]) and RepresentsInt(fixed_points_str_array[1]):
+        for i in range(2):
+            fp[i] = int(fixed_points_str_array[i])
+            if i == 0:
+                odim = cdim1
+            else:
+                odim = cdim2
+            last_cell_p1 = len(cell_coords[odim])
+            if fp[i] < 0:
+                fp[i] = last_cell_p1 + fp[i]
+            if fp[i] < 0:
+                fp[i] = 0
+            if fp[i] > (fp[i] - 1):
+                fp[i] = fp[i] - 1
+    else:
+        fp[0] = int(np.random.random()*float(len(cell_coords[cdim1])))
+        fp[1] = int(np.random.random()*float(len(cell_coords[cdim2])))
 else:
-    pnt_slice = int(np.random.random()*float(len(cell_coords[dim_int])))
+    fp[0] = int(np.random.random()*float(len(cell_coords[cdim1])))
+    fp[1] = int(np.random.random()*float(len(cell_coords[cdim2])))
 
-pnt_str = str(pnt_slice)
-
-#not going to use logs if signed flux data available [could reinstitute this in the future]:
-#if com_str == "modulus":
-#    if dim_int == 0:
-#        scalar_2D = np.log10(scalar_data[pnt_slice,:,:])
-#    elif dim_int == 1:
-#        scalar_2D = np.log10(scalar_data[:,pnt_slice,:])
-#    else:
-#        scalar_2D = np.log10(scalar_data[:,:,pnt_slice])
-#else:
-#    if dim_int == 0:
-#        scalar_2D = scalar_data[pnt_slice,:,:]
-#    elif dim_int == 1:
-#        scalar_2D = scalar_data[:,pnt_slice,:]
-#    else:
-#        scalar_2D = scalar_data[:,:,pnt_slice]
 
 if dim_int == 0:
-    scalar_2D = scalar_data[pnt_slice,:,:]
+    mod_pencil = mod_data[:,fp[0],fp[1]]
+    phi_pencil = phi_data[:,fp[0],fp[1]]
 elif dim_int == 1:
-    scalar_2D = scalar_data[:,pnt_slice,:]
+    mod_pencil = mod_data[fp[0],:,fp[1]]
+    phi_pencil = phi_data[fp[0],:,fp[1]]
 else:
-    scalar_2D = scalar_data[:,:,pnt_slice]
+    mod_pencil = mod_data[fp[0],fp[1],:]
+    phi_pencil = phi_data[fp[0],fp[1],:]
 
 
 ################
@@ -317,21 +263,6 @@ mpl.rcParams['ytick.minor.size'] = 4
 mpl.rcParams['ytick.minor.width'] = 2
 mpl.rcParams['axes.linewidth'] = 2
 
-if com_str == "modulus":
-    scalar_cmap = "Blues"
-    if nu_str == "nu":
-        #clabel = r'$\log_{{10}}[|{}^{}_{{ex}}|/{{\rm Tr}}[N]]$'.format(cbar_mom_str, cbar_dim_str)
-        clabel = r'${{\rm smod}}[{}^{}_{{ex}}]/{{\rm Tr}}[N]$'.format(cbar_mom_str, cbar_dim_str)
-    else:
-        clabel = r'${{\rm smod}}[\overline{{{}}}^{}_{{ex}}/{{\rm Tr}}[\overline{{N}}]]$'.format(cbar_mom_str, cbar_dim_str)
-else:
-    scalar_cmap = "Greens"
-    if nu_str == "nu":
-        clabel = r'${{\rm arg}}[{}^{}_{{ex}}]$'.format(cbar_mom_str, cbar_dim_str)
-    else:
-        clabel = r'${{\rm arg}}[\overline{{{}}}^{}_{{ex}}]$'.format(cbar_mom_str, cbar_dim_str)
-
-
 
 #######################
 # LABELS FOR PLOTTING #
@@ -339,7 +270,7 @@ else:
 
 #print("Grid dimension:",np.shape(scalar_data))
 
-print("min/max", np.min(scalar_data), np.max(scalar_data))
+print("modulus min/max", np.min(mod_pencil), np.max(mod_pencil))
 
 fig = plt.figure()
 ax = fig.gca()
@@ -352,27 +283,27 @@ ax.tick_params(axis='both', which='both', direction='in', right=True,top=True)
 #ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
 ax.set_xlabel(hlabel)
-ax.set_ylabel(vlabel)
+#ax.set_ylabel(r"${\rm Co}[N_{ex}]/{\rm Tr}[N]$")
+ax.set_ylabel(r"${\rm mod}[N_{ex}]$")
+#ax.set_ylabel(r"${\rm arg}[N_{ex}]$")
 print("Time (ns): {:.2e}".format(1.e+9*tau))
-ax.set_title(r"$t={:.2E}\,{{\rm ns}};\,{}={:.2E}\,{{\rm cm}}$".format(1.e+9*tau, dim_str, cell_coords[dim_int][pnt_slice]))
-
-#contour plot
-#if log spacing needed:
-#logmin = np.log10(np.min(np.where(scalar_data>0.0, scalar_data, np.max(scalar_data))))
-#print("logmin:", logmin)
-#scalar_data = np.transpose(np.where(scalar_data>0.0, np.log10(scalar_data), logmin))
-#if log spacing not needed:
-#scalar_data = np.transpose(scalar_data)
-#printminmax(scalar_data, label=dset_str)
+#ax.set_title(r"$t={:.2E}\,{{\rm ns}};\,{}={:.2E}\,{{\rm cm}};\,{}={:.2E}\,{{\rm cm}}$".format( \
+#        1.e+9*tau, cdim1_str, cell_coords[cdim1][fp[0]], cdim2_str, cell_coords[cdim2][fp[1]]), fontsize=16)
 
 
-conplot = ax.contourf(cell_coords[cdim1], cell_coords[cdim2], scalar_2D, levels=100, cmap=scalar_cmap)
-for c in conplot.collections:
-    c.set_edgecolor("face")
-fig.colorbar(conplot, label=clabel)
+#real = ax.plot(cell_coords[dim_int], mod_pencil*np.cos(phi_pencil), "r-", label=r"${\rm Re}$")
+#imag = ax.plot(cell_coords[dim_int], mod_pencil*np.sin(phi_pencil), "b--", label=r"${\rm Im}$")
+mod = ax.plot(cell_coords[dim_int], mod_pencil, "b-", label=r"${\rm mod}$")
+#phase = ax.plot(cell_coords[dim_int], phi_pencil, "r-", label=r"$\phi_{ex}$")
+
+ax.legend(loc="best")
+#ax.legend(loc="lower right")
 
 if namestr == "[use naming convention]":
     pwd_str = os.getcwd()
-    namestr = pwd_str + "/" + com_name + mom_name + nu_str + "_contour_" + time_str + save_dims_str + pnt_str + ".pdf"
+    #namestr = pwd_str + "/" + "Nex_RI_" + nu_str + "_" + time_str + save_dims_str.format(fp[0], fp[1]) + ".pdf"
+    #namestr = pwd_str + "/" + "Nex_mod_" + nu_str + "_" + time_str + save_dims_str.format(fp[0], fp[1]) + ".pdf"
+    namestr = pwd_str + "/mod_v_z/" + "Nex_mod_" + nu_str + "_" + time_str + save_dims_str.format(fp[0], fp[1]) + ".pdf"
+    #namestr = pwd_str + "/phi_v_z/" + "Nex_phi_" + nu_str + "_" + time_str + save_dims_str.format(fp[0], fp[1]) + ".pdf"
 
 plt.savefig(namestr, bbox_inches="tight")

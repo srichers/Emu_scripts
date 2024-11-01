@@ -30,18 +30,18 @@ def plotdata(filename_FFT, filename_avg, t_in):
         return [0,],[0,]
     
     fftData = h5py.File(filename_FFT,"r")
-    t=np.array(fftData["t"])
-    k=np.array(fftData["k"])
+    t=np.array(fftData["t(s)"])
+    k=np.array(fftData["k(1|cm)"])
     #convert from 1/\lambda to k=2\pi/\lambda:
     k = 2.0*np.pi*k
-    Nee=np.array(fftData["N00_FFT"])
-    Nxx=np.array(fftData["N11_FFT"])
-    Nex=np.array(fftData["N01_FFT"])
+    Nee=np.array(fftData["N00_FFT(cm^-2)"])
+    Nxx=np.array(fftData["N11_FFT(cm^-2)"])
+    Nex=np.array(fftData["N01_FFT(cm^-2)"])
     fftData.close()
 
     avgData = h5py.File(filename_avg,"r")
-    t=np.array(avgData["t"])
-    Nexavg=np.array(avgData["N_avg_mag"][:,0,1])
+    t=np.array(avgData["t(s)"])
+    Nexavg=np.array(avgData["N_avg_mag(1|ccm)"][:,0,1])
     avgData.close()
 
     # make time relative to tmax
@@ -85,7 +85,7 @@ ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.yaxis.set_minor_locator(AutoMinorLocator())
 ax.minorticks_on()
 ax.set_xlabel(r"$k\,({\rm cm}^{-1})$")
-ax.set_ylabel(r"$\mathcal{D}(k)$")
+ax.set_ylabel(r"$|\widetilde{N}_{ex}|/\mathrm{Tr}(N)$")
 #one time only:
 #ax.set_ylabel(r"$|\widetilde{N}_{ee}|/\mathrm{Tr}(N)$")
 #axes[0].set_xlim(0,8)
@@ -106,24 +106,16 @@ tplot = -1.0e-10
 #tplot = 4.265e-11
 #tplot = 1.e-10
 
-filename_bang   = "reduced_data_fft_power.h5"
-filename_bang_avg   = "reduced_data.h5"
+filename_emu   = "plt_reduced_data_fft_power.h5"
+filename_emu_avg   = "plt_reduced_data.h5"
 
-k3,N3 = plotdata(filename_bang,filename_bang_avg,tplot)
-ax.semilogy(k3, N3, 'r-', label=r'${\rm {\tt FLASH}\,\,(2f)}$')
+k3,N3 = plotdata(filename_emu,filename_emu_avg,tplot)
+ax.semilogy(k3, N3, 'k-')
 ind3 = np.argmax(N3)
-print('flash', ind3, k3[ind3], N3[ind3])
-#Vertical line from LSA for fastet growing mode
-#ax.axvline(5.64, color='g', label=None)
+print('emu', ind3, k3[ind3], N3[ind3])
 
-#fig.text(0.5, 0.8, r'$\delta m^2=7.53\times10^{-5}\,{\rm eV}^2$')
-#fig.text(0.5, 0.72, r'$\theta=0.587$')
 fig.text(0.5, 0.74, r'$t-t_{{\rm sat}}\sim{}\,{{\rm ns}}$'.format(1.e+9*tplot))
-#fig.text(0.5, 0.74, r'$t\sim0\,{{\rm ns}}$')
-fig.text(0.5, 0.64, r'$|k|_{{\rm max}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
-#ax.legend(loc='upper right', frameon=False)
+fig.text(0.5, 0.64, r'$k_{{\rm max}}\sim{:.2}\,{{\rm cm}}^{{-1}}$'.format(float(k3[ind3])))
 
 plt.savefig("Nex_FFT_1res.pdf", bbox_inches="tight")
-#one time only:
-#plt.savefig("Nex_FFT_1res_t1.pdf", bbox_inches="tight")
 
