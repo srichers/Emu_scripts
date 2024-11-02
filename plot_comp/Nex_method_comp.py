@@ -74,7 +74,7 @@ fig, axes = plt.subplots(1,1, figsize=(6,5))
 #ind_offset = 5
 #savedir = "global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/method_comp/"
 
-#comp of methods in NSM2.5
+#comp of methods in NSM4
 filenames = ["/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_4/d_pert/t2/xy_large/sim/reduced_data.h5", \
     "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_4/od_pert/t2/xy_large/sim/reduced_data.h5", \
     "/global/cfs/projectdirs/m3761/FLASH/Emu/NSM_4/1res/correct_Nxx/NSM4_matchevan_correctNxx_long_diagonalpert/plt_reduced_data.h5"]
