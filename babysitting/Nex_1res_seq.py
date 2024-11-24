@@ -61,8 +61,13 @@ mpl.rcParams['axes.linewidth'] = 2
 # plot data #
 #############
 
-filename_bang_avg   = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t3/xy_large/sim/reduced_data.h5"
-basename   = "/pscratch/sd/e/egrohs//FFI_3D/MPC/NSM/NSM_3/d_pert/t3/xy_large/sim/volume_rendering/"
+#NSM1:
+filename_bang_avg   = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_1/MPC/d_pert/t3/sim/reduced_data.h5"
+basename   = "/pscratch/sd/e/egrohs//FFI_3D/MPC/NSM/NSM_1/d_pert/t3/sim/volume_rendering/"
+
+#NSM3:
+#filename_bang_avg   = "/global/cfs/projectdirs/m3761/FLASH/FFI_3D/NSM_3/MPC/d_pert/t3/xy_large/sim/reduced_data.h5"
+#basename   = "/pscratch/sd/e/egrohs//FFI_3D/MPC/NSM/NSM_3/d_pert/t3/xy_large/sim/volume_rendering/"
 
 t,Nex = plotdata(filename_bang_avg)
 t = 1.e+9*t

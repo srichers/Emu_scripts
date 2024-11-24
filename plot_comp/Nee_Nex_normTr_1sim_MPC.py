@@ -126,7 +126,7 @@ plt.subplots_adjust(hspace=0)
 ##need to set tmax to below for filename_emu_2f to get good comparison with FLASH:
 ##tmax = t[177]
 
-##NSM_2/clos3/t[2,4]/xy_large:
+##NSM_2/clos3/t4/xy_large:
 emu_test = "NSM_2"
 filename_emu_2f = "/global/cfs/projectdirs/m3761/FLASH/Emu/NSM_2/32dir/merger_2F/plt_reduced_data.h5"
 filename_emu_3f = None
